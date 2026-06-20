@@ -8,8 +8,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="styles.css">
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>window._firebaseReady=false;</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" onerror="console.warn('Firebase app failed to load')"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" onerror="console.warn('Firebase firestore failed to load')"></script>
+<script>if(typeof firebase!=='undefined')window._firebaseReady=true;</script>
 </head>
 <body>
 <div id="app">
@@ -161,12 +163,16 @@
     <div class="history-tabs">
       <button class="ht-tab active" onclick="MQ.showHistoryTab('personal')">Personal</button>
       <button class="ht-tab" onclick="MQ.showHistoryTab('friends')">Friends</button>
+      <button class="ht-tab" onclick="MQ.showHistoryTab('prs')">PRs</button>
     </div>
     <div id="history-personal" class="history-panel">
       <div id="workout-history" class="workout-history"></div>
     </div>
     <div id="history-friends" class="history-panel" style="display:none">
       <div id="friends-feed" class="friends-feed"></div>
+    </div>
+    <div id="history-prs" class="history-panel" style="display:none">
+      <div id="pr-list"></div>
     </div>
   </main>
 
