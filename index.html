@@ -202,6 +202,7 @@
     <div class="leaderboard-tabs">
       <button class="lb-tab active" onclick="MQ.showLeaderboard('weekly')">Weekly</button>
       <button class="lb-tab" onclick="MQ.showLeaderboard('alltime')">All Time</button>
+      <button class="lb-tab" onclick="MQ.showLeaderboard('fight')">Fight</button>
     </div>
     <div id="leaderboard-list" class="leaderboard-list"></div>
     <p class="firebase-note" id="firebase-status"></p>
@@ -255,6 +256,11 @@
     </section>
   </main>
 
+  <!-- Tab: Fight -->
+  <main id="tab-fight" class="tab-content">
+    <div id="fight-container"></div>
+  </main>
+
   <!-- Bottom Nav -->
   <nav id="bottom-nav">
     <button class="nav-btn active" onclick="MQ.showTab('dashboard')" data-tab="dashboard">
@@ -264,6 +270,10 @@
     <button class="nav-btn" onclick="MQ.showTab('workouts')" data-tab="workouts">
       <span class="nav-icon">🏋️</span>
       <span>Workouts</span>
+    </button>
+    <button class="nav-btn" onclick="MQ.showTab('fight')" data-tab="fight">
+      <span class="nav-icon">🥊</span>
+      <span>Fight</span>
     </button>
     <button class="nav-btn" onclick="MQ.showTab('quests')" data-tab="quests">
       <span class="nav-icon">📜</span>
@@ -277,5 +287,6 @@
 </div>
 
 <script src="app.js"></script>
+<script src="fight.js"></script>
 </body>
 </html>
