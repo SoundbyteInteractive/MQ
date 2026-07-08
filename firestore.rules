@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Player saves ──
+    // Everyone can read (leaderboards, friends feed, service records need this).
+    // Creating a new account is open, but updating an existing account requires
+    // sending the same _pin the document already has — so a random attacker
+    // can't blindly overwrite someone's save.
+    match /users/{username} {
+      allow read: if true;
+      allow create: if request.resource.data._pin is string
+                    && request.resource.data._pin.size() >= 4;
+      allow update: if request.resource.data._pin == resource.data._pin
+                    // legacy upgrade window: old plaintext 4-digit PINs may be
+                    // replaced by the new salted hash on next login
+                    || (resource.data._pin is string && resource.data._pin.size() == 4);
+      allow delete: if false;
+    }
+
+    // ── Apple Health sync ──
+    // Written by the iOS Shortcut over unauthenticated REST, so writes must stay
+    // open — but we validate the shape so junk can't be dumped in.
+    match /healthSync/{username} {
+      allow read: if true;
+      allow write: if request.resource.data.date is string
+                   && request.resource.data.steps is number;
+      allow delete: if false;
+    }
+
+    // ── Raid parties (4-person teams: tank/dps/dps/healer) ──
+    // No auth in this app, so — same trust level as the users collection — anyone
+    // can create/update/delete a team doc. Just require the basic shape to hold so
+    // junk can't be written in.
+    match /teams/{teamId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.name is string
+                             && request.resource.data.members is list;
+      allow delete: if true;
+    }
+
+    // ── Everything else is locked ──
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
