@@ -1,0 +1,10093 @@
+const MQ = (() => {
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC6_AVDVbH9cBh304PJOA7cMsTBcyTw5Rc",
+  authDomain: "musclequest-c5052.firebaseapp.com",
+  projectId: "musclequest-c5052",
+  storageBucket: "musclequest-c5052.firebasestorage.app",
+  messagingSenderId: "102275749534",
+  appId: "1:102275749534:web:fd325c22997c478022cd8f"
+};
+
+// ─── Version & Patch Notes ───
+// Versioning: MAJOR.MINOR.PATCH, where PATCH counts 0-19 and then ROLLS OVER.
+// Bump PATCH by +1 on every push. When it would reach 20, reset it to 0 and bump
+// MINOR by +1 instead — so twenty small updates add up to one minor version.
+//   1.3.18 → 1.3.19 → 1.4.0 → 1.4.1 …
+// MAJOR is reserved for a deliberate milestone, never automatic.
+// Add a matching entry to PATCH_NOTES, newest first, on every bump.
+const APP_VERSION = '1.4.5';
+const PATCH_NOTES = [
+  { version: '1.4.5', notes: [
+    'Fixed accounts looking blank or out of sync between your phone and computer. Your devices now MERGE instead of one overwriting the other — workouts logged on either one are kept, and a device that can\'t reach the cloud can no longer wipe your real account',
+    'If a device can\'t reach the cloud (a content blocker, a bad connection) you now see a warning banner with a Retry button, instead of a silently blank hero. It keeps retrying on its own and syncs the moment it can',
+    'Logging in while the server can\'t be reached no longer creates a brand-new empty account that looks like lost progress',
+  ]},
+  { version: '1.4.4', notes: [
+    'Fixed another streak-reset bug — backdating a missed day correctly fixed your streak number, but didn\'t update the "last logged day" it\'s checked against next, so your very next normal workout could still reset you back to 1',
+  ]},
+  { version: '1.4.3', notes: [
+    'Mike Mentzer\'s split now uses his actual "Evolved Heavy Duty" routine (alternating A/B workouts, 3x every 2 weeks each) instead of a generic High Intensity Training template, with a clear explanation up front of what "failure" actually means here — and why it is not the same as a 1-rep max',
+  ]},
+  { version: '1.4.2', notes: [
+    'Arnold\'s 6-day split now includes Abs on every training day (Chest/Back/Abs, Shoulders/Arms/Abs, Legs/Calves/Abs) — it was missing from all three before',
+  ]},
+  { version: '1.4.1', notes: [
+    'Louie Simmons\' split now explains what ME, DE, and RE actually mean, and has a new Q&A page sourced straight from Westside Barbell — training splits, why the big three get trained twice a week, and what conjugate periodization is actually for',
+  ]},
+  { version: '1.4.0', notes: [
+    'Fixed the dumpster\'s half-eaten food finds (Protein Bar, Energy Gel, Creatine Scoop) — they were promising an XP bonus that never actually applied. They now grant a real, working boost',
+  ]},
+  { version: '1.3.19', notes: [
+    'Fixed a rare streak reset — submitting a workout right as the app opened could occasionally judge your streak against a not-yet-synced older save and reset it, even with no actual gap in your log. Submitting now waits for that sync to finish first',
+  ]},
+  { version: '1.3.18', notes: [
+    'Home Gym equipment can now be upgraded to Tier 2 and Tier 3 instead of being a one-time purchase — each tier costs more but gives a bigger XP bonus, so there\'s always something worth saving gold for',
+    'Foam Roller now actually gives a Cardio XP bonus (it never did before, despite saying so)',
+  ]},
+  { version: '1.3.17', notes: [
+    'Synchronized Strike now caps out per boss — 2 times max for a 4-man raid, up to 4 times for the biggest raids — instead of rolling the chance every single day',
+  ]},
+  { version: '1.3.16', notes: [
+    'Raid bosses can now telegraph a Synchronized Strike — they call out a muscle group and the whole party has 2 days to each log it, or take a hit. Whoever personally misses it takes extra damage on top of the party-wide splash. Bigger raids trigger it more often',
+  ]},
+  { version: '1.3.15', notes: [
+    'Fixed a streak-tracking bug where a day bridged by a protection buff (multivitamin/streakbar) could get silently discounted the next time you logged in, regressing your streak',
+  ]},
+  { version: '1.3.14', notes: [
+    'Fixed a crash on Apple Health sync refresh caused by a leftover call to a function that no longer exists in this file',
+  ]},
+  { version: '1.3.13', notes: [
+    'Fixed challenges showing a muscle group (like "Chest") in their goal line even when the goal type had nothing to do with muscles',
+    'Restyled the guild rank dropdown in the Guild Hall roster to match the rest of the theme instead of looking like a stray browser default',
+  ]},
+  { version: '1.3.12', notes: [
+    'Public Challenges is now on by default for new accounts, so you don\'t have to dig into Settings to be found for one',
+  ]},
+  { version: '1.3.11', notes: [
+    'Fixed the height slider locking up mid-drag — dragging it now moves smoothly instead of jumping one notch at a time',
+    'Private Profile, Public Challenges, and Workout Recap are now compact on/off switches at the bottom of Settings › Data instead of three full boxed rows with checkboxes',
+    'Renamed the Raid tab under Quests to Challenges, and moved Daily Quests and Player Challenges into it — Home now holds just the Home Gym and Achievements',
+    'Inviting to a raid team now has a guild-roster dropdown right next to the username field — pick a member and it fills the field for you. Grayed out if you are not in a guild',
+  ]},
+  { version: '1.3.10', notes: [
+    'Guild Hall moved again — turns out there are two trash cans in this app, and the ask was for the one next to the escalator inside the mall, not the one in the Back Alley. It now lives there, with the same pulsing glow and label',
+  ]},
+  { version: '1.3.9', notes: [
+    'Fixed a real navigation bug — the Guild Hall\'s own back button still said "Iron Temple" and sent you to the wrong scene after last patch moved the entrance to the Back Alley. It now correctly returns you to the Back Alley',
+    'The Home tab now always shows a "Start a Challenge" card once you\'re online, instead of only appearing after you already have one — the empty state is the entry point, tap it to jump straight into creating your first challenge',
+    'The Guild Hall door in the Back Alley now has a visible pulsing glow and a brighter label, and the alley\'s caption line calls it out by name — it was too easy to miss in a scene that dark',
+  ]},
+  { version: '1.3.8', notes: [
+    'Added Player Challenges — create a personal goal, invite specific friends, post an open public challenge, or start one scoped to your guild. Track progress on the Home tab and manage everything from Quests › Home',
+    'Challenges can carry a gold wager (and optionally require an armor piece staked to join) — the winner takes the whole pot. Enable "Public Challenges" in Settings to browse and be found for open public ones',
+    'Moved the Guild Hall out of the Iron Temple gym and into the Back Alley, right beside the dumpster — it was easy to miss buried behind the trainer-selection screen',
+  ]},
+  { version: '1.3.7', notes: [
+    'Cross-device sync overhaul — buying something in the Shop, adopting a pet, or claiming a vial now actually reaches the cloud, so gold and gear stay in sync between your phone and desktop instead of only ever saving to whichever device made the change',
+    'Fixed the cause of streaks not carrying over between devices — a stale value pulled in from another device is now recomputed from your workout history instead of trusted as-is',
+    'Cross-device conflicts now resolve by whichever device saved most recently, instead of by workout count — the old rule never noticed gold, gear, or streak changes and could silently overwrite them with an older save',
+    'Most saves now debounce their cloud push by ~2.5s instead of firing on every tap, so casual browsing does not spam the network — confirmed actions (submitting a workout, a Shop purchase) still push immediately',
+    'Added a Weight tracker to the Volume tab — tap the scale icon between your front and back model to log your body weight and see it graphed over time, the same way muscle measurements already work. Logging a weight keeps your Goals & Nutrition calorie budget current automatically',
+  ]},
+  { version: '1.3.6', notes: [
+    'New pose: High V, unlocking at Lv 25 — arms swung right overhead so the hands clear your face on a big frame',
+    'Rear Lat Spread retuned — the old angles put both hands inside your own chest from Lv 20 up, which read as folded arms rather than a spread; hands now drop to the waist with the elbows flared wide',
+    'The version number now sits under the IronLore logo on every tab and opens the patch notes when tapped',
+    'Cosmetics removed from Settings — the Character panel on the Home tab replaced it',
+  ]},
+  { version: '1.3.5', notes: [
+    'Added a console command for setting muscle levels directly, so the avatar can be reviewed at high level without logging hundreds of workouts',
+  ]},
+  { version: '1.3.4', notes: [
+    'Added console preview commands for the workout recap and the loot chest, so both can be watched without logging a real workout or waiting on a raid kill',
+  ]},
+  { version: '1.3.3', notes: [
+    'Submitting a workout now plays a recap — gold and XP count up while every muscle you trained fills its own bar in turn, flashing gold as it levels, and your overall bar catches up at the end',
+    'Level-ups no longer stack modals mid-submit; they play inside the recap at the moment the bar crosses over, with the matching muscle flashing on your character',
+    'Raid armor now arrives in a chest you open yourself instead of a toast that vanishes in three seconds — tap the lid, and the piece rises out on a beam of light with its rarity colour. Epic and Bloodforged drops get a bigger burst',
+    'New sounds for the gold count, the chest opening and the loot reveal',
+    'Workout Recap can be switched off in Settings if you would rather log and go, and the whole thing is skippable with a tap',
+  ]},
+  { version: '1.3.2', notes: [
+    'New Hide Armor button in the Character panel — keeps your armor equipped and every set bonus active, but stops drawing it over the cosmetics you actually unlocked',
+    'Remove All now asks for a second tap before it strips your gear, so it cannot be hit by accident',
+    'Removed the little corner badge from the head slot — it was the only tile that ever showed one, which read as a glitch rather than as information',
+    'Fixed the character getting cropped at the edges of its frame — a maxed-out avatar was too wide for the scene, and the tall end of the height slider pushed the head off the top; the frame now grows to fit whatever is drawn',
+    'Version numbering changed: twenty patch releases now roll up into one minor version (1.3.19 is followed by 1.4.0)',
+  ]},
+  { version: '1.3.1', notes: [
+    'Every gear slot now shows a small icon of the exact item you have on, the same way the head slot always did — cosmetic icons were a mix of icon-font glyphs and emoji, and several emoji have no glyph on Windows, so those slots looked empty even with something equipped',
+    'The Locker Room Slides icon was invisible on Windows entirely — all 45 cosmetics now use the same icon set, colour-coded so similar pieces stay tellable apart',
+    'Fixed the Lifting Belt icon, which had been pointing at an icon that does not exist and rendering as a blank box',
+  ]},
+  { version: '1.3.0', notes: [
+    'Height is now yours to pick — a slider in Settings under Skin Tone runs from 4\'7" (Extremely Small) to 7\'1" (Extremely Tall) and scales your character on screen to match',
+    '14 new cosmetics filling out the slots that only had one item each — Dino Onesie, Marble Toga, Wrestling Singlet and Sauna Suit for the body; Retro Sneakers, Squat Shoes, Cloud Slides and Chalk Hightops for the feet; Championship Belt, Chalk Bag and Fanny Pack for the waist; and a Shoulder Boombox for your back',
+    'The Pro Duffel Bag and FORGED™ Shaker were being sold in the store but could never be equipped — both are wearable now',
+    'Armor pieces each have their own icon instead of every slot showing the same shield, so a helm, a gauntlet and a greave are told apart at a glance',
+    'Added a Remove All button to the Character panel that strips every worn cosmetic and armor piece in one tap (nothing is lost — it all stays in your inventory)',
+  ]},
+  { version: '1.2.0', notes: [
+    'New Character panel — tap the shield beside your avatar on the Home tab to open a paperdoll with one tile per gear slot, so you can change your look right where you can see it instead of scrolling through Settings',
+    'Each slot opens on its cosmetics, with an armor toggle beside it that swaps the list over to the raid armor you\'ve unlocked for that same slot',
+    'Cosmetics and armor still layer as before; a slot wearing both shows the cosmetic as a small corner pip',
+    'New Stats tab shows every passive bonus in one place at last — supplements, vials, armor set bonuses, home gym equipment, and today\'s Health Sync bonuses, with time remaining',
+    'New Pet tab — pick which pet follows you as your companion (it used to just cycle at random) and feed your pets without going to the Pet Store',
+    'Title selection moved out of Settings into the Character panel, where it behaves like every other gear slot — tap the Title slot to reveal your unlocked titles',
+  ]},
+  { version: '1.1.5', notes: [
+    'Added console-only diagnostics/repair tools for a team stuck on "Loading your party\'s raid boss…" — not caused by any recent patch, root cause was a team doc missing its boss-instance fields',
+  ]},
+  { version: '1.1.4', notes: [
+    'Fixed a streak bug — logging today\'s workout now uses the original trusted day-to-day counter again instead of always recomputing from full history, so an old gap can no longer silently drop your streak',
+    'Backdated logging still reconnects a streak when it fills a gap, but can never lower it',
+  ]},
+  { version: '1.1.3', notes: [
+    'Cosmetics preview and armor preview now show in two separate panels next to their own section, instead of one shared panel pinned to the top — less scrolling',
+  ]},
+  { version: '1.1.2', notes: [
+    'Today\'s Split header restyled — gradient nav arrows, glowing select and TODAY badge to match the rest of the app instead of flat grey buttons',
+  ]},
+  { version: '1.1.1', notes: [
+    'Fixed a crash rendering mini avatars with the Champion\'s Cape equipped (was breaking leaderboards, friends feed, party lists, and raid boss fight views)',
+  ]},
+  { version: '1.1.0', notes: [
+    'Cosmetics & armor now have a live preview — tap an unequipped item to see it on your avatar right in Settings, with an explicit Equip/Cancel before it\'s actually worn',
+    'Backdate calendar now caps at 30 days back (was 90)',
+  ]},
+  { version: '1.0.20', notes: [
+    'Backdated workout logging — click "Today" on the workout card to log a past workout from a mini calendar (up to 30 days back)',
+    'Streak now recalculates from your workout history, so backfilling a missed day reconnects your streak',
+    'Arm Wrestling & Sumo wins now clearly show a gold prize on the victory screen',
+    'Tab titles (History, IronLore Mall, Quests & Achievements, Leaderboards) are now centered',
+    'Version number + patch notes added to Settings',
+  ]},
+];
+
+let db = null;
+let currentUser = null;
+let healthSync = null; // today's Apple Health data from iOS Shortcut
+
+// autoLogin() unhides the dashboard the instant localStorage loads, then merges the
+// cross-device Firestore copy in the background (up to 5s) — see autoLogin() below.
+// If a workout gets submitted before that merge settles, updateStreak() judges the
+// day-to-day gap against a `state.lastWorkoutDate` that might still be stale from an
+// older local save, wrongly resetting a streak that Firestore's real log shows no gap
+// in. submitWorkout() awaits this so the streak decision always sees the merged state
+// first — resolved immediately (not logged in / no remote / already settled) or as
+// soon as the background merge above finishes, whichever comes first.
+let _cloudMergeSettled = Promise.resolve();
+
+// ── Cloud sync safety state ──
+// _cloudReadVerified is the key guard: this device has NOT yet proven it can read the
+// account's cloud copy until it flips true, and until then _pushToCloud() refuses to
+// write anything. Before this existed, a device that couldn't reach Firestore (ad/content
+// blocker, flaky network) would quietly run on a blank or stale local save — then the
+// moment it did connect, its newer-looking timestamp let it overwrite the real account.
+let _cloudReadVerified = false;
+let _cloudSyncInFlight = null;
+let _cloudSyncFailures = 0;
+let _syncRetryTimer = null;
+let _lastCloudSyncAttemptAt = 0;
+let _legacyPinForSync = null;
+let _remoteLogLenAtLastSync = 0;   // workoutLog length seen in the cloud at the last good read/push
+let _shrinkPushAllowed = false;    // set only by a deliberate reset/import, which legitimately shrinks the log
+
+// HTML-escape untrusted strings (player names come from other users via Firestore)
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// SHA-256 hash of the PIN, salted with the username, so plaintext PINs never leave the device.
+// Falls back to plaintext on insecure contexts (crypto.subtle needs https/localhost).
+async function hashPin(pin, username) {
+  if (!window.crypto?.subtle) return pin;
+  const data = new TextEncoder().encode(`mq:${username}:${pin}`);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function initFirebase() {
+  try {
+    if (typeof firebase !== 'undefined' && typeof firebase.initializeApp === 'function' && FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY') {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      return true;
+    }
+  } catch (e) { console.warn('Firebase init skipped:', e.message); }
+  db = null;
+  return false;
+}
+
+// ─── Cosmetics System ───
+const COSMETICS = [
+  { id: 'headband_red',    name: 'Red Headband',   icon: '<i class="ti ti-ribbon-health" style="color:#e53935"></i>', type: 'head',  unlock: 'first_workout',  desc: 'Complete first workout' },
+  { id: 'headband_blue',   name: 'Blue Headband',  icon: '<i class="ti ti-ribbon-health" style="color:#1e88e5"></i>', type: 'head',  unlock: 'streak_3',       desc: '3 day streak' },
+  { id: 'headband_gold',   name: 'Gold Headband',  icon: '<i class="ti ti-ribbon-health" style="color:#ffd700"></i>', type: 'head',  unlock: 'streak_30',      desc: '30 day streak' },
+  { id: 'wrist_wraps',     name: 'Wrist Wraps',    icon: '<i class="ti ti-bandage" style="color:#cfd8dc"></i>',          type: 'wrist', unlock: 'ten_workouts',   desc: 'Complete 10 workouts' },
+  { id: 'wrist_wraps_red', name: 'Red Wraps',      icon: '<i class="ti ti-bandage" style="color:#e53935"></i>', type: 'wrist', unlock: 'muscle_10',      desc: 'Any muscle to Lv.10' },
+  { id: 'tank_top',        name: 'Tank Top',       icon: '<i class="ti ti-shirt" style="color:#d32f2f"></i>',            type: 'torso', unlock: 'level_5',        desc: 'Reach level 5' },
+  { id: 'stringer',        name: 'Stringer',       icon: '<i class="ti ti-shirt-sport" style="color:#7c4dff"></i>',      type: 'torso', unlock: 'level_10',       desc: 'Reach level 10' },
+  { id: 'knee_sleeves',    name: 'Knee Sleeves',   icon: '<i class="ti ti-walk" style="color:#9e9e9e"></i>',             type: 'legs',  unlock: 'all_muscles',    desc: 'Train all 10 muscles' },
+  { id: 'lifting_belt',    name: 'Lifting Belt',   icon: '<i class="ti ti-capsule-horizontal" style="color:#8d6e63"></i>',             type: 'waist', unlock: 'fifty_workouts', desc: 'Complete 50 workouts' },
+  { id: 'crown',           name: 'Champion Crown', icon: '<i class="ti ti-crown" style="color:#ffd700"></i>', type: 'head',  unlock: 'level_25',       desc: 'Reach level 25' },
+  { id: 'gold_chain',      name: 'Gold Chain',     icon: '<i class="ti ti-link" style="color:#ffd700"></i>', type: 'neck',  unlock: 'gold_1000',      desc: 'Earn 1000 gold' },
+  { id: 'sweatbands',      name: 'Sweatbands',     icon: '<i class="ti ti-droplet" style="color:#42a5f5"></i>', type: 'wrist', unlock: 'streak_7',       desc: '7 day streak' },
+  { id: 'medal_bronze',    name: 'Bronze Medal',   icon: '<i class="ti ti-medal" style="color:#cd7f32"></i>', type: 'neck',  unlock: 'bb_contender',   desc: 'Win 1 bodybuilding show' },
+  { id: 'medal_silver',    name: 'Silver Medal',   icon: '<i class="ti ti-medal" style="color:#c0c0c0"></i>', type: 'neck',  unlock: 'bb_regular',     desc: 'Win 5 bodybuilding shows' },
+  { id: 'medal_gold',      name: 'Gold Medal',     icon: '<i class="ti ti-medal" style="color:#ffd700"></i>', type: 'neck',  unlock: 'bb_champion',    desc: 'Win 10 bodybuilding shows' },
+  { id: 'laurel_wreath',   name: 'Laurel Wreath',  icon: '<i class="ti ti-award" style="color:#c9a227"></i>', type: 'head',  unlock: 'rank1_weekly',  desc: '#1 on the weekly board' },
+  { id: 'iron_crown',      name: 'Iron Crown',     icon: '<i class="ti ti-crown" style="color:#b0bec5"></i>', type: 'head',  unlock: 'rank1_monthly', desc: '#1 on the monthly board' },
+  { id: 'legend_chain',    name: 'Legend Chain',   icon: '<i class="ti ti-link" style="color:#9e7cff"></i>', type: 'neck',  unlock: 'rank1_yearly',  desc: '#1 on the yearly board' },
+  { id: 'raid_trophy',     name: 'Raid Trophy',    icon: '<i class="ti ti-trophy" style="color:#ffd700"></i>', type: 'neck',  unlock: 'raid_slayer',   desc: 'Defeat a monthly raid boss' },
+  // gym_towel is sold in the Iron Depot store (store.js CLOTHING list) but was missing
+  // from here, so purchasing it never gave you anything to equip — fixed.
+  { id: 'gym_towel',       name: 'Microfibre Towel', icon: '<i class="ti ti-stretching-2" style="color:#4caf50"></i>', type: 'neck', unlock: null, desc: 'Purchased from the Iron Depot' },
+  // Purchasable clothing (from FORGED™ Apparel)
+  { id: 'forged_tank',     name: 'FORGED™ Tank',       icon: '<i class="ti ti-shirt-filled" style="color:#9e7cff"></i>', type: 'torso', price: 180, desc: 'Performance training tank' },
+  { id: 'forged_joggers',  name: 'FORGED™ Joggers',    icon: '<i class="ti ti-hanger" style="color:#9e7cff"></i>', type: 'legs',  price: 240, desc: 'Tapered jogger pants' },
+  { id: 'lifting_gloves',  name: 'Lifting Gloves',     icon: '<i class="ti ti-hand-grab" style="color:#c8965e"></i>', type: 'wrist', price: 80,  desc: 'Pro grip gloves' },
+  { id: 'compression_set', name: 'Compression Set',    icon: '<i class="ti ti-yoga" style="color:#4488ff"></i>', type: 'legs',  price: 150, desc: 'Full leg compression' },
+  { id: 'do_rag',          name: 'Do-Rag',             icon: '<i class="ti ti-cap-rounded" style="color:#aaaaaa"></i>', type: 'head',  price: 60,  desc: 'Keep it clean in the gym' },
+  { id: 'flip_flops',     name: 'Locker Room Slides', icon: '<i class="ti ti-shoe" style="color:#0288d1"></i>', type: 'feet',  price: 35,  desc: 'Essential post-workout gear' },
+  { id: 'borat_suit',     name: 'The Mankini',        icon: '<i class="ti ti-mood-happy" style="color:#00c853"></i>', type: 'body',  price: 999, desc: 'Very nice. Great success.' },
+  { id: 'sunglasses',     name: 'Aviator Shades',     icon: '<i class="ti ti-sunglasses" style="color:#4a90d9"></i>', type: 'head',  price: 70,  desc: "Can't see my eyes, can't see my gains" },
+  { id: 'arm_sleeve',     name: 'Compression Sleeve', icon: '<i class="ti ti-bandage-filled" style="color:#4488ff"></i>',     type: 'wrist', price: 55,  desc: 'Single-arm sleeve — for the aesthetic' },
+  { id: 'champ_cape',     name: "Champion's Cape",    icon: '<i class="ti ti-pennant" style="color:#c1354a"></i>', type: 'accessory', price: 220, desc: 'Nobody asked, everybody stares' },
+  { id: 'dog_tags',       name: 'Dog Tags',           icon: '<i class="ti ti-tag" style="color:#c8c8c8"></i>',        type: 'neck',   price: 40,  desc: 'Budget bling — still counts' },
+  // ── Body (full outfits) ──
+  { id: 'onesie',         name: 'Dino Onesie',        icon: '<i class="ti ti-dog" style="color:#43a047"></i>', type: 'body',  price: 260, desc: 'Rest day incarnate. Tail included' },
+  { id: 'toga',           name: 'Marble Toga',        icon: '<i class="ti ti-building-bank" style="color:#c9a227"></i>', type: 'body',  price: 300, desc: 'Leg day at the Parthenon' },
+  { id: 'singlet',        name: 'Wrestling Singlet',  icon: '<i class="ti ti-karate" style="color:#c62828"></i>', type: 'body',  price: 190, desc: 'No pockets, no mercy' },
+  { id: 'sauna_suit',     name: 'Sauna Suit',         icon: '<i class="ti ti-temperature-sun" style="color:#b0bec5"></i>', type: 'body',  price: 210, desc: 'Crinkles when you move. Everyone knows' },
+  // ── Feet ──
+  { id: 'sneakers',       name: 'Retro Sneakers',     icon: '<i class="ti ti-shoe" style="color:#e53935"></i>', type: 'feet',  price: 120, desc: 'Classic gum-sole trainers' },
+  { id: 'lifting_shoes',  name: 'Squat Shoes',        icon: '<i class="ti ti-barbell" style="color:#ffb300"></i>', type: 'feet',  price: 200, desc: 'Raised heel, zero compromise' },
+  { id: 'slides_recovery',name: 'Cloud Slides',       icon: '<i class="ti ti-cloud" style="color:#b0bec5"></i>', type: 'feet',  price: 65,  desc: 'Chunky recovery slides' },
+  { id: 'hightops',       name: 'Chalk Hightops',     icon: '<i class="ti ti-ball-basketball" style="color:#ff7043"></i>', type: 'feet',  price: 150, desc: 'Ankle support and attitude' },
+  // ── Waist ──
+  { id: 'champ_belt',     name: 'Championship Belt',  icon: '<i class="ti ti-award" style="color:#ffd700"></i>', type: 'waist', price: 450, desc: 'Undisputed. Self-declared' },
+  { id: 'chalk_bag',      name: 'Chalk Bag',          icon: '<i class="ti ti-salt" style="color:#efebe9"></i>', type: 'waist', price: 70,  desc: 'Clip-on chalk pouch' },
+  { id: 'fanny_pack',     name: 'Fanny Pack',         icon: '<i class="ti ti-briefcase" style="color:#7c4dff"></i>', type: 'waist', price: 90,  desc: 'Keys, phone, pre-workout' },
+  // ── Back / accessory ──
+  { id: 'boombox',        name: 'Shoulder Boombox',   icon: '<i class="ti ti-device-speaker" style="color:#ffca28"></i>', type: 'accessory', price: 340, desc: 'Your playlist is everyone\'s playlist' },
+  { id: 'forged_bag',     name: 'Pro Duffel Bag',     icon: '<i class="ti ti-backpack" style="color:#9e7cff"></i>', type: 'accessory', price: 300, desc: '40L gym carry, worn across the back' },
+  { id: 'forged_shaker',  name: 'FORGED™ Shaker',     icon: '<i class="ti ti-bottle" style="color:#7c4dff"></i>', type: 'accessory', price: 120, desc: 'Insulated 32oz, clipped at the hip' },
+];
+
+// ─── Skin Tones ───
+const SKIN_TONES = [
+  { name:'Fair',   s1:'#fce4c4', s2:'#e8c890', s3:'#d4a870', s4:'#c09060' },
+  { name:'Medium', s1:'#f4c794', s2:'#d4a06a', s3:'#e8b980', s4:'#c8965e' }, // default
+  { name:'Tan',    s1:'#d4956a', s2:'#a8703a', s3:'#c0804a', s4:'#985828' },
+  { name:'Deep',   s1:'#9b6b45', s2:'#6b3e22', s3:'#8b5a30', s4:'#4b2810' },
+];
+
+const HAIR_COLORS = [
+  { name:'Brown',  c1:'#4a3728', c2:'#3d2e1f' },
+  { name:'Black',  c1:'#1a1a1a', c2:'#0d0d0d' },
+  { name:'Blonde', c1:'#c8a84b', c2:'#a07830' },
+  { name:'Grey',   c1:'#9a9a9a', c2:'#6e6e6e' },
+  { name:'Red',    c1:'#8b2500', c2:'#5a1500' },
+];
+
+// ─── Data Definitions ───
+const MUSCLES = {
+  chest:      { name: 'Chest',      color: '#f44336', group: 'push' },
+  biceps:     { name: 'Biceps',     color: '#ff9800', group: 'pull' },
+  triceps:    { name: 'Triceps',    color: '#ff5722', group: 'push' },
+  shoulders:  { name: 'Shoulders',  color: '#9c27b0', group: 'push' },
+  back:       { name: 'Back',       color: '#4caf50', group: 'pull' },
+  abs:        { name: 'Abs',        color: '#ffd700', group: 'core' },
+  glutes:     { name: 'Glutes',     color: '#e91e63', group: 'legs' },
+  quads:      { name: 'Quads',      color: '#4488ff', group: 'legs' },
+  hamstrings: { name: 'Hamstrings', color: '#2196f3', group: 'legs' },
+  calves:     { name: 'Calves',     color: '#00bcd4', group: 'legs' },
+  cardio:     { name: 'Cardio',     color: '#ff6e40', group: 'cardio' },
+  rest:       { name: 'Rest Day',   color: '#78909c', group: 'recovery' },
+};
+
+const EXERCISES = {
+  chest:      ['Bench Press','Incline Press','Chest Fly','Push-ups','Cable Crossover','Dips (Chest)','Other'],
+  biceps:     ['Barbell Curl','Dumbbell Curl','Hammer Curl','Preacher Curl','Concentration Curl','Chin-ups','Other'],
+  triceps:    ['Tricep Pushdown','Skull Crushers','Overhead Extension','Dips (Triceps)','Close-Grip Bench','Other'],
+  shoulders:  ['Overhead Press','Lateral Raise','Front Raise','Face Pull','Arnold Press','Shrugs','Other'],
+  back:       ['Deadlift','Pull-ups','Barbell Row','Lat Pulldown','Cable Row','T-Bar Row','Back Extension','Hyperextension','Other'],
+  abs:        ['Crunches','Planks','Leg Raises','Russian Twists','Ab Rollout','Cable Crunch','Other'],
+  glutes:     ['Hip Thrust','Glute Bridge','Romanian Deadlift','Cable Kickback','Bulgarian Split Squat','Hip Abductor','Hip Adductor','Other'],
+  quads:      ['Squat','Leg Press','Lunges','Leg Extension','Front Squat','Goblet Squat','Other'],
+  hamstrings: ['Leg Curl','Stiff-Leg Deadlift','Nordic Curl','Good Mornings','Glute-Ham Raise','Other'],
+  calves:     ['Calf Raise (Standing)','Calf Raise (Seated)','Donkey Calf Raise','Jump Rope','Other'],
+  cardio:     ['Walking','Running','Jogging','Cycling','Stairmaster','Elliptical','Rowing Machine','Swimming','Jump Rope','HIIT','Yoga','Pilates','Dance','Hiking','Climbing','Boxing','Kickboxing','Tennis','Pickleball','Skating','Cross-Country Skiing','Other'],
+  rest:       ['Rest & Recovery'],
+};
+
+const DAY_PRESETS = [
+  { label: 'Rest',                    muscles: [] },
+  { label: 'Chest',                   muscles: ['chest'] },
+  { label: 'Back',                    muscles: ['back'] },
+  { label: 'Push',                    muscles: ['chest','shoulders','triceps'] },
+  { label: 'Pull',                    muscles: ['back','biceps'] },
+  { label: 'Legs',                    muscles: ['quads','hamstrings','glutes','calves'] },
+  { label: 'Quads & Glutes',          muscles: ['quads','glutes'] },
+  { label: 'Hamstrings & Calves',     muscles: ['hamstrings','calves'] },
+  { label: 'Shoulders & Arms',        muscles: ['shoulders','biceps','triceps'] },
+  { label: 'Chest & Back',            muscles: ['chest','back'] },
+  { label: 'Chest & Biceps',          muscles: ['chest','biceps'] },
+  { label: 'Chest & Triceps',         muscles: ['chest','triceps'] },
+  { label: 'Back & Biceps',           muscles: ['back','biceps'] },
+  { label: 'Shoulders & Tri',         muscles: ['shoulders','triceps'] },
+  { label: 'Arms',                    muscles: ['biceps','triceps'] },
+  { label: 'Shoulders',               muscles: ['shoulders'] },
+  { label: 'Abs',                     muscles: ['abs'] },
+  { label: 'Abs & Cardio',            muscles: ['abs','cardio'] },
+  { label: 'Cardio',                  muscles: ['cardio'] },
+  { label: 'Upper Body',              muscles: ['chest','back','shoulders','biceps','triceps'] },
+  { label: 'Lower Body',              muscles: ['quads','hamstrings','glutes','calves'] },
+  { label: 'Full Body',               muscles: ['chest','back','shoulders','biceps','triceps','quads','hamstrings','glutes','calves','abs'] },
+];
+
+const EXERCISE_MUSCLES = {
+  'Bench Press': { chest: 1.0, triceps: 0.4, shoulders: 0.3 },
+  'Incline Press': { chest: 0.8, shoulders: 0.5, triceps: 0.3 },
+  'Chest Fly': { chest: 1.0 },
+  'Push-ups': { chest: 0.8, triceps: 0.4, shoulders: 0.3, abs: 0.2 },
+  'Cable Crossover': { chest: 1.0 },
+  'Dips (Chest)': { chest: 0.9, triceps: 0.5 },
+  'Barbell Curl': { biceps: 1.0 },
+  'Dumbbell Curl': { biceps: 1.0 },
+  'Hammer Curl': { biceps: 0.9 },
+  'Preacher Curl': { biceps: 1.0 },
+  'Concentration Curl': { biceps: 1.0 },
+  'Tricep Pushdown': { triceps: 1.0 },
+  'Skull Crushers': { triceps: 1.0 },
+  'Overhead Extension': { triceps: 1.0 },
+  'Dips (Triceps)': { triceps: 0.9, chest: 0.3 },
+  'Close-Grip Bench': { triceps: 0.8, chest: 0.4 },
+  'Overhead Press': { shoulders: 1.0, triceps: 0.4 },
+  'Lateral Raise': { shoulders: 1.0 },
+  'Front Raise': { shoulders: 0.9 },
+  'Face Pull': { shoulders: 0.7, back: 0.4 },
+  'Arnold Press': { shoulders: 1.0, triceps: 0.3 },
+  'Shrugs': { shoulders: 0.6, back: 0.4 },
+  'Deadlift': { back: 1.0, hamstrings: 0.7, glutes: 0.6, quads: 0.3 },
+  'Pull-ups': { back: 1.0, biceps: 0.5 },
+  'Chin-ups': { biceps: 0.9, back: 0.6 },
+  'Barbell Row': { back: 1.0, biceps: 0.4 },
+  'Lat Pulldown': { back: 1.0, biceps: 0.3 },
+  'Cable Row': { back: 0.9, biceps: 0.3 },
+  'T-Bar Row': { back: 1.0, biceps: 0.3 },
+  'Crunches': { abs: 1.0 },
+  'Planks': { abs: 1.0, shoulders: 0.2 },
+  'Leg Raises': { abs: 1.0 },
+  'Russian Twists': { abs: 0.9 },
+  'Ab Rollout': { abs: 1.0 },
+  'Cable Crunch': { abs: 1.0 },
+  'Hip Thrust': { glutes: 1.0, hamstrings: 0.3 },
+  'Glute Bridge': { glutes: 1.0 },
+  'Romanian Deadlift': { glutes: 0.7, hamstrings: 0.8 },
+  'Cable Kickback': { glutes: 1.0 },
+  'Bulgarian Split Squat': { glutes: 0.7, quads: 0.7 },
+  'Squat': { quads: 1.0, glutes: 0.6, hamstrings: 0.3, abs: 0.2 },
+  'Leg Press': { quads: 1.0, glutes: 0.4 },
+  'Lunges': { quads: 0.8, glutes: 0.6 },
+  'Leg Extension': { quads: 1.0 },
+  'Front Squat': { quads: 1.0, abs: 0.3 },
+  'Goblet Squat': { quads: 0.9, glutes: 0.4 },
+  'Leg Curl': { hamstrings: 1.0 },
+  'Stiff-Leg Deadlift': { hamstrings: 1.0, glutes: 0.5 },
+  'Nordic Curl': { hamstrings: 1.0 },
+  'Good Mornings': { hamstrings: 0.8, back: 0.4 },
+  'Glute-Ham Raise': { hamstrings: 1.0, glutes: 0.5 },
+  'Calf Raise (Standing)': { calves: 1.0 },
+  'Calf Raise (Seated)': { calves: 1.0 },
+  'Donkey Calf Raise': { calves: 1.0 },
+  'Jump Rope': { calves: 0.7, quads: 0.3 },
+  'Walking': { quads: 0.3, calves: 0.3, glutes: 0.2 },
+  'Running': { quads: 0.5, calves: 0.5, hamstrings: 0.3, glutes: 0.3 },
+  'Jogging': { quads: 0.4, calves: 0.4, hamstrings: 0.2, glutes: 0.2 },
+  'Cycling': { quads: 0.6, calves: 0.3, hamstrings: 0.3 },
+  'Stairmaster': { quads: 0.5, glutes: 0.5, calves: 0.3 },
+  'Elliptical': { quads: 0.3, glutes: 0.3, shoulders: 0.2, calves: 0.2 },
+  'Rowing Machine': { back: 0.5, biceps: 0.3, shoulders: 0.3, quads: 0.2 },
+  'Swimming': { shoulders: 0.4, back: 0.4, chest: 0.3, abs: 0.2 },
+  'HIIT': { quads: 0.4, abs: 0.3, shoulders: 0.2, calves: 0.2 },
+  'Yoga': { abs: 0.3, shoulders: 0.2, glutes: 0.2, hamstrings: 0.2 },
+  'Pilates': { abs: 0.5, glutes: 0.3, shoulders: 0.2 },
+  'Dance': { quads: 0.3, calves: 0.3, abs: 0.2, glutes: 0.2 },
+  'Hiking': { quads: 0.4, calves: 0.4, glutes: 0.3, hamstrings: 0.2 },
+  'Climbing': { back: 0.5, biceps: 0.4, shoulders: 0.4, abs: 0.3, calves: 0.2 },
+  'Boxing': { shoulders: 0.5, biceps: 0.3, triceps: 0.3, abs: 0.3 },
+  'Kickboxing': { shoulders: 0.4, quads: 0.4, abs: 0.3, calves: 0.2 },
+  'Skating': { quads: 0.4, glutes: 0.4, calves: 0.3 },
+  'Cross-Country Skiing': { quads: 0.4, shoulders: 0.3, back: 0.3, abs: 0.2 },
+  'Rest & Recovery': {},
+};
+
+const ACHIEVEMENTS = [
+  { id: 'first_workout',  icon: '<i class="ti ti-barbell"></i>',        name: 'First Rep',       desc: 'Complete your first workout', check: s => s.totalWorkouts >= 1 },
+  { id: 'ten_workouts',   icon: '<i class="ti ti-flame"></i>',          name: 'Warming Up',      desc: 'Complete 10 workouts', check: s => s.totalWorkouts >= 10 },
+  { id: 'fifty_workouts', icon: '<i class="ti ti-bolt"></i>',           name: 'Unstoppable',     desc: 'Complete 50 workouts', check: s => s.totalWorkouts >= 50 },
+  { id: 'streak_3',       icon: '<i class="ti ti-calendar-check"></i>', name: 'Consistent',      desc: '3 day streak', check: s => s.streak >= 3, repeatable: true, count: s => s.achievementCounts?.streak_3 || 0 },
+  { id: 'streak_7',       icon: '<i class="ti ti-calendar-star"></i>',  name: 'Week Warrior',    desc: '7 day streak', check: s => s.streak >= 7, repeatable: true, count: s => s.achievementCounts?.streak_7 || 0 },
+  { id: 'streak_30',      icon: '<i class="ti ti-crown"></i>',          name: 'Iron Discipline', desc: '30 day streak', check: s => s.streak >= 30, repeatable: true, count: s => s.achievementCounts?.streak_30 || 0 },
+  { id: 'level_5',        icon: '<i class="ti ti-star"></i>',           name: 'Rising Hero',     desc: 'Reach level 5', check: s => s.level >= 5 },
+  { id: 'level_10',       icon: '<i class="ti ti-award"></i>',          name: 'Champion',        desc: 'Reach level 10', check: s => s.level >= 10 },
+  { id: 'level_25',       icon: '<i class="ti ti-diamond"></i>',        name: 'Legend',           desc: 'Reach level 25', check: s => s.level >= 25 },
+  { id: 'all_muscles',    icon: '<i class="ti ti-topology-ring-3"></i>',name: 'Well Rounded',   desc: 'Train all 10 muscle groups', check: s => Object.keys(MUSCLES).every(m => (s.muscles[m]?.xp || 0) > 0) },
+  { id: 'gold_1000',      icon: '<i class="ti ti-coin"></i>',           name: 'Treasure Hoard',  desc: 'Earn 1000 gold', check: s => s.totalGold >= 1000 },
+  { id: 'muscle_10',      icon: '<i class="ti ti-arm"></i>',            name: 'Specialist',      desc: 'Get any muscle to level 10', check: s => Object.values(s.muscles).some(m => m.level >= 10) },
+  { id: 'bb_showtime',   icon: '🎪',                                    name: 'Showtime',        desc: 'Enter your first bodybuilding show', check: s => (s._bbComps || 0) >= 1, title: 'Showman' },
+  { id: 'bb_contender',  icon: '🥉',                                    name: 'Contender',       desc: 'Win your first bodybuilding show', check: s => (s._bbWins || 0) >= 1 },
+  { id: 'bb_regular',    icon: '🥈',                                    name: 'Regular Competitor', desc: 'Win 5 bodybuilding shows', check: s => (s._bbWins || 0) >= 5 },
+  { id: 'bb_champion',   icon: '🥇',                                    name: 'Champion Bodybuilder', desc: 'Win 10 bodybuilding shows', check: s => (s._bbWins || 0) >= 10 },
+  { id: 'bb_flawless',   icon: '✨',                                    name: 'Perfect Routine', desc: 'Win a bodybuilding show with zero strikes', check: s => (s._bbFlawless || 0) >= 1, title: 'Flawless' },
+  { id: 'rank1_weekly',  icon: '🏅',                                    name: 'Weekly Champion', desc: 'Reach #1 on the weekly leaderboard', check: s => (s._rank1Weekly || 0) >= 1, repeatable: true, count: s => s._rank1Weekly || 0 },
+  { id: 'rank1_monthly', icon: '🏆',                                    name: 'Monthly King',    desc: 'Reach #1 on the monthly leaderboard', check: s => (s._rank1Monthly || 0) >= 1, repeatable: true, count: s => s._rank1Monthly || 0 },
+  { id: 'rank1_yearly',  icon: '👑',                                    name: 'Legend of the Year', desc: 'Reach #1 on the yearly leaderboard', check: s => (s._rank1Yearly || 0) >= 1, repeatable: true, count: s => s._rank1Yearly || 0 },
+
+  // ── Consistency ──
+  { id: 'streak_60',       icon: '<i class="ti ti-calendar-time"></i>',   name: 'Two-Month Titan',  desc: '60 day streak', check: s => s.streak >= 60, title: 'The Disciplined', repeatable: true, count: s => s.achievementCounts?.streak_60 || 0 },
+  { id: 'streak_100',      icon: '<i class="ti ti-shield-star"></i>',     name: 'Centurion',        desc: '100 day streak', check: s => s.streak >= 100, title: 'Centurion', repeatable: true, count: s => s.achievementCounts?.streak_100 || 0 },
+  { id: 'streak_365',      icon: '<i class="ti ti-infinity"></i>',        name: 'Unbreakable',      desc: '365 day streak', check: s => s.streak >= 365, title: 'The Undying', repeatable: true, count: s => s.achievementCounts?.streak_365 || 0 },
+  { id: 'workouts_100',    icon: '<i class="ti ti-hash"></i>',            name: 'Triple Digits',    desc: 'Complete 100 workouts', check: s => s.totalWorkouts >= 100, title: 'The Grinder' },
+  { id: 'workouts_250',    icon: '<i class="ti ti-shield-check"></i>',    name: 'Iron Veteran',     desc: 'Complete 250 workouts', check: s => s.totalWorkouts >= 250, title: 'The Veteran' },
+  { id: 'days_logged_360', icon: '<i class="ti ti-calendar-event"></i>',  name: 'Never Miss a Day', desc: 'Log workouts on 360 different days', check: s => new Set((s.workoutLog||[]).map(e => e.date)).size >= 360, title: 'The Relentless' },
+
+  // ── Cardio ──
+  { id: 'cardio_30',        icon: '<i class="ti ti-heartbeat"></i>',   name: 'Cardio Crusher',   desc: 'Log 30 cardio sessions', check: s => (s.workoutLog||[]).filter(e => e.muscle === 'cardio').length >= 30, title: 'The Engine' },
+  { id: 'cardio_100',       icon: '<i class="ti ti-activity"></i>',    name: 'Cardio Machine',   desc: 'Log 100 cardio sessions', check: s => (s.workoutLog||[]).filter(e => e.muscle === 'cardio').length >= 100, title: 'The Marathoner' },
+  { id: 'running_2hr_week', icon: '<i class="ti ti-run"></i>',         name: 'Marathon Mindset', desc: 'Log 2+ hours of Running in a single week', title: 'The Runner', check: s => {
+      const byWeek = {};
+      for (const e of (s.workoutLog||[])) {
+        if (e.exercise !== 'Running' || !(e.duration > 0)) continue;
+        const d = new Date(e.date + 'T12:00:00');
+        d.setDate(d.getDate() - d.getDay());
+        const wk = d.toISOString().slice(0,10);
+        byWeek[wk] = (byWeek[wk]||0) + e.duration;
+      }
+      return Object.values(byWeek).some(v => v >= 120);
+    } },
+  { id: 'climbing_10', icon: '<i class="ti ti-mountain"></i>',  name: 'Send It',        desc: 'Log 10 Climbing sessions', check: s => (s.workoutLog||[]).filter(e => e.exercise === 'Climbing').length >= 10, title: 'The Climber' },
+  { id: 'cycling_20',  icon: '<i class="ti ti-bike"></i>',      name: 'Two Wheels',     desc: 'Log 20 Cycling sessions', check: s => (s.workoutLog||[]).filter(e => e.exercise === 'Cycling').length >= 20, title: 'The Cyclist' },
+  { id: 'swimmer_20',  icon: '<i class="ti ti-swimming"></i>',  name: 'Making Waves',   desc: 'Log 20 Swimming sessions', check: s => (s.workoutLog||[]).filter(e => e.exercise === 'Swimming').length >= 20, title: 'The Swimmer' },
+
+  // ── Strength & Muscle ──
+  { id: 'biceps_20',     icon: '<i class="ti ti-arm"></i>',              name: 'Peak Performance',  desc: 'Biceps to Lv.20', check: s => (s.muscles.biceps?.level||1) >= 20, title: 'Gun Show' },
+  { id: 'back_20',       icon: '<i class="ti ti-stretching"></i>',       name: 'Iron Spine',        desc: 'Back to Lv.20', check: s => (s.muscles.back?.level||1) >= 20, title: 'The Workhorse' },
+  { id: 'legs_20',       icon: '<i class="ti ti-shoe"></i>',             name: 'Never Skip Leg Day', desc: 'Quads to Lv.20', check: s => (s.muscles.quads?.level||1) >= 20, title: 'Wheels' },
+  { id: 'chest_20',      icon: '<i class="ti ti-shirt"></i>',            name: 'Bench Beast',       desc: 'Chest to Lv.20', check: s => (s.muscles.chest?.level||1) >= 20, title: 'The Presser' },
+  { id: 'all_muscles_15', icon: '<i class="ti ti-topology-star"></i>',   name: 'Balanced Beast',    desc: 'Every muscle group to Lv.15', check: s => Object.keys(MUSCLES).filter(m => m!=='rest' && m!=='cardio').every(m => (s.muscles[m]?.level||1) >= 15), title: 'The All-Rounder' },
+  { id: 'muscle_30',     icon: '<i class="ti ti-trophy"></i>',           name: 'Maxed Out',         desc: 'Any single muscle to Lv.30', check: s => Object.values(s.muscles).some(m => m.level >= 30), title: 'The Specialist' },
+
+  // ── Milestones ──
+  { id: 'level_50',       icon: '<i class="ti ti-sparkles"></i>',  name: 'Mythic Status', desc: 'Reach level 50', check: s => s.level >= 50, title: 'The Mythic' },
+  { id: 'gold_10000',     icon: '<i class="ti ti-coins"></i>',     name: 'Gold Baron',    desc: 'Earn 10,000 gold', check: s => s.totalGold >= 10000, title: 'The Wealthy' },
+  { id: 'weekly_xp_5000', icon: '<i class="ti ti-bolt-filled"></i>', name: 'Weekly Beast', desc: 'Earn 5,000 XP in a single week', check: s => (s.weeklyXP||0) >= 5000, title: 'The Beast' },
+
+  // ── Raid Boss ──
+  { id: 'raid_slayer',   icon: '<i class="ti ti-sword"></i>',  name: 'Boss Slayer',   desc: 'Defeat a monthly raid boss', check: s => Object.keys(s.raidVictoryClaimed||{}).length >= 1, title: 'Boss Slayer' },
+  { id: 'raid_champion', icon: '<i class="ti ti-crown"></i>',  name: 'Raid Champion', desc: 'Defeat 10 monthly raid bosses', check: s => Object.keys(s.raidVictoryClaimed||{}).length >= 10, title: 'The Slayer' },
+  { id: 'raid_legend',   icon: '<i class="ti ti-flame"></i>',  name: 'Raid Legend',   desc: 'Defeat 25 raid bosses', check: s => Object.keys(s.raidVictoryClaimed||{}).length >= 25, title: 'The Legend' },
+
+  // ── Guild / Gym ──
+  { id: 'gym_joined',  icon: '<i class="ti ti-home"></i>',       name: 'Homecoming',     desc: 'Join a gym', check: s => !!s._everJoinedGym, title: 'The Recruit' },
+  { id: 'gym_founder', icon: '<i class="ti ti-building"></i>',   name: 'Founder',        desc: 'Found a gym as Guild Master', check: s => !!s._everFoundedGym, title: 'The Founder' },
+  { id: 'gym_officer', icon: '<i class="ti ti-shield-half-filled"></i>', name: 'Officer Material', desc: 'Reach Officer rank or higher in a gym', check: s => s.gymRank === 'officer' || s.gymRank === 'gm', title: 'The Officer' },
+  { id: 'gym_full',    icon: '<i class="ti ti-users-group"></i>', name: 'Full House',    desc: "Be in a gym that fills all 32 slots", check: s => !!s._gymWasFull, title: 'Gym Rat' },
+
+  // ── Raid Party ──
+  { id: 'raid_first_blood', icon: '<i class="ti ti-map-pin"></i>', name: 'First Blood',  desc: 'Join or create your first raid party', check: s => !!s._everJoinedRaid, title: 'The Initiate' },
+  { id: 'raid_big_squad',   icon: '<i class="ti ti-users"></i>',   name: 'Big Squad',     desc: 'Win a raid in an 8-man or larger party', check: s => (s._raidWinsBySize?.big || 0) >= 1, title: 'Heavy Hitter' },
+  { id: 'raid_tank_main',   icon: '<i class="ti ti-shield"></i>',  name: 'Tank Main',     desc: 'Win 5 raids as Tank', check: s => (s._raidWinsByRole?.tank || 0) >= 5, title: 'The Wall' },
+  { id: 'raid_healer_main', icon: '<i class="ti ti-heart"></i>',   name: "Healer's Touch", desc: 'Win 5 raids as Healer', check: s => (s._raidWinsByRole?.healer || 0) >= 5, title: 'The Lifeline' },
+
+  // ── Milestones (extending the ladder) ──
+  { id: 'level_75',      icon: '<i class="ti ti-bolt"></i>',        name: 'Titan',        desc: 'Reach level 75', check: s => s.level >= 75, title: 'The Titan' },
+  { id: 'level_100',     icon: '<i class="ti ti-infinity"></i>',    name: 'Ascended',     desc: 'Reach level 100', check: s => s.level >= 100, title: 'The Ascended' },
+  { id: 'all_muscles_25', icon: '<i class="ti ti-topology-star-3"></i>', name: 'Iron Body', desc: 'Every muscle group to Lv.25', check: s => Object.keys(MUSCLES).filter(m => m!=='rest' && m!=='cardio').every(m => (s.muscles[m]?.level||1) >= 25), title: 'The Complete' },
+  { id: 'workouts_500',  icon: '<i class="ti ti-hash"></i>',        name: 'Half a Grand', desc: 'Complete 500 workouts', check: s => s.totalWorkouts >= 500, title: 'The Lifer' },
+  { id: 'streak_500',    icon: '<i class="ti ti-infinity"></i>',    name: 'The Long Haul', desc: '500 day streak', check: s => s.streak >= 500, title: 'Eternal', repeatable: true, count: s => s.achievementCounts?.streak_500 || 0 },
+
+  // ── Flavor ──
+  { id: 'first_measurement', icon: '<i class="ti ti-ruler"></i>',  name: 'First Steps',  desc: 'Log your first body measurement', check: s => (s.measurements||[]).length >= 1, title: 'The Tracker' },
+  { id: 'cosmetic_collector', icon: '<i class="ti ti-shirt-sport"></i>', name: 'Collector', desc: 'Own 15 purchased cosmetics', check: s => (s.purchasedCosmetics||[]).length >= 15, title: 'The Fashionable' },
+];
+
+// Progressive weekly challenge ladder — permanent progression, each defeat unlocks the next
+const WEEKLY_CHALLENGES = [
+  { id: 'whelp',    name: 'Dragon Whelp',     hp: 1000,  reward: 50,   icon: '🐉', color: '#4caf50', desc: 'A young dragon. Deal 1,000 XP to defeat it.' },
+  { id: 'drake',    name: 'Fire Drake',        hp: 2000,  reward: 75,   icon: '🔥', color: '#ff9800', desc: 'Emboldened by fire. Deal 2,000 XP.' },
+  { id: 'wyvern',   name: 'Cave Wyvern',       hp: 3000,  reward: 100,  icon: '🦎', color: '#2196f3', desc: 'A territorial beast. Deal 3,000 XP.' },
+  { id: 'king',     name: 'Dragon King',       hp: 4000,  reward: 150,  icon: '👑', color: '#9c27b0', desc: 'Ruler of the skies. Deal 4,000 XP.' },
+  { id: 'ancient',  name: 'Ancient Dragon',    hp: 5000,  reward: 200,  icon: '💎', color: '#00bcd4', desc: 'Older than memory. Deal 5,000 XP.' },
+  { id: 'elder',    name: 'Elder Wyrm',        hp: 6000,  reward: 300,  icon: '⚡', color: '#ffd700', desc: 'A living catastrophe. Deal 6,000 XP.' },
+  { id: 'godslayer', name: 'Godslayer',        hp: 7000,  reward: 500,  icon: '🌟', color: '#ff4444', desc: 'The final challenge. Deal 7,000 XP.' },
+];
+
+// Monthly group raid bosses — party activity, huge HP pools
+const MONTHLY_BOSSES = [
+  { name: 'Goblin War Chief',   hp: 50000,  reward: 200,  icon: '👺' },
+  { name: 'Stone Titan',        hp: 80000,  reward: 350,  icon: '🗿' },
+  { name: 'The Iron Ogre',      hp: 120000, reward: 500,  icon: '👹' },
+  { name: 'Shadow Colossus',    hp: 180000, reward: 750,  icon: '🌑' },
+  { name: 'Ancient Terror',     hp: 250000, reward: 1000, icon: '💀' },
+];
+
+// Raid party bosses — each fought as a party's own instance (see roleDamageMult() etc.
+// below). Grouped into biomes; a raid's map location determines which biome's boss pool
+// it draws from (see RAID_LOCATION_BIOME), so a party sees one of 2 boss "flavors" for
+// their raid, rotating monthly. Each has a weakness (matching workouts deal double
+// damage) and a short lore blurb shown on the map's hover tooltip.
+// NOTE: image paths for the new bosses below don't exist in this asset folder yet —
+// the onerror fallback emoji will show until art is added; existing paths (including
+// the "orgre.png" typo) are left exactly as-is since the live site already depends on them.
+const RAID_BOSSES = [
+  { id: 'ogre',        name: 'Twin-Skull Ogre',   subtitle: 'Bonecrusher of the Deep Tunnels', biome: 'cave',     hp: 20000, weakness: 'chest',     img: 'assets/bosses/orgre.png',          atkMin: 5, atkMax: 16, parryChance: 0.15, aoe: false,
+    lore: 'Exiled from the surface clans for eating his own war party, the Twin-Skull Ogre now guards Ironvale\'s deepest shafts.' },
+  { id: 'crystal_wraith', name: 'Crystal Wraith', subtitle: 'Echo of the Buried King',         biome: 'cave',     hp: 17000, weakness: 'abs',       img: 'assets/bosses/crystal_wraith.png', atkMin: 4, atkMax: 12, parryChance: 0.18, aoe: true,
+    lore: 'A miner\'s ghost fused with raw quartz centuries ago. It only strikes in bursts of refracted light.' },
+  { id: 'wizard',      name: 'Arcane Sorcerer',   subtitle: 'Keeper of Forbidden Tomes',       biome: 'ashen',    hp: 14000, weakness: 'abs',       img: 'assets/bosses/wizard.png',         atkMin: 3, atkMax: 9,  parryChance: 0.10, aoe: true,
+    lore: 'Burned his own library rather than share its secrets — and rose from the ashes angrier for it.' },
+  { id: 'cinder_fiend', name: 'Cinder Fiend',     subtitle: 'Born of the Ashguard Fires',      biome: 'ashen',    hp: 15500, weakness: 'shoulders', img: 'assets/bosses/cinder_fiend.png',   atkMin: 5, atkMax: 13, parryChance: 0.12, aoe: true,
+    lore: 'Said to be the last ember of a forge that burned for a thousand years before Ashguard Hollow went cold.' },
+  { id: 'orc_warrior', name: 'Orc Warrior',       subtitle: 'Arena Berserker',                 biome: 'forest',   hp: 16000, weakness: 'back',      img: 'assets/bosses/orc_warrior.png',    atkMin: 6, atkMax: 14, parryChance: 0.20, aoe: false,
+    lore: 'Undefeated in the Forgehold pits for three seasons running. Never fights the same way twice.' },
+  { id: 'treant',      name: 'Thornback Treant',  subtitle: 'Warden of the Old Canopy',        biome: 'forest',   hp: 18500, weakness: 'back',      img: 'assets/bosses/treant.png',         atkMin: 4, atkMax: 11, parryChance: 0.14, aoe: false,
+    lore: 'Older than the Summit itself. It only wakes when it senses steel crossing its roots.' },
+  { id: 'troll',       name: 'Troll Spearman',    subtitle: 'Hunter of the High Passes',       biome: 'mountain', hp: 18000, weakness: 'shoulders', img: 'assets/bosses/troll.png',          atkMin: 4, atkMax: 10, parryChance: 0.12, aoe: true,
+    lore: 'Tracks parties for days before striking, always from higher ground.' },
+  { id: 'frost_giant', name: 'Frost Giant',       subtitle: 'Last of the Spire-Born',          biome: 'mountain', hp: 21000, weakness: 'quads',     img: 'assets/bosses/frost_giant.png',    atkMin: 6, atkMax: 15, parryChance: 0.10, aoe: true,
+    lore: 'Titan\'s Spire was named for his kind — he\'s the only one left, and he remembers who drove the rest off.' },
+  { id: 'iron_ogre',   name: 'The Iron Ogre',     subtitle: 'Forgemaster of God\'s Anvil',     biome: 'forge',    hp: 22000, weakness: 'triceps',   img: 'assets/bosses/iron_ogre.png',      atkMin: 6, atkMax: 16, parryChance: 0.14, aoe: false,
+    lore: 'Forged his own armor into his skin so no blade could ever reach him again.' },
+  { id: 'molten_colossus', name: 'Molten Colossus', subtitle: 'Heart of the Forge',            biome: 'forge',    hp: 24000, weakness: 'glutes',    img: 'assets/bosses/molten_colossus.png', atkMin: 7, atkMax: 17, parryChance: 0.08, aoe: true,
+    lore: 'Built by the first smiths to guard the Anvil, and never once told to stop.' },
+];
+
+const BIOME_INFO = {
+  cave:     { icon: '⛏️', label: 'Cave',     accent: '#9a94b0' },
+  ashen:    { icon: '🌋', label: 'Ashlands', accent: '#ff7043' },
+  forest:   { icon: '🌲', label: 'Forest',   accent: '#5a9a4a' },
+  mountain: { icon: '🏔️', label: 'Mountain', accent: '#b8ccdf' },
+  forge:    { icon: '🔥', label: 'Forge',    accent: '#ffb060' },
+};
+
+// ── Raid Armor Sets ──
+// Dropped from raid boss victories, never purchased. Each set has 5 pieces mapped onto
+// the same type slots regular cosmetics use (head/torso/wrist/waist/legs), so equip
+// exclusivity, render hooks, etc. all just work through the existing system. All 5 raid
+// biomes have a set now.
+const ARMOR_RARITY = {
+  common: { label: 'Common', color: '#8a8a8a', order: 0 },
+  rare:   { label: 'Rare',   color: '#4a90d9', order: 1 },
+  epic:   { label: 'Epic',   color: '#ffb300', order: 2 },
+};
+// Each SET has its own fixed color scheme (so a helmet and its matching chest piece
+// always look like they belong together) — rarity no longer recolors the piece itself,
+// it just shows up as the tile's border/label color in the cosmetics list. A piece's
+// "variant" (Bloodforged) roll still overrides to its own red recolor, independent of set.
+const ARMOR_SET_COLORS = {
+  roman:  { primary: '#a8763a', accent: '#5a3818' }, // bronze + leather
+  viking: { primary: '#6a6a72', accent: '#3a4a5a' }, // iron + icy trim
+  knight: { primary: '#ffd24a', accent: '#c89a10' }, // gold + darker gold trim
+  ashen:  { primary: '#3a2a2a', accent: '#ff5a3a' }, // charred black + ember
+  forest: { primary: '#3a6a3a', accent: '#c8a060' }, // bark green + wood
+};
+const ARMOR_VARIANT_COLOR = { primary: '#c0304a', accent: '#7a1020' }; // "Bloodforged" recolor
+const ARMOR_SETS = {
+  roman: {
+    name: 'Legionary', theme: 'roman', raidId: 'ironvale',
+    pieces: {
+      head:  { name: 'Centurion Helm' },
+      torso: { name: 'Muscle Cuirass' },
+      wrist: { name: 'Bronze Vambraces' },
+      waist: { name: 'Legionary Girdle' },
+      legs:  { name: 'Greaves of Rome' },
+    },
+  },
+  ashen: {
+    name: 'Cindermourne', theme: 'ashen', raidId: 'ashguard',
+    pieces: {
+      head:  { name: 'Ashen Skull-Helm' },
+      torso: { name: 'Charred Breastplate' },
+      wrist: { name: 'Cinder-Wrapped Gauntlets' },
+      waist: { name: 'Smoldering Sash' },
+      legs:  { name: 'Ashwalker Greaves' },
+    },
+  },
+  forest: {
+    name: 'Bramblewarden', theme: 'forest', raidId: 'forgehold',
+    pieces: {
+      head:  { name: 'Antlered Circlet' },
+      torso: { name: 'Bark-Woven Cuirass' },
+      wrist: { name: 'Vinebound Bracers' },
+      waist: { name: 'Root-Twined Girdle' },
+      legs:  { name: 'Mosshide Leggings' },
+    },
+  },
+  viking: {
+    name: 'Frostreaver', theme: 'viking', raidId: 'titanspire',
+    pieces: {
+      head:  { name: 'Horned Helm' },
+      torso: { name: 'Furbound Chestplate' },
+      wrist: { name: 'Iron Bracers' },
+      waist: { name: "Raider's Belt" },
+      legs:  { name: 'Fur-Lined Leggings' },
+    },
+  },
+  knight: {
+    name: 'Anvilguard', theme: 'knight', raidId: 'godsanvil',
+    pieces: {
+      head:  { name: 'Great Helm' },
+      torso: { name: 'Contour Plate' },
+      wrist: { name: 'Plated Gauntlets' },
+      waist: { name: 'Tasset' },
+      legs:  { name: 'Plate Greaves' },
+    },
+  },
+};
+const ARMOR_SLOTS = ['head', 'torso', 'wrist', 'waist', 'legs'];
+// Each armor slot gets its own glyph so a helm, a gauntlet and a greave are
+// distinguishable at a glance; the SET is carried by colour, not by the icon.
+const ARMOR_SLOT_ICONS = {
+  head:  'ti-helmet',
+  torso: 'ti-shield-chevron',
+  wrist: 'ti-hand-grab',
+  waist: 'ti-horseshoe',
+  legs:  'ti-cylinder',
+};
+const armorIcon = slot => ARMOR_SLOT_ICONS[slot] || 'ti-shield';
+
+
+// Rolls a rarity weighted by raid size — bigger raids have meaningfully better odds.
+function _rollArmorRarity(raidSize) {
+  const weights = raidSize >= 12 ? { common: .2, rare: .4, epic: .4 }
+    : raidSize >= 8 ? { common: .4, rare: .4, epic: .2 }
+    : { common: .7, rare: .25, epic: .05 };
+  const roll = Math.random();
+  let acc = 0;
+  for (const [tier, w] of Object.entries(weights)) { acc += w; if (roll <= acc) return tier; }
+  return 'common';
+}
+
+// Called on raid boss victory — may add a piece to state.armorInventory and toast it.
+function _maybeDropArmor(raidId, raidSize) {
+  const setId = Object.keys(ARMOR_SETS).find(k => ARMOR_SETS[k].raidId === raidId);
+  if (!setId) return; // this raid's biome doesn't have a set yet
+  if (Math.random() > 0.65) return; // 65% drop chance per clear
+  const slot = ARMOR_SLOTS[Math.floor(Math.random() * ARMOR_SLOTS.length)];
+  const rarity = _rollArmorRarity(raidSize || 4);
+  const variant = Math.random() < 0.12;
+  const piece = { id: `armor_${Date.now()}_${Math.floor(Math.random() * 10000)}`, setId, slot, rarity, variant, obtainedAt: Date.now() };
+  if (!state.armorInventory) state.armorInventory = [];
+  state.armorInventory.push(piece);
+  // A month-long boss deserves more than a toast that fades in 2.6 seconds.
+  showLootChest(piece);
+}
+
+// Cindermourne (ashen) is the one set where rarity DOES recolor the piece — the ninja
+// gi comes in dyed cloth tiers (grey → white → black) instead of a single fixed scheme,
+// since "which color ninja suit" is the whole point of that set's rarity ladder.
+const ASHEN_RARITY_COLORS = {
+  common: { primary: '#6a6258', accent: '#4a4238' },
+  rare:   { primary: '#e8e8e0', accent: '#b8b8a8' },
+  epic:   { primary: '#1a1a1a', accent: '#3a3a3a' },
+};
+function _armorColor(piece) {
+  if (piece.variant) return ARMOR_VARIANT_COLOR;
+  if (ARMOR_SETS[piece.setId].theme === 'ashen') return ASHEN_RARITY_COLORS[piece.rarity];
+  return ARMOR_SET_COLORS[ARMOR_SETS[piece.setId].theme];
+}
+function _equippedArmorPiece(slot) {
+  const id = state.equippedArmor?.[slot];
+  if (!id) return null;
+  return (state.armorInventory || []).find(p => p.id === id) || null;
+}
+
+// Render-side view of an equipped armour slot. Returns null while armour is hidden so
+// the avatar draws without it — the piece stays equipped and its set bonus still counts
+// (see getArmorSetBonus, which reads state.equippedArmor directly and ignores this).
+function _visibleArmorPiece(slot) {
+  if (state.hideArmor) return null;
+  return _equippedArmorPiece(slot);
+}
+function toggleHideArmor() {
+  state.hideArmor = !state.hideArmor;
+  saveWithPin();
+  renderAvatar();
+  renderCharacterPanel();
+  toast(state.hideArmor ? 'Armor hidden — set bonuses still active' : 'Armor visible again');
+}
+
+function equipArmor(instanceId) {
+  const piece = (state.armorInventory || []).find(p => p.id === instanceId);
+  if (!piece) return;
+  if (!state.equippedArmor) state.equippedArmor = {};
+  state.equippedArmor[piece.slot] = instanceId;
+  saveWithPin();
+  renderAvatar();
+  toast(`Equipped ${ARMOR_SETS[piece.setId].pieces[piece.slot].name}`);
+}
+
+function unequipArmorSlot(slot) {
+  if (!state.equippedArmor || !state.equippedArmor[slot]) return;
+  delete state.equippedArmor[slot];
+  saveWithPin();
+  renderAvatar();
+}
+
+// Live set-bonus multipliers from whatever's currently equipped — checked fresh every
+// workout submit rather than stored, so re-equipping instantly changes your output.
+function getArmorSetBonus() {
+  const equipped = state.equippedArmor || {};
+  const bySet = {};
+  for (const slot of Object.keys(equipped)) {
+    const piece = (state.armorInventory || []).find(p => p.id === equipped[slot]);
+    if (!piece) continue;
+    bySet[piece.setId] = (bySet[piece.setId] || 0) + 1;
+  }
+  let xpMult = 1, goldMult = 1;
+  const active = [];
+  for (const [setId, count] of Object.entries(bySet)) {
+    if (count >= 5) { xpMult *= 1.21; goldMult *= 1.10; active.push(`${ARMOR_SETS[setId].name} (5/5)`); }
+    else if (count >= 3) { xpMult *= 1.10; active.push(`${ARMOR_SETS[setId].name} (3/5)`); }
+  }
+  return { xpMult, goldMult, active };
+}
+
+// ── QC debug tool ── unlocks every purchasable/achievement cosmetic and grants one epic
+// + one Bloodforged-variant epic of every armor piece in every set, so you can equip and
+// eyeball everything without grinding purchases or raid RNG. Purely additive — never
+// removes gold or anything you already have.
+function debugUnlockEverything() {
+  state.purchasedCosmetics = Array.from(new Set([...(state.purchasedCosmetics || []), ...COSMETICS.map(c => c.id)]));
+  if (!state.armorInventory) state.armorInventory = [];
+  for (const setId of Object.keys(ARMOR_SETS)) {
+    for (const slot of ARMOR_SLOTS) {
+      const baseId = `debug_${setId}_${slot}`;
+      if (!state.armorInventory.some(p => p.id === baseId)) {
+        state.armorInventory.push({ id: baseId, setId, slot, rarity: 'epic', variant: false, obtainedAt: Date.now() });
+      }
+      const variantId = `debug_${setId}_${slot}_v`;
+      if (!state.armorInventory.some(p => p.id === variantId)) {
+        state.armorInventory.push({ id: variantId, setId, slot, rarity: 'epic', variant: true, obtainedAt: Date.now() });
+      }
+    }
+  }
+  saveWithPin();
+  renderAvatar();
+  toast('🔧 Debug: every cosmetic + one of each armor piece unlocked');
+}
+
+// Console-only, no UI button — for manually correcting `state.streak` if it's ever
+// thrown off by a data/logic bug (e.g. the 2026-08 streak-recompute regression).
+// Does not touch lastWorkoutDate or the workout log, only the displayed counter.
+// Console-only. Sets muscle levels directly, which is the only practical way to review
+// how the avatar looks at high level — the alternative is logging hundreds of workouts.
+//
+//   MQ.debugSetMuscle('chest', 40)   one muscle
+//   MQ.debugSetMuscle('all', 40)     every muscle at once
+//   MQ.debugSetMuscle('arms', 40)    shorthand group: biceps + triceps + shoulders
+//   MQ.debugSetMuscle()              prints the valid names
+//
+// Levels are clamped to 1+. XP within the level resets to 0, and `scale` is recomputed
+// through muscleScale() so the avatar redraws at the right size — writing `level` alone
+// would leave the body at its old proportions until the next level-up.
+//
+// 'all' includes the cardio and rest entries for predictability, but calcOverallLevel()
+// skips both, so neither moves your overall level or changes the avatar.
+const DEBUG_MUSCLE_GROUPS = {
+  arms:  ['biceps', 'triceps', 'shoulders'],
+  legs:  ['quads', 'hamstrings', 'calves', 'glutes'],
+  upper: ['chest', 'back', 'shoulders', 'biceps', 'triceps'],
+  core:  ['abs'],
+};
+
+function debugSetMuscle(key, level) {
+  const valid = Object.keys(MUSCLES);
+  if (!key) {
+    const msg = `Muscles: ${valid.join(', ')}\nGroups: all, ${Object.keys(DEBUG_MUSCLE_GROUPS).join(', ')}\nUsage: MQ.debugSetMuscle('chest', 40)`;
+    console.log(msg);
+    toast('Valid names logged to the console');
+    return;
+  }
+
+  const lvl = Math.max(1, Math.floor(Number(level)));
+  if (!Number.isFinite(lvl)) {
+    toast('Give a level, e.g. MQ.debugSetMuscle(\'chest\', 40)');
+    return;
+  }
+
+  const k = String(key).toLowerCase();
+  let targets;
+  if (k === 'all') targets = valid;
+  else if (DEBUG_MUSCLE_GROUPS[k]) targets = DEBUG_MUSCLE_GROUPS[k];
+  else if (valid.includes(k)) targets = [k];
+  else {
+    console.log(`Unknown muscle "${key}". Valid: ${valid.join(', ')}, all, ${Object.keys(DEBUG_MUSCLE_GROUPS).join(', ')}`);
+    toast(`Unknown muscle "${key}" — valid names logged to the console`);
+    return;
+  }
+
+  for (const t of targets) {
+    if (!state.muscles[t]) state.muscles[t] = { level: 1, xp: 0, scale: 1 };
+    state.muscles[t].level = lvl;
+    state.muscles[t].xp = 0;
+    state.muscles[t].scale = muscleScale(lvl);
+  }
+
+  saveWithPin();
+  renderDashboard();
+  if (document.getElementById('character-panel')) renderCharacterPanel();
+  const overall = calcOverallLevel(state.muscles);
+  toast(`🔧 Debug: ${targets.length === 1 ? MUSCLES[targets[0]].name : targets.length + ' muscles'} → Lv.${lvl} (overall Lv.${overall.level})`);
+}
+
+function debugSetStreak(n) {
+  const val = Math.max(0, Math.floor(Number(n)));
+  if (!Number.isFinite(val)) { toast('Give a valid number, e.g. MQ.debugSetStreak(42)'); return; }
+  state.streak = val;
+  saveWithPin();
+  renderDashboard();
+  toast(`🔧 Debug: streak set to ${val}`);
+}
+
+// Console-only, read-only diagnostic — logs your team's Firestore doc so we can see
+// why the raid boss panel might be stuck on "Loading your party's raid boss…".
+// Does not write anything.
+async function debugCheckTeam() {
+  console.log('state.teamId:', state.teamId);
+  console.log('state.teamRole:', state.teamRole);
+  console.log('state.teamBossId:', state.teamBossId);
+  console.log('state.teamRaidSize:', state.teamRaidSize);
+  if (!db) { console.log('No Firestore connection (db is null) — offline mode.'); return; }
+  if (!state.teamId) { console.log('No teamId set locally — nothing to look up.'); return; }
+  try {
+    const doc = await db.collection('teams').doc(state.teamId).get();
+    console.log('Firestore doc exists:', doc.exists);
+    console.log('Firestore doc data:', doc.exists ? doc.data() : null);
+  } catch (e) {
+    console.log('Firestore fetch error:', e.message);
+  }
+}
+
+// Console-only repair for a team doc that's missing its boss-instance fields
+// (bossId/raidId/bossHp/bossMonth) — leaves the raid stuck on "Loading your party's
+// raid boss…" forever, since renderRaidFight() needs team.bossId to show anything.
+// Only writes the fields it's given; never touches members/actionLog/etc.
+// `damageEstimate` is optional — pass your best guess at your prior progress if you
+// remember it (there's no way to recover the exact number from Firestore/the action
+// log, which only keeps the last 8 entries). Omit it to start the boss fresh at 0.
+async function debugRepairTeamBoss(raidId, damageEstimate) {
+  if (!db || !state.teamId) { console.log('No team/db connection.'); return; }
+  const raid = RAID_DEFS.find(r => r.id === raidId);
+  if (!raid) { console.log(`Unknown raidId "${raidId}". Valid ids:`, RAID_DEFS.map(r => r.id)); return; }
+  const ref = db.collection('teams').doc(state.teamId);
+  const doc = await ref.get();
+  if (!doc.exists) { console.log('Team doc does not exist.'); return; }
+  const t = doc.data();
+  if (t.bossId) { console.log('This team already has a bossId — nothing to repair:', t.bossId); return; }
+  const { bossId, bossHp } = pickInstanceBoss(raid.id, raid.size, 0);
+  const update = {
+    raidId: raid.id, raidName: raid.name, raidSize: raid.size,
+    bossId, bossHp, bossDefeated: false, bossMonth: getMonthStart(),
+    bossDamage: Math.max(0, Math.floor(Number(damageEstimate) || 0)),
+    mechanicCount: 0, activeMechanic: null,
+  };
+  await ref.update(update);
+  console.log('Repaired team doc with:', update);
+  toast('🔧 Debug: raid boss fields repaired — reopen the Quests tab');
+}
+
+// Role scaling for how much a party member's workout XP contributes to their party's
+// own instanced boss. Tanks and healers are support roles — DPS carries the damage —
+// but support scales up in bigger raids via roleDamageMult() below, so tank/healer
+// contribution doesn't fall further and further behind DPS as the party grows.
+const ROLE_DAMAGE_MULT = { tank: 0.5, dps: 1.5, healer: 0.25 };
+const MEMBER_MAX_HP = 100;
+const HEAL_FACTOR = 0.4; // fraction of a healer's session XP applied as HP restored to the whole party
+
+// Each raid party fights its OWN instanced boss (only queued members contribute — this
+// is deliberately separate from the solo/global Weekly Challenge ladder, which everyone
+// still contributes to individually). Bigger raids get a tougher, HP-scaled boss.
+const RAID_BOSS_SIZE_MULT = { 4: 1, 6: 1.6, 8: 2.2, 12: 3.2 };
+// Which biome each map location belongs to — determines which boss pool it draws from.
+const RAID_LOCATION_BIOME = { ironvale: 'cave', ashguard: 'ashen', forgehold: 'forest', titanspire: 'mountain', godsanvil: 'forge' };
+
+// ── Boss mechanic: Synchronized Strike ──
+// A telegraphed group-check attack, layered on top of the normal daily boss attack.
+// The boss "charges up," names a muscle group, and gives the party a window to each
+// log that muscle before it lands. Missing it splashes the whole party, but whoever
+// personally missed it eats a much bigger hit on top — the goal is the same feeling
+// real raid mechanics give: the fight can go fine, but only if everyone actually shows
+// up and does their part, not just whoever happens to be carrying the group in damage.
+const SYNC_STRIKE_MUSCLE_POOL = Object.keys(MUSCLES).filter(k => k !== 'rest');
+const SYNC_STRIKE_WINDOW_DAYS = 2;
+// Bigger raids (harder difficulty) telegraph this mechanic more often — same size tiers
+// the boss HP itself already scales with (RAID_BOSS_SIZE_MULT above). Each roll is also
+// capped per boss instance (see SYNC_STRIKE_MAX_BY_SIZE) so it stays a special, rare
+// beat instead of turning into a daily chore once a raid runs long.
+const SYNC_STRIKE_CHANCE_BY_SIZE = { 4: 0.20, 6: 0.28, 8: 0.36, 12: 0.45 };
+const SYNC_STRIKE_MAX_BY_SIZE = { 4: 2, 6: 3, 8: 3, 12: 4 };
+const SYNC_STRIKE_TEAM_BASE_DMG = 6;      // flat AOE dealt to everyone if anyone misses it
+const SYNC_STRIKE_TEAM_DMG_PER_MISS = 4;  // extra AOE per member who missed it
+const SYNC_STRIKE_PERSONAL_DMG = 22;      // on top of the team splash, only for whoever missed it
+
+// Picks (and HP-scales) the boss for a new/rerolled raid instance, from that raid's
+// biome pool. `salt` rotates which boss in the pool appears across month resets, so a
+// team doesn't fight the exact same boss forever.
+function pickInstanceBoss(raidId, size, salt) {
+  const biome = RAID_LOCATION_BIOME[raidId];
+  const pool = RAID_BOSSES.filter(b => b.biome === biome);
+  const idx = ((salt || 0) % pool.length + pool.length) % pool.length;
+  const boss = pool[idx] || RAID_BOSSES[0];
+  const bossHp = Math.round(boss.hp * (RAID_BOSS_SIZE_MULT[size] || 1));
+  return { bossId: boss.id, bossHp };
+}
+
+// Support roles (tank/healer) scale up their boss-damage share as the raid grows —
+// a bigger squad needs more consistent tanking/healing output, not just more DPS bodies.
+function roleDamageMult(role, size) {
+  const base = ROLE_DAMAGE_MULT[role] ?? 1;
+  if (role === 'dps') return base;
+  const growth = 1 + Math.max(0, (size || 4) - 4) * 0.06;
+  return +(base * growth).toFixed(3);
+}
+
+// Rolls state.raidDamage into a new period when the raid boss's period key changes.
+// One-time exception: the raid boss moved from a weekly to a monthly cadence, so an
+// old stored key looks like "2026-07-06" (week-start date) while the new key looks
+// like "2026-07" (month). That mismatch would otherwise silently reset everyone's
+// in-progress damage to 0 the moment this ships — carry it forward instead.
+function _syncRaidPeriod(newPeriod) {
+  if (state.raidWeekStart === newPeriod) return;
+  const isLegacyWeekFormat = typeof state.raidWeekStart === 'string' && state.raidWeekStart.length === 10;
+  if (!isLegacyWeekFormat) state.raidDamage = 0;
+  state.raidWeekStart = newPeriod;
+}
+
+function getRaidBoss() {
+  // Field/variable names still say "week" in a few places below for historical reasons
+  // (avoids a Firestore field rename that would orphan everyone's in-progress damage) —
+  // but the period this represents is now a calendar month, not a week.
+  const ms = getMonthStart(); // e.g. "2026-07"
+  const [y, m] = ms.split('-').map(Number);
+  const monthIdx = y * 12 + m;
+  const idx = ((monthIdx % RAID_BOSSES.length) + RAID_BOSSES.length) % RAID_BOSSES.length;
+  return { boss: RAID_BOSSES[idx], weekStart: ms };
+}
+
+const DAILY_QUESTS = [
+  { id: 'train_3_groups', text: 'Train 3 Muscle Groups', target: 3, reward: 50, type: 'groups' },
+  { id: 'log_5_sets',     text: 'Log 5 Sets Total',     target: 5, reward: 30, type: 'sets' },
+  { id: 'earn_100xp',     text: 'Earn 100 XP',          target: 100, reward: 40, type: 'xp' },
+];
+
+// ─── XP Formulas (tuned for long-term progression) ───
+function xpForMuscleLevel(level) { return Math.floor(120 * Math.pow(1.22, level - 1)); }
+function xpForPlayerLevel(level) { return Math.floor(200 * Math.pow(1.3, level - 1)); }
+
+// Exercises scored on time (reps = seconds held) rather than weight × reps
+const TIMED_EXERCISES = new Set([
+  'Planks','Ab Rollout','Yoga','Pilates','L-Sit','Wall Sit','Dead Hang',
+  'Hollow Hold','Superman Hold','Side Plank',
+]);
+
+function calcWorkoutXP(sets, duration) {
+  // Women lift ~30% less for equivalent effort — normalise weight so XP is fair
+  const genderMult = state.gender === 'female' ? (1 / 0.7) : 1;
+  let base = 0;
+  for (const s of sets) {
+    if (TIMED_EXERCISES.has(s.exercise)) {
+      // reps field = seconds held; award XP per 10s of hold
+      if (s.reps > 0) base += Math.floor(s.reps / 10);
+    } else if (s.weight > 0 && s.reps > 0) {
+      base += Math.floor((s.weight * genderMult * s.reps) / 120);
+    } else if (s.reps > 0) {
+      // bodyweight movements with no weight (push-ups, pull-ups etc)
+      base += Math.floor(s.reps / 5);
+    }
+  }
+  if (sets.length > 0) base += sets.length;
+  if (duration > 0) base += Math.floor(duration * 0.8);
+  return Math.max(base, 3);
+}
+
+function calcOverallLevel(muscles) {
+  let totalWeightedXP = 0;
+  for (const key of Object.keys(MUSCLES)) {
+    if (key === 'rest' || key === 'cardio') continue;
+    const m = muscles[key] || { level: 1, xp: 0 };
+    let cumXP = 0;
+    for (let i = 1; i < m.level; i++) cumXP += xpForMuscleLevel(i);
+    cumXP += m.xp;
+    totalWeightedXP += cumXP;
+  }
+  let level = 1;
+  let xpNeeded = xpForPlayerLevel(1);
+  let xpAccum = 0;
+  while (totalWeightedXP - xpAccum >= xpNeeded) {
+    xpAccum += xpNeeded;
+    level++;
+    xpNeeded = xpForPlayerLevel(level);
+  }
+  return { level, xp: totalWeightedXP - xpAccum, xpNeeded };
+}
+
+// ─── State ───
+function defaultState() {
+  const muscles = {};
+  for (const key of Object.keys(MUSCLES)) muscles[key] = { level: 1, xp: 0, scale: 1.0 };
+  return {
+    name: 'Hero',
+    gender: 'male',
+    muscles,
+    gold: 0,
+    totalGold: 0,
+    streak: 0,
+    lastWorkoutDate: null,
+    totalWorkouts: 0,
+    achievements: [],
+    equippedCosmetics: [],
+    purchasedCosmetics: [],
+    hair: '',
+    equipment: {},
+    activeBuffs: [],
+    workoutLog: [],
+    stepLog: [],
+    dailyProgress: { date: null, groups: [], sets: 0, xp: 0, workouts: 0 },
+    weeklyChallengeLevel: 0,
+    weeklyChallengeDamage: 0,
+    weeklyStart: null,
+    monthlyDamage: 0,
+    monthlyBossIndex: 0,
+    monthlyStart: null,
+    weeklyXP: 0, weeklyXPStart: null,
+    monthlyXP: 0, monthlyXPStart: null,
+    yearlyXP: 0, yearlyXPStart: null,
+    _pendingRank1Weekly: null, _pendingRank1Monthly: null, _pendingRank1Yearly: null,
+    skinTone: 1,
+    hairColor: 0,
+    activeTitle: null,
+    achievementCounts: {},
+    private: false,
+    measurements: [],
+    measurementUnit: 'in',
+    weightLog: [],
+    weightUnit: 'lbs',
+    myCustomChallengeIds: [],
+    challengesOptIn: true,
+    raidDamage: 0,
+    raidWeekStart: null,
+    raidVictoryClaimed: {},
+    teamId: null,
+    teamRole: null,
+    gymId: null,
+    gymRank: null,
+    _everJoinedGym: false,
+    _everFoundedGym: false,
+    _gymWasFull: false,
+    _everJoinedRaid: false,
+    _raidWinsByRole: {},
+    _raidWinsBySize: {},
+    lastDungeonId: null,
+    _raidKillCounts: {},
+    armorInventory: [],
+    activePet: null,
+    heightIn: 70,
+    hideArmor: false,
+    recapAnimation: true,
+    _lastRaidClashDate: null,
+    equippedArmor: {},
+    goals: {
+      currentWeight: null, goalWeight: null, heightCm: null, birthYear: null,
+      weeklyGoal: 'maintain', activityLevel: 'moderate', startDate: null, exerciseGoal: 30,
+    },
+    customSplits: [],
+    activeSplitId: null,
+    splitDayIndices: {},
+  };
+}
+
+let state = defaultState();
+
+// Streak is a live, session-trusted running counter (see updateStreak) that only moves
+// forward correctly while this tab stays open and keeps incrementing it itself. A value
+// pulled in from localStorage or Firestore on load has no such guarantee — it could be
+// stale from a different device or an old sync — so any freshly loaded state gets its
+// streak recomputed from the workout log (recomputeStreak() already accounts for
+// streakProtectedDates) instead of trusting whatever number came with it.
+function _reconcileStreakFromLog() {
+  state.streak = recomputeStreak();
+}
+
+// ─── Cloud merge ───
+// Replaces "whichever device saved last wins the entire account", which silently threw
+// away every workout logged on the other device. Progress (workouts, muscle XP, streak
+// days, achievements) is UNIONED so nothing earned on either device can be lost. Shop and
+// profile state (gold, gear, cosmetics, settings) still follows the newest save — those
+// legitimately go down (a purchase), so a union would hand back gold that was spent.
+
+function _readLocalSave() {
+  try {
+    const raw = localStorage.getItem('musclequest_save');
+    return raw ? { ...defaultState(), ...JSON.parse(raw) } : null;
+  } catch (e) { return null; }
+}
+
+// Fills in anything an older/partial cloud doc or save is missing so the merge never has
+// to special-case undefined muscles or arrays.
+function _normalizeLoadedState(s) {
+  if (!s.muscles) s.muscles = {};
+  for (const key of Object.keys(MUSCLES)) {
+    if (!s.muscles[key]) s.muscles[key] = { level: 1, xp: 0, scale: 1.0 };
+  }
+  if (!s.equippedCosmetics) s.equippedCosmetics = [];
+  if (!s.activeBuffs) s.activeBuffs = [];
+  if (!s.workoutLog) s.workoutLog = [];
+  return s;
+}
+
+// Key order must not matter: Firestore hands maps back with their keys re-ordered, so the
+// very same workout can stringify differently on the device that created it and the one
+// that pulled it from the cloud. A naive JSON.stringify signature would call those two
+// "different workouts" — duplicating the entry and double-crediting its XP.
+function _stableStringify(v) {
+  if (v === undefined) return 'null';
+  if (Array.isArray(v)) return '[' + v.map(_stableStringify).join(',') + ']';
+  if (v && typeof v === 'object') {
+    return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + _stableStringify(v[k])).join(',') + '}';
+  }
+  return JSON.stringify(v);
+}
+
+function _logSig(e) {
+  return `${e.date}|${e.muscle}|${e.exercise}|${e.duration || 0}|${e.xp || 0}|${_stableStringify(e.sets || [])}`;
+}
+
+// Multiset union of two workout logs: an entry present N times on one side and M on the
+// other appears max(N, M) times — so two genuinely identical entries on the same day (a
+// real thing: two rest-day logs) aren't collapsed into one. Also reports which entries
+// each side was missing, for crediting their gold/XP.
+function _unionLogs(a, b) {
+  const buckets = new Map();
+  const add = (arr, side) => {
+    for (const e of arr || []) {
+      const s = _logSig(e);
+      let bk = buckets.get(s);
+      if (!bk) { bk = { entry: e, a: 0, b: 0 }; buckets.set(s, bk); }
+      bk[side]++;
+    }
+  };
+  add(a, 'a');
+  add(b, 'b');
+  const onlyA = [], onlyB = [];
+  for (const { entry, a: na, b: nb } of buckets.values()) {
+    for (let i = 0; i < na - nb; i++) onlyA.push(entry);
+    for (let i = 0; i < nb - na; i++) onlyB.push(entry);
+  }
+  return { onlyA, onlyB };
+}
+
+// Rough per-muscle XP a logged entry awarded, for crediting workouts one device never saw.
+// Deliberately an under-estimate (ignores equipment/buff multipliers) — better to be a
+// little short than to invent XP.
+function _estimateMuscleXP(e) {
+  const out = {};
+  const xp = e.xp || 0;
+  if (e.muscle === 'rest') {
+    for (const k of Object.keys(MUSCLES)) {
+      if (k !== 'rest' && k !== 'cardio') out[k] = Math.floor(xp / 10);
+    }
+    return out;
+  }
+  const targets = EXERCISE_MUSCLES[e.exercise];
+  if (targets && Object.keys(targets).length) {
+    const sum = Object.values(targets).reduce((s, m) => s + m, 0) || 1;
+    for (const [k, m] of Object.entries(targets)) {
+      out[k] = Math.floor(e.muscle === 'cardio' ? xp * m : (xp * m) / sum);
+    }
+    return out;
+  }
+  if (MUSCLES[e.muscle]) out[e.muscle] = xp;
+  return out;
+}
+
+function _muscleCumXP(m) {
+  let c = (m && m.xp) || 0;
+  for (let i = 1; i < ((m && m.level) || 1); i++) c += xpForMuscleLevel(i);
+  return c;
+}
+
+function _applyLevelUps(level, xp) {
+  for (let guard = 0; guard < 500 && xp >= xpForMuscleLevel(level); guard++) {
+    xp -= xpForMuscleLevel(level);
+    level++;
+  }
+  return { level, xp };
+}
+
+function _unionByKey(a, b, keyFn) {
+  const seen = new Set();
+  const out = [];
+  for (const item of [...(a || []), ...(b || [])]) {
+    const k = keyFn(item);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(item);
+  }
+  return out;
+}
+
+// Returns { state, changedRemote }. `changedRemote` = the merged result contains
+// something the cloud copy doesn't, so it has to be pushed back up.
+function _mergeStates(local, remote) {
+  const L = _normalizeLoadedState(local || defaultState());
+  const R = _normalizeLoadedState(remote || defaultState());
+  const isBlank = s => !s.workoutLog.length && !(s.totalWorkouts > 0);
+
+  // A deliberate reset/import on one device is authoritative over the other's older
+  // history — otherwise a union would resurrect everything the user just wiped.
+  const eL = L._resetEpoch || 0, eR = R._resetEpoch || 0;
+  if (eL !== eR) return eL > eR ? { state: L, changedRemote: true } : { state: R, changedRemote: false };
+
+  // A blank device (fresh install, blocked/offline first login, cleared site data) must
+  // never beat a populated one, no matter how recent its timestamp looks.
+  if (isBlank(R)) return { state: L, changedRemote: !isBlank(L) };
+  if (isBlank(L)) return { state: R, changedRemote: false };
+
+  // Shop/profile state follows the newest save — EXCEPT when the newer side has far less
+  // history. That's a stale or barely-used copy (a blocked device that logged one
+  // workout, a fresh install), and its fresh-looking timestamp must not be allowed to
+  // decide the real account's gold, gear, and cosmetics.
+  let localNewer = (L._lastModified || 0) > (R._lastModified || 0);
+  if (localNewer && L.workoutLog.length < R.workoutLog.length * 0.5) localNewer = false;
+  else if (!localNewer && R.workoutLog.length < L.workoutLog.length * 0.5) localNewer = true;
+  const base = localNewer ? L : R;
+  const other = localNewer ? R : L;
+  const merged = JSON.parse(JSON.stringify(base));
+
+  const { onlyA: onlyL, onlyB: onlyR } = _unionLogs(L.workoutLog, R.workoutLog);
+  const otherOnly = localNewer ? onlyR : onlyL;
+
+  // Workouts: everything either device logged.
+  if (otherOnly.length) {
+    merged.workoutLog = [...merged.workoutLog, ...JSON.parse(JSON.stringify(otherOnly))];
+    merged.workoutLog.sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
+  }
+
+  // Muscles: per muscle, keep the side with more cumulative XP, then credit the XP from
+  // workouts that only the OTHER side's log has (the winning side never earned those).
+  //
+  // That credit rests on one assumption — that the winning side's muscle XP does NOT
+  // already include those workouts — and it is wrong whenever a log is incomplete or a
+  // workout compares as "different" when it isn't. Wrongly crediting doubles XP, which is
+  // far worse than being a few XP short, so crediting is fenced three ways:
+  //   1. only a *plausibly small* list of unique workouts is ever credited (a device that
+  //      is "missing" most of the other's history is a stale copy, not a divergence);
+  //   2. each muscle's credit is capped at a small fraction of what it already has;
+  //   3. canonical signatures (_logSig) so key-order differences can't fake a difference.
+  const plausibleUnique = (n, logLen) => n <= Math.max(25, Math.ceil(logLen * 0.15));
+  const okCreditL = plausibleUnique(onlyL.length, L.workoutLog.length);
+  const okCreditR = plausibleUnique(onlyR.length, R.workoutLog.length);
+  const creditFor = entries => {
+    const m = {};
+    for (const e of entries) for (const [k, v] of Object.entries(_estimateMuscleXP(e))) m[k] = (m[k] || 0) + v;
+    return m;
+  };
+  const creditFromR = okCreditR ? creditFor(onlyR) : {}; // XP R earned that L's log lacks
+  const creditFromL = okCreditL ? creditFor(onlyL) : {}; // XP L earned that R's log lacks
+  let musclesImprovedOverRemote = false;
+  for (const k of Object.keys(MUSCLES)) {
+    const mL = L.muscles[k], mR = R.muscles[k];
+    const hiIsL = _muscleCumXP(mL) >= _muscleCumXP(mR);
+    const hi = hiIsL ? mL : mR;
+    const rawAdd = (hiIsL ? creditFromR : creditFromL)[k] || 0;
+    const add = Math.min(rawAdd, Math.max(150, Math.floor(_muscleCumXP(hi) * 0.1)));
+    const norm = _applyLevelUps(hi.level || 1, (hi.xp || 0) + add);
+    merged.muscles[k] = { level: norm.level, xp: norm.xp, scale: muscleScale(norm.level) };
+    if (_muscleCumXP(merged.muscles[k]) > _muscleCumXP(mR)) musclesImprovedOverRemote = true;
+  }
+
+  // Counters that only ever go up. Gold from the other side's unique workouts is credited
+  // under the same plausibility fence as XP, for the same reason.
+  const otherCredible = localNewer ? okCreditR : okCreditL;
+  const goldFromOtherOnly = otherCredible ? otherOnly.reduce((s, e) => s + (e.gold || 0), 0) : 0;
+  merged.gold = (base.gold || 0) + goldFromOtherOnly;
+  merged.totalGold = Math.max((base.totalGold || 0) + goldFromOtherOnly, other.totalGold || 0);
+  merged.totalWorkouts = Math.max(L.totalWorkouts || 0, R.totalWorkouts || 0, merged.workoutLog.length);
+
+  // Lists and flags: union / OR / max.
+  merged.achievements = [...new Set([...(L.achievements || []), ...(R.achievements || [])])];
+  merged.achievementCounts = { ...(R.achievementCounts || {}) };
+  for (const [k, v] of Object.entries(L.achievementCounts || {})) {
+    merged.achievementCounts[k] = Math.max(merged.achievementCounts[k] || 0, v || 0);
+  }
+  merged.streakProtectedDates = [...new Set([...(L.streakProtectedDates || []), ...(R.streakProtectedDates || [])])].sort();
+  merged.weightLog = _unionByKey(base.weightLog, other.weightLog, e => e.date);
+  merged.stepLog = _unionByKey(base.stepLog, other.stepLog, e => e.date);
+  merged.measurements = _unionByKey(base.measurements, other.measurements, e => e.date);
+  for (const k of Object.keys(merged)) {
+    if (k.startsWith('_ever') || k === '_gymWasFull') merged[k] = !!(L[k] || R[k]);
+  }
+
+  // lastWorkoutDate is "the most recent day with a logged workout" — recompute it from
+  // the merged log so updateStreak() never judges a gap against a stale date.
+  let latest = merged.lastWorkoutDate || '';
+  for (const d of [L.lastWorkoutDate, R.lastWorkoutDate]) if (d && d > latest) latest = d;
+  for (const e of merged.workoutLog) if (e.date > latest) latest = e.date;
+  merged.lastWorkoutDate = latest || null;
+
+  return { state: merged, changedRemote: localNewer || onlyL.length > 0 || musclesImprovedOverRemote };
+}
+
+function load() {
+  const raw = localStorage.getItem('musclequest_save');
+  if (raw) {
+    const s = JSON.parse(raw);
+    state = { ...defaultState(), ...s };
+    for (const key of Object.keys(MUSCLES)) {
+      if (!state.muscles[key]) state.muscles[key] = { level: 1, xp: 0, scale: 1.0 };
+    }
+    if (!state.equippedCosmetics) state.equippedCosmetics = [];
+    if (!state.gender) state.gender = 'male';
+    _reconcileStreakFromLog();
+  }
+}
+
+async function login() {
+  const username = document.getElementById('login-username').value.trim().toLowerCase();
+  const pin = document.getElementById('login-pin').value.trim();
+  const hint = document.getElementById('login-hint');
+
+  if (!username || username.length < 2) { hint.textContent = 'Username must be at least 2 characters'; hint.className = 'login-hint error'; return; }
+  if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) { hint.textContent = 'PIN must be exactly 4 digits'; hint.className = 'login-hint error'; return; }
+
+  const hashedPin = await hashPin(pin, username);
+  // Accept either the hashed PIN or a legacy plaintext PIN; legacy accounts get upgraded to the hash
+  const pinMatches = stored => stored === hashedPin || stored === pin;
+
+  let usedFirebase = false;
+  let cloudVerified = false;   // true only if we actually read (or created) the cloud account
+  let pushMergedBack = false;  // login merged in local progress the cloud doesn't have yet
+  if (db) {
+    try {
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+      const doc = await Promise.race([db.collection('users').doc(username).get(), timeoutPromise]);
+      usedFirebase = true;
+      if (doc.exists) {
+        const data = doc.data();
+        if (!pinMatches(data._pin)) { hint.textContent = 'Wrong PIN for this username'; hint.className = 'login-hint error'; return; }
+        if (data._pin !== hashedPin) db.collection('users').doc(username).set({ _pin: hashedPin }, { merge: true }).catch(() => {});
+        const remoteState = _normalizeLoadedState({ ...defaultState(), ...data });
+        delete remoteState._pin;
+        // Same account already on this device (e.g. the session lapsed and the PIN is
+        // being re-entered)? Merge so unsynced local progress isn't thrown away.
+        const sameAccount = localStorage.getItem('musclequest_current_user') === username;
+        const localSave = sameAccount ? _readLocalSave() : null;
+        if (localSave) {
+          const result = _mergeStates(localSave, remoteState);
+          state = result.state;
+          pushMergedBack = result.changedRemote;
+        } else {
+          state = remoteState;
+        }
+        _remoteLogLenAtLastSync = (remoteState.workoutLog || []).length;
+        cloudVerified = true;
+        hint.textContent = 'Welcome back, ' + state.name + '!';
+        hint.className = 'login-hint success';
+      } else {
+        state = defaultState();
+        state.name = username;
+        await db.collection('users').doc(username).set({ ...state, _pin: hashedPin });
+        cloudVerified = true;
+        hint.textContent = 'Account created!';
+        hint.className = 'login-hint success';
+      }
+    } catch (e) {
+      usedFirebase = false;
+    }
+  }
+  if (!usedFirebase) {
+    const savedKey = `musclequest_${username}`;
+    const raw = localStorage.getItem(savedKey);
+    if (raw) {
+      // Offline login against a copy this device already has — fine, but it stays
+      // unverified (banner + no cloud writes) until the cloud can actually be read.
+      const data = JSON.parse(raw);
+      if (data._pin && !pinMatches(data._pin)) { hint.textContent = 'Wrong PIN for this username'; hint.className = 'login-hint error'; return; }
+      state = _normalizeLoadedState({ ...defaultState(), ...data });
+      delete state._pin;
+      hint.textContent = 'Welcome back! (offline)';
+      hint.className = 'login-hint success';
+    } else {
+      // Deliberately NOT creating a blank local account here. This used to say "Account
+      // created locally!" — so a device that merely couldn't reach the server (content
+      // blocker, bad connection) showed a brand-new level-1 hero for an account that
+      // already existed in the cloud, which looked exactly like lost progress.
+      hint.textContent = "Can't reach the server to check this account. Check your connection — or turn off any ad/content blocker for this site — and try again.";
+      hint.className = 'login-hint error';
+      return;
+    }
+  }
+
+  _reconcileStreakFromLog();
+
+  currentUser = username;
+  _legacyPinForSync = pin;
+  localStorage.setItem('musclequest_current_user', username);
+  localStorage.setItem('musclequest_current_pin', hashedPin);
+  localStorage.setItem('musclequest_save', JSON.stringify(state));
+  if (cloudVerified) {
+    _cloudSyncOk();
+    if (pushMergedBack) saveWithPin(true);
+  } else {
+    _cloudReadVerified = false;
+    _cloudSyncFailures = 1;
+    _setSyncStatus(db ? 'unreachable' : 'no-sdk');
+    _scheduleSyncRetry();
+  }
+
+  setTimeout(() => {
+    document.getElementById('login-screen').classList.add('hidden');
+    addExerciseRow();
+    renderDashboard();
+  }, 600);
+}
+
+function logout() {
+  currentUser = null;
+  _cloudReadVerified = false;
+  _cloudSyncFailures = 0;
+  _remoteLogLenAtLastSync = 0;
+  _shrinkPushAllowed = false;
+  clearTimeout(_syncRetryTimer);
+  document.getElementById('sync-banner')?.classList.add('hidden');
+  localStorage.removeItem('musclequest_current_user');
+  localStorage.removeItem('musclequest_current_pin');
+  localStorage.removeItem('musclequest_save');
+  state = defaultState();
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-pin').value = '';
+  document.getElementById('login-hint').textContent = '';
+  showTab('dashboard');
+}
+
+async function autoLogin() {
+  const user = localStorage.getItem('musclequest_current_user');
+  let pin = localStorage.getItem('musclequest_current_pin');
+  if (!user || !pin) return;
+
+  // Upgrade legacy plaintext PIN sessions to the salted hash
+  let legacyPin = null;
+  if (/^\d{4}$/.test(pin)) {
+    legacyPin = pin;
+    pin = await hashPin(pin, user);
+    localStorage.setItem('musclequest_current_pin', pin);
+  }
+
+  // Always load localStorage immediately — fast, always has latest data
+  load();
+  currentUser = user;
+  document.getElementById('login-screen').classList.add('hidden');
+  addExerciseRow();
+  renderDashboard();
+
+  // Background cloud sync — reads the cloud copy and MERGES it with this device's save
+  // (see _mergeStates / _syncFromCloud). Tracked via _cloudMergeSettled so
+  // submitWorkout() can await it before deciding whether the streak actually broke —
+  // see the comment on _cloudMergeSettled above. A failure is no longer silent: it shows
+  // the sync banner and keeps retrying, and nothing is pushed until a read succeeds.
+  _cloudReadVerified = false;
+  _legacyPinForSync = legacyPin;
+  _cloudMergeSettled = _syncFromCloud('startup', 5000);
+}
+
+function syncStateFromStorage() {
+  const raw = localStorage.getItem('musclequest_save');
+  if (raw) { try { state = { ...defaultState(), ...JSON.parse(raw) }; } catch(e) {} }
+  // Expire stale vial so it doesn't linger in the account
+  if (state.activeVial && state.activeVial.expiresAt <= Date.now()) delete state.activeVial;
+  // This rehydrates state fresh from storage too (returning from the Shop tab, which
+  // writes gold/purchases straight to localStorage) — same staleness risk as load(), so
+  // the streak gets the same self-heal.
+  _reconcileStreakFromLog();
+  saveWithPin();
+}
+
+// Builds the Firestore leaderboard fields from whatever state object is passed in —
+// shared by the live in-session save path and the cloud pusher below, which reads a
+// fresh copy from localStorage rather than trusting the in-memory `state`.
+function _buildLeaderboardData(s) {
+  const overall = calcOverallLevel(s.muscles || {});
+  return {
+    _leaderboardXP: overall.level * 1000 + overall.xp,
+    _leaderboardLevel: overall.level,
+    _leaderboardName: s.name,
+    _lastActive: todayStr(),
+    _gender: s.gender || 'male',
+    _cosmetics: s.equippedCosmetics || [],
+    _hair: s.hair || '',
+    _skinTone: s.skinTone ?? 1,
+    _hairColor: s.hairColor ?? 0,
+    _weeklyXP: s.weeklyXP || 0,
+    _weeklyXPStart: s.weeklyXPStart || '',
+    _monthlyXP: s.monthlyXP || 0,
+    _monthlyXPStart: s.monthlyXPStart || '',
+    _yearlyXP: s.yearlyXP || 0,
+    _yearlyXPStart: s.yearlyXPStart || '',
+    _pendingRank1Weekly: s._pendingRank1Weekly || null,
+    _pendingRank1Monthly: s._pendingRank1Monthly || null,
+    _pendingRank1Yearly: s._pendingRank1Yearly || null,
+    _totalWorkouts: s.totalWorkouts || 0,
+    _currentStreak: s.streak || 0,
+    _activeTitle: s.activeTitle || null,
+    _private: s.private || false,
+    _raidDamage: s.raidDamage || 0,
+    _raidWeekStart: s.raidWeekStart || '',
+    _teamId: s.teamId || null,
+    _gymId: s.gymId || null,
+    _muscleLevels: Object.fromEntries(
+      Object.keys(MUSCLES).filter(k => k !== 'rest' && k !== 'cardio')
+        .map(k => [k, s.muscles?.[k]?.level || 1])
+    ),
+  };
+}
+
+// Reads the freshest save from localStorage instead of the in-memory `state`. If this
+// tab has sat open while a workout was logged on another device — or store.js wrote a
+// purchase in THIS tab, which only touches localStorage — `state` can be stale, and
+// pushing it would silently overwrite newer data in Firestore with older data.
+// localStorage is always current because every write path goes through it first.
+function _pushToCloud() {
+  if (!db || !currentUser) return;
+  let fresh;
+  try { fresh = JSON.parse(localStorage.getItem('musclequest_save') || 'null'); } catch (e) { fresh = null; }
+  if (!fresh) return;
+
+  // Never write until this device has actually read the cloud copy at least once this
+  // session. A device that couldn't connect has only a blank or stale local save, and
+  // `merge: true` still replaces whole arrays (workoutLog) — so pushing it would wipe the
+  // real account. Instead, try to sync first; a successful sync pushes what's needed.
+  if (!_cloudReadVerified) { _syncFromCloud('push-gate', 8000); return; }
+
+  // Second line of defence: a workout log that suddenly shrinks versus what the cloud
+  // had is never normal (only a deliberate reset/import does that), so refuse and
+  // re-merge instead of destroying history.
+  const len = (fresh.workoutLog || []).length;
+  if (!_shrinkPushAllowed && _remoteLogLenAtLastSync > 20 && len < _remoteLogLenAtLastSync * 0.6) {
+    console.warn(`[sync] refusing to push a workout log of ${len} entries over the cloud's ${_remoteLogLenAtLastSync} — re-merging instead`);
+    _syncFromCloud('shrink-guard', 8000);
+    return;
+  }
+
+  const pin = localStorage.getItem('musclequest_current_pin');
+  const leaderboardData = _buildLeaderboardData(fresh);
+  db.collection('users').doc(currentUser).set({ ...fresh, ...leaderboardData, _pin: pin }, { merge: true })
+    .then(() => { _remoteLogLenAtLastSync = len; _shrinkPushAllowed = false; })
+    .catch(() => {});
+}
+
+// ─── Cloud sync ───
+// One routine used by startup, login, retries, tab-refocus, and the push guard: read the
+// cloud copy, merge it with what's on this device (see _mergeStates), adopt the result,
+// and push back anything the cloud was missing. Safe to call repeatedly — concurrent
+// calls share one in-flight promise.
+function _setSyncStatus(kind) {
+  const el = document.getElementById('sync-banner');
+  const txt = document.getElementById('sync-banner-text');
+  if (!el || !txt) return;
+  if (kind === 'ok' || _cloudReadVerified || !currentUser) { el.classList.add('hidden'); return; }
+  txt.textContent = kind === 'no-sdk'
+    ? "Can't reach the cloud — the sync library didn't load, which usually means an ad or content blocker is blocking this site. What you log here is saved on this device only for now."
+    : "Can't reach the cloud right now, so your account isn't synced on this device yet. What you log here is saved locally and will merge in when the connection is back. If this keeps happening, a content blocker may be blocking firestore.googleapis.com.";
+  el.classList.remove('hidden');
+}
+
+function _scheduleSyncRetry() {
+  clearTimeout(_syncRetryTimer);
+  if (_cloudReadVerified || !currentUser) return;
+  const delays = [5000, 15000, 30000, 60000, 120000];
+  const delay = delays[Math.min(Math.max(_cloudSyncFailures - 1, 0), delays.length - 1)];
+  _syncRetryTimer = setTimeout(() => _syncFromCloud('retry', 8000), delay);
+}
+
+function _cloudSyncOk() {
+  _cloudReadVerified = true;
+  _cloudSyncFailures = 0;
+  clearTimeout(_syncRetryTimer);
+  _setSyncStatus('ok');
+}
+
+function _cloudSyncFailed(kind) {
+  _cloudSyncFailures++;
+  _setSyncStatus(kind);
+  _scheduleSyncRetry();
+}
+
+function _syncFromCloud(reason, timeoutMs) {
+  if (_cloudSyncInFlight) return _cloudSyncInFlight;
+  _lastCloudSyncAttemptAt = Date.now();
+  const run = (async () => {
+    const user = currentUser;
+    if (!user) return;
+    if (!db) { _cloudSyncFailed('no-sdk'); return; }
+    // Don't swap the state out from under a workout that's mid-submit.
+    if (typeof _xpRecording !== 'undefined' && _xpRecording) { setTimeout(() => _syncFromCloud(reason, timeoutMs), 3000); return; }
+    let doc;
+    try {
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs || 8000));
+      doc = await Promise.race([db.collection('users').doc(user).get(), timeout]);
+    } catch (e) { _cloudSyncFailed('unreachable'); return; }
+    if (currentUser !== user) return; // logged out or switched accounts mid-flight
+    try {
+      const pin = localStorage.getItem('musclequest_current_pin');
+      if (!doc.exists) {
+        // Account only exists on this device so far — publish it.
+        _cloudSyncOk();
+        saveWithPin(true);
+        return;
+      }
+      const data = doc.data();
+      if (data._pin && data._pin !== pin && data._pin !== _legacyPinForSync) { logout(); return; }
+      const remoteState = _normalizeLoadedState({ ...defaultState(), ...data });
+      delete remoteState._pin;
+      const local = _readLocalSave() || state;
+      const result = _mergeStates(local, remoteState);
+      state = result.state;
+      _reconcileStreakFromLog();
+      checkPeriodXPReset();
+      _remoteLogLenAtLastSync = (remoteState.workoutLog || []).length;
+      localStorage.setItem('musclequest_save', JSON.stringify(state));
+      _cloudSyncOk();
+      renderDashboard();
+      if (result.changedRemote) saveWithPin(true);
+    } catch (e) {
+      console.warn('[sync] merge failed:', e);
+      _cloudSyncFailed('unreachable');
+    }
+  })();
+  _cloudSyncInFlight = run.finally(() => { _cloudSyncInFlight = null; });
+  return _cloudSyncInFlight;
+}
+
+function retryCloudSync() {
+  _cloudSyncFailures = 0;
+  return _syncFromCloud('manual', 8000).then(() => {
+    toast(_cloudReadVerified ? 'Synced with the cloud ✓' : "Still can't reach the cloud", _cloudReadVerified ? 'success' : 'info');
+  });
+}
+
+window.addEventListener('online', () => {
+  if (currentUser && !_cloudReadVerified) _syncFromCloud('online', 8000);
+});
+// A tab left open (or a phone app backgrounded) for a while is the other way two devices
+// drift apart — re-merge when it comes back instead of trusting a stale in-memory copy.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !currentUser) return;
+  if (!_cloudReadVerified || Date.now() - _lastCloudSyncAttemptAt > 60000) _syncFromCloud('focus', 8000);
+});
+
+// Casual changes (equip, settings, a title change) coalesce into one push a couple
+// seconds after the last one, so idle browsing doesn't spam Firestore or create a
+// stream of tiny races between tabs/devices. Confirmed actions bypass this and push
+// immediately — see cloudSyncNow().
+let _cloudSyncTimer = null;
+function _queueCloudSync() {
+  if (!db || !currentUser) return;
+  if (_cloudSyncTimer) return;
+  _cloudSyncTimer = setTimeout(() => { _cloudSyncTimer = null; _pushToCloud(); }, 2500);
+}
+
+// The confirmed-action sync point. Called with immediate=true (the default) after
+// anything the user explicitly committed to — submitting a workout, a store purchase's
+// second confirm tap, feeding a pet, a raid action — so that data reaches the cloud
+// right away instead of waiting out the debounce. store.js calls this directly (as
+// MQ.cloudSyncNow()) since it only has localStorage access, not the Firestore handle.
+function cloudSyncNow(immediate) {
+  if (immediate === false) { _queueCloudSync(); return; }
+  clearTimeout(_cloudSyncTimer);
+  _cloudSyncTimer = null;
+  _pushToCloud();
+}
+
+// Flush any pending debounced push before the tab goes away, so a change made just
+// before switching apps or closing the tab isn't stuck waiting out the debounce window.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && _cloudSyncTimer) cloudSyncNow(true);
+});
+
+function saveWithPin(immediate) {
+  const pin = localStorage.getItem('musclequest_current_pin');
+  // Stamped on every save so autoLogin() can tell which device's copy is actually
+  // newer — a plain "who has more workouts" comparison never moved on gold, equips,
+  // streak, or armour drops, so those changes on one device could get silently
+  // overwritten by an older save from a tab left open on another.
+  state._lastModified = Date.now();
+  localStorage.setItem('musclequest_save', JSON.stringify(state));
+  if (currentUser && !db) {
+    const leaderboardData = _buildLeaderboardData(state);
+    localStorage.setItem(`musclequest_${currentUser}`, JSON.stringify({ ...state, ...leaderboardData, _pin: pin }));
+  }
+  if (immediate) cloudSyncNow(true); else _queueCloudSync();
+}
+
+// ─── Apple Health Sync ───
+async function refreshHealthSync() {
+  const btn = document.querySelector('[onclick="MQ.refreshHealthSync()"]');
+  if (btn) { btn.style.animation = 'spin 0.6s linear'; setTimeout(() => btn.style.animation = '', 600); }
+  await loadHealthSync();
+  toast('Health data refreshed', 'info');
+}
+
+async function loadHealthSync() {
+  if (!currentUser) return;
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/musclequest-c5052/databases/(default)/documents/healthSync/${currentUser}?key=AIzaSyC6_AVDVbH9cBh304PJOA7cMsTBcyTw5Rc`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.fields) return;
+    const f = json.fields;
+    healthSync = {
+      date:              f.date?.stringValue              ?? '',
+      steps:             f.steps?.doubleValue             ?? f.steps?.integerValue             ?? 0,
+      protein:           f.protein?.doubleValue           ?? f.protein?.integerValue           ?? 0,
+      caloriesConsumed:  f.caloriesConsumed?.doubleValue  ?? f.caloriesConsumed?.integerValue  ?? 0,
+      activeCalories:    f.activeCalories?.doubleValue    ?? f.activeCalories?.integerValue    ?? 0,
+      sleepHours:        f.sleepHours?.doubleValue        ?? f.sleepHours?.integerValue        ?? 0,
+      exerciseMinutes:   f.exerciseMinutes?.doubleValue   ?? f.exerciseMinutes?.integerValue   ?? 0,
+    };
+    renderHealthPanel();
+    // Log today's steps into stepLog for history tracking
+    if (healthSync.steps > 0 && healthSync.date) {
+      if (!state.stepLog) state.stepLog = [];
+      const existing = state.stepLog.findIndex(e => e.date === healthSync.date);
+      if (existing >= 0) state.stepLog[existing].steps = healthSync.steps;
+      else state.stepLog.push({ date: healthSync.date, steps: healthSync.steps });
+      saveWithPin();
+    }
+  } catch(e) { console.warn('healthSync fetch error:', e); }
+}
+
+async function checkHealthWriteTest() {
+  const url = `https://firestore.googleapis.com/v1/projects/musclequest-c5052/databases/(default)/documents/healthSync/${currentUser}?key=AIzaSyC6_AVDVbH9cBh304PJOA7cMsTBcyTw5Rc`;
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
+    if (res.ok && json.fields) {
+      const f = json.fields;
+      const steps = f.steps?.doubleValue ?? f.steps?.integerValue ?? '?';
+      const protein = f.protein?.doubleValue ?? f.protein?.integerValue ?? '?';
+      const date = f.date?.stringValue ?? '?';
+      toast(`✅ Firestore has: ${steps} steps, ${protein}g protein, date: ${date}`, 'success');
+      console.log('Firestore raw fields:', JSON.stringify(f));
+      // Now force-load via SDK and log result
+      try {
+        const doc = await db.collection('healthSync').doc(currentUser).get({ source: 'server' });
+        console.log('SDK doc.exists:', doc.exists, 'data:', JSON.stringify(doc.data()));
+        if (doc.exists) {
+          healthSync = doc.data();
+          renderHealthPanel();
+          const el = document.getElementById('health-panel');
+          console.log('health-panel innerHTML length:', el?.innerHTML?.length, 'visible:', el?.offsetParent !== null);
+        }
+      } catch(e2) { console.error('SDK read error:', e2); }
+    } else if (res.status === 404) {
+      toast('❌ No document in Firestore — Shortcut write may be blocked', 'error');
+    } else {
+      toast(`⚠️ Firestore returned ${res.status}: ${JSON.stringify(json)}`, 'error');
+    }
+  } catch(e) {
+    toast('❌ Could not reach Firestore: ' + e.message, 'error');
+  }
+}
+
+function renderHealthPanel() {
+  const el = document.getElementById('health-panel');
+  if (!el) return;
+
+  if (!healthSync) {
+    el.innerHTML = `<div class="health-empty">
+      <i class="ti ti-heartbeat-off" style="font-size:28px;color:var(--text-muted)"></i>
+      <p style="color:var(--text-muted);font-size:12px;margin-top:6px">No health data yet.<br>Set up the iOS Shortcut in <strong>Settings → Health Sync</strong>.</p>
+    </div>`;
+    return;
+  }
+
+  const today = todayShortStr();
+  const fresh = healthSync.date === today;
+  const steps = Math.round(healthSync.steps || 0);
+  const protein = Math.round(healthSync.protein || 0);
+  const activeCal = Math.round(healthSync.activeCalories || 0);
+  const sleep = parseFloat(healthSync.sleepHours || 0).toFixed(1);
+  const exMins = Math.round(healthSync.exerciseMinutes || 0);
+
+  const row = (icon, label, val, goal, unit) => {
+    const hit = parseFloat(val) >= goal;
+    return `<div class="health-row">
+      <span class="health-ico"><i class="ti ti-${icon}"></i></span>
+      <span class="health-lbl">${label}</span>
+      <span class="health-val ${hit ? 'health-hit' : ''}">${val}${unit}</span>
+      <span class="health-goal-lbl">${hit ? '✓' : `/${goal}${unit}`}</span>
+    </div>`;
+  };
+
+  el.innerHTML = `<div class="health-card ${fresh ? '' : 'health-stale'}">
+    <div class="health-header">
+      <span><i class="ti ti-apple"></i> Apple Health</span>
+      <span class="health-date">${fresh ? 'Today' : 'Last: ' + healthSync.date}</span>
+    </div>
+    ${row('shoe', 'Steps', steps.toLocaleString(), '8,000', '')}
+    ${row('meat', 'Protein', protein, 100, 'g')}
+    ${row('flame', 'Active Cal', activeCal, 300, '')}
+    ${row('run', 'Exercise', exMins, 30, 'min')}
+    ${row('moon', 'Sleep', sleep, 7, 'h')}
+    ${fresh ? `<div class="health-bonuses">
+      ${steps >= 8000 ? '<span class="hbonus">👟 +10g</span>' : ''}
+      ${protein >= 100 ? '<span class="hbonus">🥩 +15% XP</span>' : ''}
+      ${activeCal >= 300 ? '<span class="hbonus">🔥 +10% Cardio</span>' : ''}
+      ${exMins >= 30 ? '<span class="hbonus">🏃 +15g</span>' : ''}
+      ${parseFloat(sleep) >= 7 ? '<span class="hbonus">🌙 Rest +100 XP</span>' : ''}
+    </div>` : '<p class="health-stale-note">Sync today for bonuses</p>'}
+  </div>`;
+}
+
+function getHealthSyncSetupHTML() {
+  const lastSync = healthSync ? `<p style="color:var(--text-muted);font-size:12px;text-align:center;margin:8px 0 0">Last logged: <strong>${healthSync.date}</strong> ${healthSync.date === todayShortStr() ? '✓ Today' : ''}</p>` : '';
+  return `<div class="health-setup">
+    <p style="color:var(--text-muted);font-size:13px;margin:0 0 14px">Log today's stats to earn daily bonuses. Check your Health app or fitness tracker for these numbers.</p>
+    <div class="health-form">
+      <div class="health-field">
+        <label class="health-field-label">👟 Steps</label>
+        <input type="number" id="hs-steps" class="health-input" inputmode="numeric" value="${healthSync?.steps || 0}"/>
+      </div>
+      <div class="health-field">
+        <label class="health-field-label">🥩 Protein (g)</label>
+        <input type="number" id="hs-protein" class="health-input" inputmode="numeric" value="${healthSync?.protein || 0}"/>
+      </div>
+      <div class="health-field">
+        <label class="health-field-label">🍽️ Calories Eaten</label>
+        <input type="number" id="hs-food-cal" class="health-input" inputmode="numeric" value="${healthSync?.caloriesConsumed || 0}"/>
+      </div>
+      <div class="health-field">
+        <label class="health-field-label">🔥 Active Calories Burned</label>
+        <input type="number" id="hs-cal" class="health-input" inputmode="numeric" value="${healthSync?.activeCalories || 0}"/>
+      </div>
+      <div class="health-field">
+        <label class="health-field-label">🌙 Sleep (hours)</label>
+        <input type="number" id="hs-sleep" class="health-input" inputmode="decimal" step="0.1" value="${healthSync?.sleepHours || 0}"/>
+      </div>
+      <div class="health-field">
+        <label class="health-field-label">🏃 Exercise (mins)</label>
+        <input type="number" id="hs-exmins" class="health-input" inputmode="numeric" value="${healthSync?.exerciseMinutes || 0}"/>
+      </div>
+    </div>
+    <button class="btn-primary" style="width:100%;margin-top:14px" onclick="MQ.submitHealthForm()">Submit Today's Stats</button>
+    ${lastSync}
+    <div class="health-bonuses-info" style="margin-top:14px">
+      <strong>Daily bonuses:</strong>
+      <div>👟 8,000+ steps → +10 gold</div>
+      <div>🥩 100g+ protein → +15% muscle XP</div>
+      <div>🔥 300+ active cal → +10% cardio XP</div>
+      <div>🏃 30+ exercise min → +15 gold</div>
+      <div>🌙 7h+ sleep → Rest days give +100 XP</div>
+    </div>
+    <button class="btn-secondary" style="width:100%;margin-top:16px;font-size:13px" onclick="MQ.toggleShortcutGuide()">
+      ⚡ Automate with iPhone Shortcuts
+    </button>
+    <div id="shortcut-guide" style="display:none;margin-top:12px">
+      <p style="color:var(--text-muted);font-size:12px;margin:0 0 10px">Build a Shortcut that syncs automatically every day — no manual entry needed.</p>
+      <div class="health-setup-steps">
+        <div class="setup-step"><span class="step-num">1</span><span>Open the <strong>Shortcuts</strong> app → tap <strong>+</strong> → <strong>Add Action</strong></span></div>
+        <div class="setup-step"><span class="step-num">2</span><span>Search <strong>"Find Health Samples"</strong> — add it <strong>6 times</strong>, once each for:<br><em>Step Count, Active Energy Burned, Apple Exercise Time, Dietary Protein, Dietary Energy, Sleep Analysis</em><br><span style="font-size:11px;color:var(--text-muted)">💡 LoseIt exports calories to <strong>Dietary Energy</strong> in Apple Health — make sure LoseIt → Settings → Health has "Calories" toggled on.</span></span></div>
+        <div class="setup-step"><span class="step-num">3</span><span>After each one, add <strong>"Calculate Statistics"</strong> → set to <strong>Sum</strong>. Tap the output label to rename them: <em>myStepsSum, myActiveCal, myExerciseMins, myProtein, myCalorieIntake, mySleepRaw</em></span></div>
+        <div class="setup-step"><span class="step-num">4</span><span>Add <strong>"Calculate"</strong> → type: <code>mySleepRaw ÷ 3600</code> (use the magic pill for mySleepRaw) → rename output <em>mySleepHours</em></span></div>
+        <div class="setup-step"><span class="step-num">5</span><span>Add <strong>"Format Date"</strong> → Current Date → Format: Custom → <code>M/d/yy</code> → rename <em>myDate</em></span></div>
+        <div class="setup-step"><span class="step-num">6</span><span>Add a <strong>"Text"</strong> action. Tap the field, then tap the <strong>&gt;</strong> arrow above the keyboard to insert magic pills. Build this structure — type the plain text parts, insert pills for the values (tap to copy template):</span></div>
+      </div>
+      <div class="setup-url-box" onclick="MQ.copyHealthJSON()">
+        <code class="setup-url" style="font-size:10px">{"fields":{"date":{"stringValue":"myDate"},"steps":{"doubleValue":myStepsSum},"protein":{"doubleValue":myProtein},"caloriesConsumed":{"doubleValue":myCalorieIntake},"activeCalories":{"doubleValue":myActiveCal},"sleepHours":{"doubleValue":mySleepHours},"exerciseMinutes":{"doubleValue":myExerciseMins}}}</code>
+        <span class="setup-copy"><i class="ti ti-copy"></i></span>
+      </div>
+      <div class="health-setup-steps" style="margin-top:10px">
+        <div class="setup-step"><span class="step-num">7</span><span>Add <strong>"Get Contents of URL"</strong>:<br>
+          • URL: your personal link below (tap to copy)<br>
+          • Method: <strong>PATCH</strong><br>
+          • Headers: Key <code>Content-Type</code> → Value <code>application/json</code><br>
+          • Request Body: <strong>File</strong> → insert the Text pill from step 6
+        </span></div>
+      </div>
+      <div class="setup-url-box" onclick="navigator.clipboard.writeText('${`https://firestore.googleapis.com/v1/projects/musclequest-c5052/databases/(default)/documents/healthSync/${currentUser}?key=AIzaSyC6_AVDVbH9cBh304PJOA7cMsTBcyTw5Rc`}');MQ.toast('Copied!')">
+        <code class="setup-url">${`https://firestore.googleapis.com/v1/projects/musclequest-c5052/databases/(default)/documents/healthSync/${currentUser || 'YOUR_USERNAME'}?key=AIzaSyC6_AVDVbH9cBh304PJOA7cMsTBcyTw5Rc`}</code>
+        <span class="setup-copy"><i class="ti ti-copy"></i></span>
+      </div>
+      <div class="health-setup-steps" style="margin-top:10px">
+        <div class="setup-step"><span class="step-num">8</span><span>Tap <strong>Done</strong>, name it <strong>"MuscleQuest Sync"</strong>. Run it once manually to grant Health permissions. Then set up an <strong>Automation</strong> to run it daily.</span></div>
+      </div>
+      <button class="btn-secondary" style="width:100%;margin-top:12px;font-size:13px" onclick="MQ.checkHealthWriteTest()">🔍 Test — Did My Shortcut Write?</button>
+    </div>
+  </div>`;
+}
+
+// ─── Date Helpers ───
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayShortStr() {
+  const d = new Date();
+  return `${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;
+}
+function formatDate(d) {
+  return new Date(d || Date.now()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+function addDaysStr(dateStr, delta) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + delta);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+function getWeekStart() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay());
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function getMonthStart() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function getYearStart() {
+  return `${new Date().getFullYear()}`;
+}
+function xpFromLogSince(dateStr) {
+  return (state.workoutLog || []).filter(e => e.date >= dateStr).reduce((sum, e) => sum + (e.xp || 0), 0);
+}
+function checkPeriodXPReset() {
+  const ws = getWeekStart(), ms = getMonthStart(), ys = getYearStart();
+
+  // When a period rolls over, finalize any pending rank-#1 achievements
+  if (state.weeklyXPStart && state.weeklyXPStart !== ws) {
+    if (state._pendingRank1Weekly === state.weeklyXPStart) {
+      state._rank1Weekly = (state._rank1Weekly || 0) + 1; checkAchievements();
+    }
+    state._pendingRank1Weekly = null;
+  }
+  if (state.monthlyXPStart && state.monthlyXPStart !== ms) {
+    if (state._pendingRank1Monthly === state.monthlyXPStart) {
+      state._rank1Monthly = (state._rank1Monthly || 0) + 1; checkAchievements();
+    }
+    state._pendingRank1Monthly = null;
+  }
+  if (state.yearlyXPStart && state.yearlyXPStart !== ys) {
+    if (state._pendingRank1Yearly === state.yearlyXPStart) {
+      state._rank1Yearly = (state._rank1Yearly || 0) + 1; checkAchievements();
+    }
+    state._pendingRank1Yearly = null;
+  }
+
+  // Always recompute period XP from the workout log — single source of truth
+  state.weeklyXP      = xpFromLogSince(ws);
+  state.weeklyXPStart = ws;
+  state.monthlyXP      = xpFromLogSince(ms + '-01');
+  state.monthlyXPStart = ms;
+  state.yearlyXP      = xpFromLogSince(ys + '-01-01');
+  state.yearlyXPStart = ys;
+}
+
+// ─── Streak Logic ───
+const STREAK_MILESTONES = { streak_3: 3, streak_7: 7, streak_30: 30, streak_60: 60, streak_100: 100, streak_365: 365 };
+
+let _streakPulsePending = false;
+// Streak = longest run of consecutive logged days ending today (or yesterday, if
+// today has no entry yet). Derived fresh from workoutLog every time, so backdated
+// entries that fill a gap are reflected automatically — no separate bookkeeping.
+function recomputeStreak() {
+  const dates = new Set((state.workoutLog || []).map(e => e.date));
+  for (const d of (state.streakProtectedDates || [])) dates.add(d);
+  let cursor = todayStr();
+  if (!dates.has(cursor)) cursor = addDaysStr(cursor, -1);
+  let streak = 0;
+  while (dates.has(cursor)) {
+    streak++;
+    cursor = addDaysStr(cursor, -1);
+  }
+  return streak;
+}
+
+function updateStreak(targetDate) {
+  const date = targetDate || todayStr();
+  const today = todayStr();
+  const prevStreak = state.streak || 0;
+
+  if (date === today) {
+    // Original day-to-day logic, unchanged: today's streak is a trusted running
+    // counter, not recomputed from history — so historical gaps that were bridged
+    // by a protection buff (or any other legacy edge case) never regress it.
+    if (state.lastWorkoutDate === today) return;
+    const yesterday = addDaysStr(today, -1);
+    if (state.lastWorkoutDate === yesterday) {
+      state.streak++;
+      _streakPulsePending = true;
+    } else if (state.lastWorkoutDate !== today) {
+      const hasProtection = (state.activeBuffs || []).some(b => (b.id === 'multivitamin' || b.id === 'streakbar') && b.expiresAt > Date.now());
+      if (!hasProtection) state.streak = 1;
+      else {
+        state.streak++;
+        _streakPulsePending = true;
+        // A buff bridges the gap for the live counter, but _reconcileStreakFromLog()
+        // (run on every fresh hydration) only trusts workoutLog + streakProtectedDates
+        // — without recording the skipped day(s) here, the next login/sync silently
+        // discounts them and the streak regresses. Was seen live: a buff bridged one
+        // missed day, the live counter climbed to 49, then a reload recomputed it down
+        // to 24 because that day was never marked protected.
+        if (!state.streakProtectedDates) state.streakProtectedDates = [];
+        for (let d = addDaysStr(state.lastWorkoutDate, 1); d < today; d = addDaysStr(d, 1)) {
+          if (!state.streakProtectedDates.includes(d)) state.streakProtectedDates.push(d);
+        }
+      }
+    }
+    state.lastWorkoutDate = today;
+    playSFX('streak');
+  } else {
+    // Backdated entry — never regress an already-earned streak. Only adopt the
+    // recomputed value if filling this gap actually makes the log-based streak
+    // longer than what's already banked.
+    const recomputed = recomputeStreak();
+    if (recomputed > prevStreak) {
+      state.streak = recomputed;
+      _streakPulsePending = true;
+    }
+    // lastWorkoutDate has to track the most recent day that actually has a logged
+    // workout, backdated or not — this was missing entirely, so a backdated entry
+    // could correctly recompute today's streak (e.g. 77) but leave lastWorkoutDate
+    // stuck on whatever it was before the gap. The very next live submission would
+    // then check "was lastWorkoutDate yesterday?", find it still stale, and reset the
+    // just-recovered streak straight back to 1. Only ever advances forward — never
+    // regresses lastWorkoutDate for an old backdated entry from further in the past.
+    if (!state.lastWorkoutDate || date > state.lastWorkoutDate) {
+      state.lastWorkoutDate = date;
+    }
+  }
+
+  // Repeatable streak achievements — increment count each time the streak climbs
+  // through a milestone value fresh (works after streak resets and re-climbs too)
+  if (!state.achievementCounts) state.achievementCounts = {};
+  for (const [id, threshold] of Object.entries(STREAK_MILESTONES)) {
+    if (state.streak === threshold && prevStreak !== threshold) {
+      state.achievementCounts[id] = (state.achievementCounts[id] || 0) + 1;
+    }
+  }
+}
+
+// ─── Daily Progress ───
+function ensureDaily() {
+  const today = todayStr();
+  if (state.dailyProgress.date !== today) {
+    state.dailyProgress = { date: today, groups: [], sets: 0, xp: 0, workouts: 0 };
+  }
+}
+
+// ─── Player Challenges ───
+// Player-created challenges — personal goals, 1:1/group friend duels, opt-in public
+// challenges, and guild challenges — distinct from the scripted WEEKLY_CHALLENGES boss
+// ladder above, so every identifier here says "CustomChallenge" rather than bare
+// "challenge" to keep the two systems from colliding in search or in a stack trace.
+//
+// Trust model: identical to the existing teams/gyms collections, not stronger and not
+// weaker. There is no real auth in this app — anyone can read any document, and writes
+// are gated only by "does the request carry back the doc's own _pin unchanged", which a
+// client can always satisfy because _pin is itself publicly readable. Given that, this
+// system is deliberately designed so NO write ever needs to touch another player's
+// document:
+//   - Invites/public listings/guild scoping live as fields on the CHALLENGE doc itself
+//     (mirrors how team invites already work — see inviteToTeam()'s
+//     `pendingInvites` array + the `where('pendingInvites','array-contains',...)` query).
+//   - Wagers are escrowed by removing them from the joining player's OWN state at join
+//     time and recording the amount/item in their OWN participant entry on the shared
+//     doc — a self-write.
+//   - Payout is self-directed: when a player's own client notices they won, THEY credit
+//     THEIR OWN account from the pot recorded in the (publicly readable) doc, and flag
+//     themselves as paid. A loser's stake was already spent at join time; nothing further
+//     happens to it. No client ever credits gold or items into someone else's document.
+// This keeps every write inside the same shape Firestore already allows, at the same
+// risk level as everything else here — it does not add a new way for one player's
+// client to alter another player's balance.
+const CC_GOAL_TYPES = {
+  workouts: { label: 'Workouts logged',      icon: 'ti-clipboard-check' },
+  sets:     { label: 'Total sets',           icon: 'ti-stack-2' },
+  xp:       { label: 'XP earned',            icon: 'ti-bolt' },
+  muscleXP: { label: 'XP in one muscle',     icon: 'ti-target-arrow' },
+  streak:   { label: 'Day streak reached',   icon: 'ti-flame' },
+};
+const CC_DURATIONS = [3, 7, 14, 30];
+const CC_TYPE_LABELS = { personal: 'Personal', friend: 'Friend', public: 'Public', guild: 'Guild' };
+
+function _ccCollection() {
+  return db ? db.collection('customChallenges') : null;
+}
+
+// Raw progress value for a goal type, computed fresh from state every time rather than
+// cached — so it can never drift from the workout log it's derived from.
+function _ccProgress(goalType, goalMuscle, sinceDateStr) {
+  if (goalType === 'streak') return state.streak || 0;
+  if (goalType === 'xp') return xpFromLogSince(sinceDateStr);
+  if (goalType === 'workouts') return (state.workoutLog || []).filter(e => e.date >= sinceDateStr).length;
+  if (goalType === 'sets') return (state.workoutLog || []).filter(e => e.date >= sinceDateStr)
+    .reduce((sum, e) => sum + (Array.isArray(e.sets) ? e.sets.length : (e.sets ? 1 : 0)), 0);
+  if (goalType === 'muscleXP') return (state.workoutLog || []).filter(e => e.date >= sinceDateStr && e.muscle === goalMuscle)
+    .reduce((sum, e) => sum + (e.xp || 0), 0);
+  return 0;
+}
+
+function _ccOwnArmorOptionsHTML(selectedId) {
+  const inv = state.armorInventory || [];
+  if (!inv.length) return '<option value="">No armor owned</option>';
+  return inv.map(p => {
+    const set = ARMOR_SETS[p.setId];
+    const label = (p.variant ? 'Bloodforged ' : '') + set.pieces[p.slot].name;
+    return `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${esc(label)} (${esc(ARMOR_RARITY[p.rarity].label)})</option>`;
+  }).join('');
+}
+
+// ── Creation ──
+let _ccDraft = null;
+function openCustomChallengeCreator(prefType) {
+  _ccDraft = { type: prefType || 'personal', goalType: 'workouts', goalMuscle: 'chest', duration: 7, wagerGold: 0, wagerArmor: false, invitees: '' };
+  _renderCustomChallengeModal();
+}
+function closeCustomChallengeCreator() {
+  _ccDraft = null;
+  document.getElementById('cc-creator-modal')?.remove();
+}
+function _ccDraftField(key, value) {
+  if (!_ccDraft) return;
+  _ccDraft[key] = value;
+  _renderCustomChallengeModal();
+}
+function _renderCustomChallengeModal() {
+  if (!_ccDraft) return;
+  const d = _ccDraft;
+  document.getElementById('cc-creator-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'cc-creator-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);padding:20px';
+  const canGuild = !!state.gymId;
+  modal.innerHTML = `
+    <div style="background:#1a1d2e;border-radius:18px;width:100%;max-width:400px;max-height:88vh;overflow-y:auto;padding:20px 20px 22px;box-shadow:0 8px 48px rgba(0,0,0,0.85)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:700;color:var(--text)">New Challenge</div>
+        <button onclick="MQ.closeCustomChallengeCreator()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+
+      <label style="font-size:11px;color:var(--muted);font-weight:600">Type</label>
+      <select id="cc-type" onchange="MQ._ccDraftField('type', this.value)" style="display:block;width:100%;margin:5px 0 12px;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:14px">
+        <option value="personal" ${d.type === 'personal' ? 'selected' : ''}>Personal — just you</option>
+        <option value="friend" ${d.type === 'friend' ? 'selected' : ''}>Friend — invite specific players</option>
+        <option value="public" ${d.type === 'public' ? 'selected' : ''}>Public — anyone opted in can join</option>
+        <option value="guild" ${!canGuild ? 'disabled' : ''} ${d.type === 'guild' ? 'selected' : ''}>Guild — your gym's roster${canGuild ? '' : ' (join a gym first)'}</option>
+      </select>
+
+      ${d.type === 'friend' ? `
+      <label style="font-size:11px;color:var(--muted);font-weight:600">Invite (usernames, comma-separated)</label>
+      <input type="text" id="cc-invitees" value="${esc(d.invitees)}" onchange="MQ._ccDraftField('invitees', this.value)" placeholder="beefy, rizzler" style="display:block;width:100%;margin:5px 0 12px;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:14px;box-sizing:border-box">` : ''}
+
+      <label style="font-size:11px;color:var(--muted);font-weight:600">Goal</label>
+      <select id="cc-goal" onchange="MQ._ccDraftField('goalType', this.value)" style="display:block;width:100%;margin:5px 0 12px;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:14px">
+        ${Object.entries(CC_GOAL_TYPES).map(([k, g]) => `<option value="${k}" ${d.goalType === k ? 'selected' : ''}>${g.label}</option>`).join('')}
+      </select>
+      ${d.goalType === 'muscleXP' ? `
+      <select id="cc-muscle" onchange="MQ._ccDraftField('goalMuscle', this.value)" style="display:block;width:100%;margin:-6px 0 12px;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:14px">
+        ${Object.keys(MUSCLES).filter(k => k !== 'rest' && k !== 'cardio').map(k => `<option value="${k}" ${d.goalMuscle === k ? 'selected' : ''}>${MUSCLES[k].name}</option>`).join('')}
+      </select>` : ''}
+
+      <label style="font-size:11px;color:var(--muted);font-weight:600">Target</label>
+      <input type="number" id="cc-target" value="${d.target || ''}" min="1" inputmode="numeric" placeholder="${d.goalType === 'streak' ? 'e.g. 14' : d.goalType === 'xp' || d.goalType === 'muscleXP' ? 'e.g. 500' : d.goalType === 'sets' ? 'e.g. 40' : 'e.g. 5'}"
+        onchange="MQ._ccDraftField('target', parseInt(this.value)||0)" style="display:block;width:100%;margin:5px 0 12px;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:14px;box-sizing:border-box">
+
+      <label style="font-size:11px;color:var(--muted);font-weight:600">Duration</label>
+      <select id="cc-duration" onchange="MQ._ccDraftField('duration', parseInt(this.value))" style="display:block;width:100%;margin:5px 0 14px;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:14px">
+        ${CC_DURATIONS.map(n => `<option value="${n}" ${d.duration === n ? 'selected' : ''}>${n} days</option>`).join('')}
+      </select>
+
+      ${d.type !== 'personal' ? `
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:2px">
+        <label style="font-size:11px;color:var(--muted);font-weight:600">Wager — gold per player</label>
+        <input type="number" id="cc-wager-gold" value="${d.wagerGold || 0}" min="0" inputmode="numeric" placeholder="0 = no wager"
+          onchange="MQ._ccDraftField('wagerGold', parseInt(this.value)||0)" style="display:block;width:100%;margin:5px 0 10px;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:14px;box-sizing:border-box">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--text)">
+          <input type="checkbox" ${d.wagerArmor ? 'checked' : ''} onchange="MQ._ccDraftField('wagerArmor', this.checked)" style="width:18px;height:18px;accent-color:#7c4dff">
+          Also require one armor piece staked to join
+        </label>
+        ${d.wagerArmor ? `<label style="font-size:11px;color:var(--muted);font-weight:600;display:block;margin-top:10px">Your staked piece</label>
+        <select id="cc-armor-select" style="display:block;width:100%;margin:5px 0 0;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px">
+          ${_ccOwnArmorOptionsHTML()}
+        </select>` : ''}
+        <p style="font-size:10.5px;color:var(--muted);margin:8px 0 0">Winner takes every stake in the pot. A wagered challenge can't be left once joined.</p>
+      </div>` : ''}
+
+      <button onclick="MQ._submitCustomChallenge()" style="width:100%;margin-top:16px;padding:13px;border-radius:10px;border:none;background:#7c4dff;color:#fff;font-size:15px;font-weight:700;cursor:pointer">Create Challenge</button>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) closeCustomChallengeCreator(); });
+  document.body.appendChild(modal);
+}
+
+async function _submitCustomChallenge() {
+  const d = _ccDraft;
+  if (!d) return;
+  if (!d.target || d.target <= 0) { toast('Enter a target'); return; }
+  if (!db || !currentUser) { toast('Challenges need a connection — try again when online'); return; }
+  if (d.type === 'guild' && !state.gymId) { toast('Join a gym first'); return; }
+  const wagerGold = d.type === 'personal' ? 0 : Math.max(0, d.wagerGold || 0);
+  const wagerArmor = d.type !== 'personal' && !!d.wagerArmor;
+  if (wagerGold > (state.gold || 0)) { toast('Not enough gold for that wager'); return; }
+  let stakedArmorId = null, stakedArmorSnapshot = null;
+  if (wagerArmor) {
+    const sel = document.getElementById('cc-armor-select');
+    stakedArmorId = sel?.value || (state.armorInventory || [])[0]?.id;
+    const piece = (state.armorInventory || []).find(p => p.id === stakedArmorId);
+    if (!piece) { toast('Choose an armor piece to stake'); return; }
+    stakedArmorSnapshot = { setId: piece.setId, slot: piece.slot, rarity: piece.rarity, variant: piece.variant };
+  }
+
+  const now = Date.now();
+  const id = `cc_${now}_${Math.floor(Math.random() * 10000)}`;
+  const startDateStr = todayStr();
+  const invitees = d.type === 'friend'
+    ? d.invitees.split(',').map(s => s.trim().toLowerCase()).filter(u => u && u !== currentUser)
+    : [];
+
+  // Escrow the creator's own stake up front, same as any joiner.
+  if (wagerGold > 0) { state.gold -= wagerGold; }
+  if (stakedArmorId) {
+    state.armorInventory = (state.armorInventory || []).filter(p => p.id !== stakedArmorId);
+    if (state.equippedArmor) { for (const slot of Object.keys(state.equippedArmor)) if (state.equippedArmor[slot] === stakedArmorId) delete state.equippedArmor[slot]; }
+  }
+
+  const doc = {
+    // goalMuscle is only meaningful for the muscleXP goal type — the draft keeps a
+    // leftover 'chest' default even when a different goal type is selected, so it
+    // must not be carried into the doc (was showing "Chest" on every challenge type).
+    id, type: d.type, goalType: d.goalType, goalMuscle: d.goalType === 'muscleXP' ? (d.goalMuscle || null) : null, target: d.target,
+    durationDays: d.duration, startDateStr, createdAt: now, endAt: now + d.duration * 86400000,
+    creatorId: currentUser, creatorName: state.name || currentUser,
+    guildId: d.type === 'guild' ? state.gymId : null,
+    invitedUsernames: invitees,
+    status: 'open',
+    participants: {
+      [currentUser]: { joinedAt: now, wagerGoldPaid: wagerGold, wagerArmorId: stakedArmorId, wagerArmorSnapshot: stakedArmorSnapshot, paidOut: false },
+    },
+    winnerId: null, resolvedAt: null,
+  };
+  try {
+    await _ccCollection().doc(id).set(doc);
+  } catch (e) {
+    // Roll back the escrow — the write never landed, so nothing was actually staked.
+    if (wagerGold > 0) state.gold += wagerGold;
+    if (stakedArmorId && stakedArmorSnapshot) state.armorInventory.push({ id: stakedArmorId, ...stakedArmorSnapshot, obtainedAt: now });
+    toast('Could not create challenge — try again');
+    return;
+  }
+  if (!state.myCustomChallengeIds) state.myCustomChallengeIds = [];
+  state.myCustomChallengeIds.push(id);
+  saveWithPin(true);
+  toast(`Challenge created${wagerGold ? ` — ${wagerGold}g staked` : ''}`);
+  closeCustomChallengeCreator();
+  renderCustomChallengesPanel();
+}
+
+// ── Joining ──
+async function joinCustomChallenge(id) {
+  if (!db) return;
+  const ref = _ccCollection().doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) { toast('Challenge no longer exists'); return; }
+  const c = doc.data();
+  if (c.participants && c.participants[currentUser]) { toast('Already joined'); return; }
+  if (c.status !== 'open' && c.status !== 'active') { toast('This challenge already ended'); return; }
+  const wagerGold = Object.values(c.participants || {})[0]?.wagerGoldPaid || 0;
+  const wagerArmorRequired = !!Object.values(c.participants || {})[0]?.wagerArmorId || !!Object.values(c.participants || {})[0]?.wagerArmorSnapshot;
+  if (wagerGold > (state.gold || 0)) { toast(`Need ${wagerGold}g to join`); return; }
+
+  let stakedArmorId = null, stakedArmorSnapshot = null;
+  if (wagerArmorRequired) {
+    const sel = document.getElementById(`cc-join-armor-${id}`);
+    stakedArmorId = sel?.value;
+    const piece = (state.armorInventory || []).find(p => p.id === stakedArmorId);
+    if (!piece) { toast('Choose an armor piece to stake'); return; }
+    stakedArmorSnapshot = { setId: piece.setId, slot: piece.slot, rarity: piece.rarity, variant: piece.variant };
+  }
+
+  if (wagerGold > 0) state.gold -= wagerGold;
+  if (stakedArmorId) {
+    state.armorInventory = (state.armorInventory || []).filter(p => p.id !== stakedArmorId);
+    if (state.equippedArmor) { for (const slot of Object.keys(state.equippedArmor)) if (state.equippedArmor[slot] === stakedArmorId) delete state.equippedArmor[slot]; }
+  }
+
+  try {
+    await ref.update({
+      [`participants.${currentUser}`]: { joinedAt: Date.now(), wagerGoldPaid: wagerGold, wagerArmorId: stakedArmorId, wagerArmorSnapshot: stakedArmorSnapshot, paidOut: false },
+      status: 'active',
+    });
+  } catch (e) {
+    if (wagerGold > 0) state.gold += wagerGold;
+    if (stakedArmorId && stakedArmorSnapshot) state.armorInventory.push({ id: stakedArmorId, ...stakedArmorSnapshot, obtainedAt: Date.now() });
+    toast('Could not join — try again');
+    return;
+  }
+  if (!state.myCustomChallengeIds) state.myCustomChallengeIds = [];
+  if (!state.myCustomChallengeIds.includes(id)) state.myCustomChallengeIds.push(id);
+  saveWithPin(true);
+  toast(`Joined${wagerGold ? ` — ${wagerGold}g staked` : ''}!`);
+  renderCustomChallengesPanel();
+}
+
+// A zero-wager challenge can be abandoned; a wagered one can't, since the stake only
+// means something if quitting doesn't get it back for free.
+async function leaveCustomChallenge(id) {
+  const ref = _ccCollection()?.doc(id);
+  if (!ref) return;
+  const doc = await ref.get();
+  if (!doc.exists) return;
+  const mine = doc.data().participants?.[currentUser];
+  if (mine && (mine.wagerGoldPaid > 0 || mine.wagerArmorId)) { toast("Can't leave a challenge you staked into"); return; }
+  await ref.update({ [`participants.${currentUser}`]: firebase.firestore.FieldValue.delete() }).catch(() => {});
+  state.myCustomChallengeIds = (state.myCustomChallengeIds || []).filter(x => x !== id);
+  saveWithPin();
+  renderCustomChallengesPanel();
+}
+
+// Creator-only, and only before anyone else has joined — refunds their own stake.
+async function cancelCustomChallenge(id) {
+  const ref = _ccCollection()?.doc(id);
+  if (!ref) return;
+  const doc = await ref.get();
+  if (!doc.exists) return;
+  const c = doc.data();
+  if (c.creatorId !== currentUser) return;
+  if (Object.keys(c.participants || {}).length > 1) { toast("Can't cancel — someone already joined"); return; }
+  const mine = c.participants?.[currentUser];
+  await ref.update({ status: 'cancelled' }).catch(() => {});
+  if (mine?.wagerGoldPaid) state.gold += mine.wagerGoldPaid;
+  if (mine?.wagerArmorSnapshot) state.armorInventory.push({ id: mine.wagerArmorId, ...mine.wagerArmorSnapshot, obtainedAt: Date.now() });
+  state.myCustomChallengeIds = (state.myCustomChallengeIds || []).filter(x => x !== id);
+  saveWithPin(true);
+  toast('Challenge cancelled, stake refunded');
+  renderCustomChallengesPanel();
+}
+
+// ── Progress + resolution ──
+// Called from submitWorkout()'s save tail alongside the existing raid-team contribution
+// hook — each client only ever writes its OWN dot-path field, so two participants
+// updating the same doc around the same time can't clobber each other's progress.
+async function _updateCustomChallengeProgress() {
+  if (!db || !currentUser || !(state.myCustomChallengeIds || []).length) return;
+  for (const id of state.myCustomChallengeIds) {
+    try {
+      const ref = _ccCollection().doc(id);
+      const doc = await ref.get();
+      if (!doc.exists) continue;
+      const c = doc.data();
+      if (c.status === 'completed' || c.status === 'cancelled') continue;
+      const progress = _ccProgress(c.goalType, c.goalMuscle, c.startDateStr);
+      await ref.update({ [`participants.${currentUser}.progress`]: progress });
+      await _maybeResolveCustomChallenge(id, { ...c, participants: { ...c.participants, [currentUser]: { ...(c.participants[currentUser] || {}), progress } } });
+    } catch (e) { /* offline or the doc vanished — next submit tries again */ }
+  }
+}
+
+// Any participant's client can notice a challenge is over (target hit, or time's up) and
+// mark it resolved — best-effort, not a true distributed lock, but harmless if two
+// clients race to write the same winnerId. Payout itself never happens here; see
+// _collectCustomChallengePayout, which is strictly self-directed.
+async function _maybeResolveCustomChallenge(id, c) {
+  const now = Date.now();
+  const entries = Object.entries(c.participants || {});
+  const someoneHitTarget = entries.some(([, p]) => (p.progress || 0) >= c.target);
+  if (c.status === 'completed' || (!someoneHitTarget && now < c.endAt)) return;
+  const best = entries.reduce((a, b) => (b[1].progress || 0) > (a[1].progress || 0) ? b : a, entries[0]);
+  const winnerId = best ? best[0] : null;
+  try {
+    await _ccCollection().doc(id).update({ status: 'completed', winnerId, resolvedAt: now });
+  } catch (e) { /* another client may already be doing this — fine either way */ }
+  if (winnerId === currentUser) await _collectCustomChallengePayout(id);
+}
+
+// Strictly self-directed: only ever credits the CURRENT device's own account, and only
+// from a pot recorded on a doc that's publicly readable anyway. Never writes gold or
+// items into anyone else's document.
+async function _collectCustomChallengePayout(id) {
+  const ref = _ccCollection()?.doc(id);
+  if (!ref) return;
+  const doc = await ref.get();
+  if (!doc.exists) return;
+  const c = doc.data();
+  if (c.winnerId !== currentUser) return;
+  const mine = c.participants?.[currentUser];
+  if (mine?.paidOut) return;
+  const goldPot = Object.values(c.participants || {}).reduce((sum, p) => sum + (p.wagerGoldPaid || 0), 0);
+  const armorPot = Object.entries(c.participants || {}).filter(([u]) => u !== currentUser).map(([, p]) => p).filter(p => p.wagerArmorSnapshot);
+  if (goldPot > 0) { state.gold += goldPot; state.totalGold = (state.totalGold || 0) + goldPot; }
+  for (const p of armorPot) {
+    state.armorInventory = state.armorInventory || [];
+    state.armorInventory.push({ id: `won_${id}_${p.wagerArmorId}`, setId: p.wagerArmorSnapshot.setId, slot: p.wagerArmorSnapshot.slot, rarity: p.wagerArmorSnapshot.rarity, variant: p.wagerArmorSnapshot.variant, obtainedAt: Date.now() });
+  }
+  await ref.update({ [`participants.${currentUser}.paidOut`]: true }).catch(() => {});
+  saveWithPin(true);
+  if (goldPot > 0 || armorPot.length) toast(`🏆 Challenge won! +${goldPot}g${armorPot.length ? ` + ${armorPot.length} armor piece${armorPot.length === 1 ? '' : 's'}` : ''}`, 'gold');
+}
+
+// ── Rendering ──
+function _ccProgressBarHTML(progress, target, color) {
+  const pct = Math.min(100, target > 0 ? (progress / target) * 100 : 0);
+  return `<div class="cc-bar"><div class="cc-bar-fill" style="width:${pct}%;background:${color || '#7c4dff'}"></div></div>`;
+}
+
+function _ccCardHTML(c) {
+  const mine = c.participants?.[currentUser];
+  const progress = mine?.progress || 0;
+  const goalInfo = CC_GOAL_TYPES[c.goalType] || { label: c.goalType, icon: 'ti-target-arrow' };
+  const daysLeft = Math.max(0, Math.ceil((c.endAt - Date.now()) / 86400000));
+  const wagerGold = Object.values(c.participants || {})[0]?.wagerGoldPaid || 0;
+  const wagerArmor = Object.values(c.participants || {}).some(p => p.wagerArmorSnapshot);
+  const pot = Object.values(c.participants || {}).reduce((s, p) => s + (p.wagerGoldPaid || 0), 0);
+  const isWinner = c.status === 'completed' && c.winnerId === currentUser;
+  const isDone = c.status === 'completed';
+  return `<div class="cc-card ${isDone ? 'cc-done' : ''}">
+    <div class="cc-card-head">
+      <span class="cc-type-tag cc-type-${c.type}">${CC_TYPE_LABELS[c.type]}</span>
+      <span class="cc-days-left">${isDone ? (isWinner ? '🏆 Won' : c.winnerId ? 'Lost' : 'Ended') : daysLeft + 'd left'}</span>
+    </div>
+    <div class="cc-goal-line"><i class="ti ${goalInfo.icon}"></i> ${c.goalMuscle ? MUSCLES[c.goalMuscle]?.name + ' ' : ''}${goalInfo.label} — target ${c.target}</div>
+    ${_ccProgressBarHTML(progress, c.target, isDone ? (isWinner ? '#7bc82e' : '#888') : '#7c4dff')}
+    <div class="cc-progress-line">${progress} / ${c.target}</div>
+    ${(wagerGold || wagerArmor) ? `<div class="cc-wager-line"><i class="ti ti-coin"></i> ${pot}g pot${wagerArmor ? ' + armor' : ''}</div>` : ''}
+    <div class="cc-participants">${Object.keys(c.participants || {}).map(u => esc(u)).join(', ')}</div>
+    ${!isDone && mine && !(mine.wagerGoldPaid || mine.wagerArmorId) ? `<button class="cc-btn-leave" onclick="MQ.leaveCustomChallenge('${c.id}')">Leave</button>` : ''}
+    ${!isDone && c.creatorId === currentUser && Object.keys(c.participants || {}).length === 1 ? `<button class="cc-btn-leave" onclick="MQ.cancelCustomChallenge('${c.id}')">Cancel</button>` : ''}
+  </div>`;
+}
+
+function _ccBrowseCardHTML(c) {
+  const wagerGold = Object.values(c.participants || {})[0]?.wagerGoldPaid || 0;
+  const wagerArmor = Object.values(c.participants || {}).some(p => p.wagerArmorSnapshot);
+  const goalInfo = CC_GOAL_TYPES[c.goalType] || { label: c.goalType, icon: 'ti-target-arrow' };
+  const armorPicker = wagerArmor ? `<select id="cc-join-armor-${c.id}" style="width:100%;margin:6px 0;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:12.5px">${_ccOwnArmorOptionsHTML()}</select>` : '';
+  return `<div class="cc-card">
+    <div class="cc-card-head">
+      <span class="cc-type-tag cc-type-${c.type}">${CC_TYPE_LABELS[c.type]}</span>
+      <span class="cc-days-left">by ${esc(c.creatorName || c.creatorId)}</span>
+    </div>
+    <div class="cc-goal-line"><i class="ti ${goalInfo.icon}"></i> ${c.goalMuscle ? MUSCLES[c.goalMuscle]?.name + ' ' : ''}${goalInfo.label} — target ${c.target} in ${c.durationDays}d</div>
+    ${(wagerGold || wagerArmor) ? `<div class="cc-wager-line"><i class="ti ti-coin"></i> ${wagerGold}g to join${wagerArmor ? ' + 1 armor piece' : ''}</div>` : ''}
+    ${armorPicker}
+    <button class="cc-btn-join" onclick="MQ.joinCustomChallenge('${c.id}')">Join</button>
+  </div>`;
+}
+
+let _ccTab = 'mine';
+function setCustomChallengeTab(tab) {
+  _ccTab = tab;
+  renderCustomChallengesPanel();
+}
+
+async function renderCustomChallengesPanel() {
+  const el = document.getElementById('challenges-section');
+  if (!el) return;
+  const tabsHTML = `<div class="cc-tabs">
+    <button class="cc-tab ${_ccTab === 'mine' ? 'active' : ''}" onclick="MQ.setCustomChallengeTab('mine')">Mine</button>
+    <button class="cc-tab ${_ccTab === 'public' ? 'active' : ''}" onclick="MQ.setCustomChallengeTab('public')">Public</button>
+    <button class="cc-tab ${_ccTab === 'guild' ? 'active' : ''}" onclick="MQ.setCustomChallengeTab('guild')">Guild</button>
+  </div>`;
+  const createBtn = `<button class="cc-create-btn" onclick="MQ.openCustomChallengeCreator('${_ccTab === 'public' ? 'public' : _ccTab === 'guild' ? 'guild' : 'personal'}')"><i class="ti ti-plus"></i> New Challenge</button>`;
+
+  if (!db) {
+    el.innerHTML = tabsHTML + createBtn + '<p class="cc-empty">Challenges need a connection — offline mode can\'t sync them.</p>';
+    return;
+  }
+
+  el.innerHTML = tabsHTML + createBtn + '<p class="cc-empty">Loading…</p>';
+
+  try {
+    let cards = '';
+    if (_ccTab === 'mine') {
+      const ids = state.myCustomChallengeIds || [];
+      if (!ids.length) {
+        cards = '<p class="cc-empty">No challenges yet — create one, or check Public/Guild to join someone else\'s.</p>';
+      } else {
+        const docs = (await Promise.all(ids.map(id => _ccCollection().doc(id).get()))).filter(d => d.exists);
+        // Drop references to challenges that got cancelled/vanished so the list doesn't grow forever.
+        state.myCustomChallengeIds = docs.map(d => d.id);
+        for (const d of docs) { const c = d.data(); if (c.status !== 'completed' && c.status !== 'cancelled') await _maybeResolveCustomChallenge(d.id, c); }
+        const fresh = (await Promise.all(state.myCustomChallengeIds.map(id => _ccCollection().doc(id).get()))).filter(d => d.exists);
+        cards = fresh.length ? fresh.map(d => _ccCardHTML({ id: d.id, ...d.data() })).sort().join('') : '<p class="cc-empty">No active challenges.</p>';
+      }
+      // Friend invites waiting on this player — checked regardless of whether they
+      // already have challenges of their own, since a brand-new player can still have
+      // an invite sitting on someone else's challenge doc.
+      const invites = await _ccCollection().where('invitedUsernames', 'array-contains', currentUser).where('status', '==', 'open').limit(10).get();
+      const inviteCards = [];
+      invites.forEach(d => { if (!(d.data().participants || {})[currentUser]) inviteCards.push(_ccBrowseCardHTML({ id: d.id, ...d.data() })); });
+      if (inviteCards.length) cards += `<div class="cc-section-label">Invited</div>` + inviteCards.join('');
+    } else if (_ccTab === 'public') {
+      if (!state.challengesOptIn) {
+        cards = '<p class="cc-empty">Turn on "Public Challenges" in Settings to browse and be found for these.</p>';
+      } else {
+        const snap = await _ccCollection().where('type', '==', 'public').where('status', 'in', ['open', 'active']).limit(20).get();
+        const list = [];
+        snap.forEach(d => { const c = d.data(); if (!(c.participants || {})[currentUser]) list.push(_ccBrowseCardHTML({ id: d.id, ...c })); });
+        cards = list.length ? list.join('') : '<p class="cc-empty">No open public challenges right now.</p>';
+      }
+    } else if (_ccTab === 'guild') {
+      if (!state.gymId) {
+        cards = '<p class="cc-empty">Join a gym to see its challenges.</p>';
+      } else {
+        const snap = await _ccCollection().where('guildId', '==', state.gymId).where('status', 'in', ['open', 'active']).limit(20).get();
+        const list = [];
+        snap.forEach(d => { const c = d.data(); if (!(c.participants || {})[currentUser]) list.push(_ccBrowseCardHTML({ id: d.id, ...c })); });
+        cards = list.length ? list.join('') : '<p class="cc-empty">No open guild challenges right now.</p>';
+      }
+    }
+    const el2 = document.getElementById('challenges-section');
+    if (el2) el2.innerHTML = tabsHTML + createBtn + cards;
+    saveWithPin();
+  } catch (e) {
+    const el3 = document.getElementById('challenges-section');
+    if (el3) el3.innerHTML = tabsHTML + createBtn + '<p class="cc-empty">Could not load challenges right now.</p>';
+  }
+}
+
+// Small dashboard summary — top 2 active "mine" challenges by soonest deadline, with a
+// link into the full panel in Quests › Home rather than duplicating the browse/create UI.
+// Shown at the bottom of the Home tab. Always visible when online — even with zero
+// challenges — because a card that only appears once you already have something to
+// show isn't a discovery path, it's a progress peek nobody finds their way to first.
+// The empty state IS the entry point: tapping it goes straight to the creator, not just
+// the browse panel, so "where do I make one" has an answer right on the main page.
+function renderChallengeSummaryCard() {
+  const el = document.getElementById('challenge-summary-card');
+  if (!el) return;
+  if (!db) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  const label = '<div class="cc-summary-label">🤝 Challenges</div>';
+  const ids = state.myCustomChallengeIds || [];
+  if (!ids.length) {
+    el.innerHTML = label + `<div class="cc-mini cc-mini-start" onclick="MQ.showTab('quests');MQ.showQuestTab('home');MQ.openCustomChallengeCreator('personal')">
+      <div class="cc-mini-start-icon"><i class="ti ti-swords"></i></div>
+      <div>
+        <div class="cc-mini-start-title">Start a Challenge</div>
+        <div class="cc-mini-start-sub">Race a friend, join a public one, or set a solo goal — tap to create</div>
+      </div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = label + '<p class="cc-empty">Loading…</p>';
+  Promise.all(ids.slice(0, 6).map(id => _ccCollection().doc(id).get())).then(docs => {
+    const active = docs.filter(d => d.exists && d.data().status !== 'cancelled')
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => a.endAt - b.endAt)
+      .slice(0, 2);
+    const el2 = document.getElementById('challenge-summary-card');
+    if (!el2) return;
+    if (!active.length) { renderChallengeSummaryCard(); return; } // fall back to the start prompt
+    el2.innerHTML = label + active.map(c => {
+      const mine = c.participants?.[currentUser];
+      const progress = mine?.progress || 0;
+      const goalInfo = CC_GOAL_TYPES[c.goalType] || { label: c.goalType };
+      return `<div class="cc-mini" onclick="MQ.showTab('quests');MQ.showQuestTab('home')">
+        <div class="cc-mini-head"><span class="cc-type-tag cc-type-${c.type}">${CC_TYPE_LABELS[c.type]}</span><span>${c.status === 'completed' ? (c.winnerId === currentUser ? '🏆' : 'Ended') : Math.max(0, Math.ceil((c.endAt - Date.now()) / 86400000)) + 'd'}</span></div>
+        <div class="cc-mini-goal">${goalInfo.label} — ${progress}/${c.target}</div>
+        ${_ccProgressBarHTML(progress, c.target)}
+      </div>`;
+    }).join('');
+  }).catch(() => { el.style.display = 'none'; });
+}
+
+function toggleChallengesOptIn(on) {
+  state.challengesOptIn = !!on;
+  saveWithPin();
+  toast(state.challengesOptIn ? 'You can now browse and be found for public challenges' : 'Public challenges off');
+}
+
+// ─── Weekly Challenge (permanent ladder) ───
+function getWeeklyChallenge() {
+  const ws = getWeekStart();
+  if (state.weeklyStart && state.weeklyStart !== ws) {
+    // New week started — check if previous challenge was beaten
+    const prev = WEEKLY_CHALLENGES[state.weeklyChallengeLevel || 0];
+    if ((state.weeklyChallengeDamage || 0) >= prev.hp) {
+      const nextLevel = Math.min((state.weeklyChallengeLevel || 0) + 1, WEEKLY_CHALLENGES.length - 1);
+      if (nextLevel > (state.weeklyChallengeLevel || 0)) {
+        state.weeklyChallengeLevel = nextLevel;
+        state.gold += prev.reward;
+        state.totalGold += prev.reward;
+        toast(`${prev.icon} ${prev.name} defeated! +${prev.reward}g`, 'gold');
+      }
+    }
+    state.weeklyChallengeDamage = 0;
+  }
+  if (!state.weeklyStart || state.weeklyStart !== ws) state.weeklyStart = ws;
+  return WEEKLY_CHALLENGES[state.weeklyChallengeLevel || 0];
+}
+
+// ─── Monthly Raid (group boss, resets each month) ───
+function getMonthlyBoss() {
+  const ms = getMonthStart();
+  if (state.monthlyStart && state.monthlyStart !== ms) {
+    state.monthlyBossIndex = ((state.monthlyBossIndex || 0) + 1) % MONTHLY_BOSSES.length;
+    state.monthlyDamage = 0;
+  }
+  if (!state.monthlyStart || state.monthlyStart !== ms) state.monthlyStart = ms;
+  return MONTHLY_BOSSES[state.monthlyBossIndex || 0];
+}
+
+// ─── Multi-Exercise Entry Management ───
+let exerciseRowId = 0;
+
+// ─── Backdated Logging ───
+let _backdateLogDate = null; // null = logging for today
+let _calModalYear = null;
+let _calModalMonth = null; // 0-indexed
+
+function _updateBackdateBtnLabel() {
+  const el = document.getElementById('workout-title-day');
+  if (!el) return;
+  el.textContent = _backdateLogDate
+    ? formatDate(_backdateLogDate + 'T12:00:00').replace(/, \d{4}$/, '')
+    : 'Today';
+  el.classList.toggle('active', !!_backdateLogDate);
+}
+
+function openBackdateModal() {
+  const existing = document.getElementById('backdate-modal');
+  if (existing) existing.remove();
+  const base = _backdateLogDate ? new Date(_backdateLogDate + 'T12:00:00') : new Date();
+  _calModalYear = base.getFullYear();
+  _calModalMonth = base.getMonth();
+
+  const modal = document.createElement('div');
+  modal.id = 'backdate-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);padding:20px';
+  modal.innerHTML = `
+    <div style="background:#1a1d2e;border-radius:18px;width:100%;max-width:340px;padding:22px;box-shadow:0 8px 48px rgba(0,0,0,0.85)">
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">Log a Past Workout</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Pick the day you actually trained. XP, gold, and your streak will be backfilled for that date.</div>
+      <div id="backdate-calendar"></div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+  _renderBackdateCalendar();
+}
+
+function _renderBackdateCalendar() {
+  const el = document.getElementById('backdate-calendar');
+  if (!el) return;
+  const maxStr = todayStr();
+  const minStr = addDaysStr(maxStr, -30);
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const first = new Date(_calModalYear, _calModalMonth, 1);
+  const startOffset = first.getDay();
+  const daysInMonth = new Date(_calModalYear, _calModalMonth + 1, 0).getDate();
+
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push('<div></div>');
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${_calModalYear}-${String(_calModalMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const disabled = dateStr > maxStr || dateStr < minStr;
+    const isSelected = dateStr === (_backdateLogDate || maxStr);
+    const isToday = dateStr === maxStr;
+    const cls = ['cal-day', disabled ? 'disabled' : '', isSelected ? 'selected' : '', isToday ? 'today' : ''].filter(Boolean).join(' ');
+    cells.push(`<button class="${cls}" ${disabled ? 'disabled' : `onclick="MQ.selectBackdateDay('${dateStr}')"`}>${day}</button>`);
+  }
+
+  const prevDisabled = new Date(_calModalYear, _calModalMonth, 0) < new Date(minStr + 'T00:00:00') ? 'disabled' : '';
+  const nextDisabled = new Date(_calModalYear, _calModalMonth + 1, 1) > new Date(maxStr + 'T00:00:00') ? 'disabled' : '';
+
+  el.innerHTML = `
+    <div class="cal-nav">
+      <button class="cal-nav-btn" ${prevDisabled} onclick="MQ.backdateCalNav(-1)">‹</button>
+      <span class="cal-month-label">${monthNames[_calModalMonth]} ${_calModalYear}</span>
+      <button class="cal-nav-btn" ${nextDisabled} onclick="MQ.backdateCalNav(1)">›</button>
+    </div>
+    <div class="cal-weekdays">${['S','M','T','W','T','F','S'].map(d => `<span>${d}</span>`).join('')}</div>
+    <div class="cal-grid">${cells.join('')}</div>
+    <button class="btn-add-exercise" style="width:100%;margin-top:14px" onclick="MQ.selectBackdateDay('${maxStr}')">Use Today</button>
+  `;
+}
+
+function backdateCalNav(delta) {
+  _calModalMonth += delta;
+  if (_calModalMonth < 0) { _calModalMonth = 11; _calModalYear--; }
+  if (_calModalMonth > 11) { _calModalMonth = 0; _calModalYear++; }
+  _renderBackdateCalendar();
+}
+
+function selectBackdateDay(dateStr) {
+  if (dateStr > todayStr()) { toast("Can't log a future date"); return; }
+  _backdateLogDate = dateStr === todayStr() ? null : dateStr;
+  _updateBackdateBtnLabel();
+  document.getElementById('backdate-modal')?.remove();
+}
+
+function addExerciseRow() {
+  const container = document.getElementById('exercise-entries');
+  const id = exerciseRowId++;
+  const div = document.createElement('div');
+  div.className = 'exercise-entry';
+  div.dataset.entryId = id;
+  const count = container.children.length + 1;
+  div.innerHTML = `
+    <div class="entry-header">
+      <span class="entry-number">Exercise ${count}</span>
+      <button class="btn-remove-entry" onclick="MQ.removeExerciseRow(${id})" title="Remove">&times;</button>
+    </div>
+    <div class="entry-form">
+      <div class="form-row">
+        <select class="entry-muscle" onchange="MQ.onEntryMuscleChange(${id})">
+          <option value="">Select Muscle Group</option>
+          ${Object.entries(MUSCLES).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-row">
+        <select class="entry-exercise">
+          <option value="">Select Exercise...</option>
+        </select>
+      </div>
+      <div class="sets-header">
+        <label>Sets</label>
+        <div class="set-stepper">
+          <button class="stepper-btn" onclick="MQ.changeSetCount(${id}, -1)">−</button>
+          <span class="set-count-display">3</span>
+          <button class="stepper-btn" onclick="MQ.changeSetCount(${id}, 1)">+</button>
+        </div>
+      </div>
+      <div class="set-rows">
+        <div class="set-row-header">
+          <span class="set-label-col"></span>
+          <span class="set-val-col">Weight</span>
+          <span class="set-val-col">Reps</span>
+        </div>
+        <div class="set-row" data-set="1">
+          <span class="set-label">1</span>
+          <input type="number" class="set-weight" placeholder="lbs" min="0">
+          <input type="number" class="set-reps" value="12" min="1">
+        </div>
+        <div class="set-row" data-set="2">
+          <span class="set-label">2</span>
+          <input type="number" class="set-weight" placeholder="lbs" min="0">
+          <input type="number" class="set-reps" value="10" min="1">
+        </div>
+        <div class="set-row" data-set="3">
+          <span class="set-label">3</span>
+          <input type="number" class="set-weight" placeholder="lbs" min="0">
+          <input type="number" class="set-reps" value="8" min="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Duration (min, optional)</label>
+          <input type="number" class="entry-duration" placeholder="minutes" min="0">
+        </div>
+      </div>
+    </div>`;
+  container.appendChild(div);
+  renumberEntries();
+}
+
+function removeExerciseRow(id) {
+  const el = document.querySelector(`.exercise-entry[data-entry-id="${id}"]`);
+  if (el) el.remove();
+  renumberEntries();
+  if (document.getElementById('exercise-entries').children.length === 0) addExerciseRow();
+}
+
+function renumberEntries() {
+  document.querySelectorAll('.exercise-entry').forEach((el, i) => {
+    el.querySelector('.entry-number').textContent = `Exercise ${i + 1}`;
+  });
+}
+
+function onEntryMuscleChange(id) {
+  const entry = document.querySelector(`.exercise-entry[data-entry-id="${id}"]`);
+  const key = entry.querySelector('.entry-muscle').value;
+  const exSel = entry.querySelector('.entry-exercise');
+  exSel.innerHTML = '<option value="">Select Exercise...</option>';
+  if (key && EXERCISES[key]) {
+    for (const ex of EXERCISES[key]) {
+      exSel.innerHTML += `<option value="${ex}">${ex}</option>`;
+    }
+  }
+  const setsSection = entry.querySelector('.sets-header');
+  const setsRows = entry.querySelector('.set-rows');
+  const durationGroup = entry.querySelector('.form-row:last-child');
+  if (key === 'rest') {
+    if (setsSection) setsSection.style.display = 'none';
+    if (setsRows) setsRows.style.display = 'none';
+    if (durationGroup) durationGroup.style.display = 'none';
+    exSel.value = 'Rest & Recovery';
+  } else if (key === 'cardio') {
+    if (setsSection) setsSection.style.display = 'none';
+    if (setsRows) setsRows.style.display = 'none';
+    if (durationGroup) durationGroup.style.display = '';
+  } else {
+    if (setsSection) setsSection.style.display = '';
+    if (setsRows) setsRows.style.display = '';
+    if (durationGroup) durationGroup.style.display = '';
+  }
+}
+
+function changeSetCount(entryId, delta) {
+  const entry = document.querySelector(`.exercise-entry[data-entry-id="${entryId}"]`);
+  if (!entry) return;
+  const container = entry.querySelector('.set-rows');
+  const rows = container.querySelectorAll('.set-row');
+  const current = rows.length;
+  const next = Math.max(1, Math.min(10, current + delta));
+  if (next === current) return;
+
+  if (next > current) {
+    for (let i = current + 1; i <= next; i++) {
+      const row = document.createElement('div');
+      row.className = 'set-row';
+      row.dataset.set = i;
+      row.innerHTML = `
+        <span class="set-label">${i}</span>
+        <input type="number" class="set-weight" placeholder="lbs" min="0">
+        <input type="number" class="set-reps" value="8" min="1">`;
+      container.appendChild(row);
+    }
+  } else {
+    for (let i = current; i > next; i--) {
+      container.lastElementChild.remove();
+    }
+  }
+  entry.querySelector('.set-count-display').textContent = next;
+}
+
+// ─── Submit Workout ───
+async function submitWorkout() {
+  // If this is the first submit right after opening the app, the cross-device
+  // Firestore merge in autoLogin() may still be in flight — wait for it (capped at
+  // its own 5s timeout) so the streak check below never judges a "gap" against a
+  // `state.lastWorkoutDate` that's about to be corrected. Already-settled the rest of
+  // the session, so this is a no-op after the first submit. See _cloudMergeSettled.
+  await _cloudMergeSettled;
+  // A tab (or phone app) left open for a while can be hours behind the other device.
+  // If this device has a working cloud connection but hasn't synced in a couple of
+  // minutes, pull and merge first so this workout lands on top of the latest history.
+  // Skipped when unverified (the background retry handles it) so a blocked device never
+  // makes every submit wait on a timeout.
+  if (db && currentUser && _cloudReadVerified && Date.now() - _lastCloudSyncAttemptAt > 120000) {
+    await _syncFromCloud('pre-submit', 4000);
+  }
+
+  const entries = document.querySelectorAll('.exercise-entry');
+  if (!entries.length) { toast('Add an exercise first!'); return; }
+
+  const logDate = _backdateLogDate || todayStr();
+  const isBackdated = logDate !== todayStr();
+
+  const parsed = [];
+  for (const entry of entries) {
+    const muscleKey = entry.querySelector('.entry-muscle').value;
+    const exercise = entry.querySelector('.entry-exercise').value;
+    const duration = parseFloat(entry.querySelector('.entry-duration').value) || 0;
+
+    const setRows = entry.querySelectorAll('.set-row');
+    const sets = [];
+    for (const row of setRows) {
+      const weight = parseFloat(row.querySelector('.set-weight').value) || 0;
+      const reps = parseInt(row.querySelector('.set-reps').value) || 0;
+      sets.push({ weight, reps });
+    }
+
+    if (!muscleKey || !exercise) { toast('Fill in all exercises or remove empty ones!'); return; }
+    if (muscleKey === 'rest') {
+      parsed.push({ muscleKey, exercise, sets: [], duration: 0, isRest: true });
+      continue;
+    }
+    if (muscleKey === 'cardio') {
+      if (duration <= 0) { toast('Enter duration for cardio exercises!'); return; }
+      parsed.push({ muscleKey, exercise, sets: [], duration, isCardio: true });
+      continue;
+    }
+    const hasVolume = sets.some(s => s.weight > 0 && s.reps > 0);
+    if (!hasVolume && duration <= 0) { toast('Enter weight/reps or duration for each exercise!'); return; }
+    parsed.push({ muscleKey, exercise, sets, duration });
+  }
+
+  let grandTotalXP = 0;
+  let grandTotalGold = 0;
+  let teamRaidContribution = 0;
+  const musclesHitThisSubmission = new Set(); // feeds the boss's synchronized-strike mechanic below
+
+  const now = Date.now();
+  if (!state.activeBuffs) state.activeBuffs = [];
+  state.activeBuffs = state.activeBuffs.filter(b => b.expiresAt > now);
+  const hasBuff = id => state.activeBuffs.some(b => b.id === id);
+
+  // Vial XP multiplier — stored in state.activeVial so it persists with the account
+  const vial = state.activeVial && state.activeVial.expiresAt > now ? state.activeVial : null;
+  const vialMult = vial ? vial.mult : 1;
+
+  // Snapshot every bar before anything moves, for the recap animation below.
+  _startXPRecording();
+
+  for (const p of parsed) {
+    let totalXP = 0;
+    let numSets = p.sets.length;
+    let goldEarned = 0;
+
+    if (p.isRest) {
+      totalXP = Math.floor((hasBuff('bcaa') ? 150 : 45) * vialMult);
+      const restXPPer = Math.floor(totalXP / 10);
+      for (const mk of Object.keys(MUSCLES)) {
+        if (mk === 'rest' || mk === 'cardio') continue;
+        awardMuscleXP(mk, restXPPer);
+      }
+      goldEarned = 10;
+      numSets = 0;
+    } else if (p.isCardio) {
+      const cardioBase = Math.floor(p.duration * 2.0 * vialMult);
+      totalXP = Math.max(cardioBase, 3);
+      const targets = EXERCISE_MUSCLES[p.exercise] || {};
+      if (Object.keys(targets).length > 0) {
+        for (const [mk, mult] of Object.entries(targets)) {
+          const xp = Math.floor(totalXP * mult);
+          awardMuscleXP(mk, xp);
+        }
+      }
+      goldEarned = Math.floor(totalXP * 0.3);
+      numSets = 0;
+    } else {
+      const baseXP = Math.floor(calcWorkoutXP(p.sets, p.duration) * vialMult);
+      const targets = EXERCISE_MUSCLES[p.exercise] || { [p.muscleKey]: 1.0 };
+
+      for (const [mk, mult] of Object.entries(targets)) {
+        const xp = Math.floor(baseXP * mult);
+        totalXP += xp;
+        awardMuscleXP(mk, xp);
+      }
+      goldEarned = Math.floor(totalXP * 0.3) + numSets * 2;
+    }
+
+    if (hasBuff('preworkout') && !p.isRest) totalXP = Math.floor(totalXP * 1.3);
+    if (hasBuff('protein') && !p.isRest && !p.isCardio) totalXP = Math.floor(totalXP * 1.25);
+    if (hasBuff('massgainer') && !p.isRest && !p.isCardio) {
+      const isCompound = Object.keys(EXERCISE_MUSCLES[p.exercise] || {}).length > 1;
+      if (isCompound) totalXP = Math.floor(totalXP * 1.5);
+    }
+    if (hasBuff('wheybar') && !p.isRest && !p.isCardio) totalXP = Math.floor(totalXP * 1.35);
+    if (hasBuff('electrolytes') && p.isCardio) totalXP = Math.floor(totalXP * 1.4);
+    if (hasBuff('recoveryshake') && p.isRest) totalXP = Math.floor(totalXP * 1.25);
+    if (hasBuff('ironbrew')) { totalXP = Math.floor(totalXP * 1.15); goldEarned = Math.floor(goldEarned * 1.15); }
+    if (hasBuff('fatburner')) goldEarned = goldEarned * 2;
+
+    // Raid armor set bonuses — permanent while equipped, not a timed buff
+    const armorBonus = getArmorSetBonus();
+    if (armorBonus.xpMult > 1) totalXP = Math.floor(totalXP * armorBonus.xpMult);
+    if (armorBonus.goldMult > 1) goldEarned = Math.floor(goldEarned * armorBonus.goldMult);
+
+    // ─── Apple Health bonuses (today's sync only) ───
+    if (healthSync && healthSync.date === todayStr()) {
+      const hs = healthSync;
+      if ((hs.protein || 0) >= 100 && !p.isRest && !p.isCardio) totalXP = Math.floor(totalXP * 1.15);
+      if ((hs.activeCalories || 0) >= 300 && p.isCardio) totalXP = Math.floor(totalXP * 1.1);
+      if ((hs.sleepHours || 0) >= 7 && p.isRest) totalXP += 100;
+      if ((hs.steps || 0) >= 8000) goldEarned += 10;
+      if ((hs.exerciseMinutes || 0) >= 30) goldEarned += 15;
+    }
+
+    state.gold += goldEarned;
+    state.totalGold += goldEarned;
+    state.totalWorkouts++;
+
+    // Daily quest, weekly challenge, and raid-boss contribution all track what's
+    // happening *today* — a backdated entry earns XP/gold/streak credit but doesn't
+    // retroactively fill in today's live counters.
+    if (!isBackdated) {
+      ensureDaily();
+      if (!state.dailyProgress.groups.includes(p.muscleKey)) state.dailyProgress.groups.push(p.muscleKey);
+      state.dailyProgress.sets += numSets;
+      state.dailyProgress.xp += totalXP;
+      state.dailyProgress.workouts++;
+
+      const raidDmg = Math.floor(totalXP * 1.5);
+      getWeeklyChallenge();
+      state.weeklyChallengeDamage = (state.weeklyChallengeDamage || 0) + raidDmg;
+      // Old "Monthly Raid" feature is retired — replaced by the Raid Boss below.
+
+      // ─── Raid party boss (each party fights its OWN instanced boss) ───
+      // Only queued party members contribute — solo/no-team players don't damage any
+      // raid boss (the separate Weekly Challenge ladder above is still solo/global).
+      if (state.teamId && state.teamRole && state.teamBossId) {
+        const bossFlavor = RAID_BOSSES.find(b => b.id === state.teamBossId) || RAID_BOSSES[0];
+        const hitMuscles = Object.keys(EXERCISE_MUSCLES[p.exercise] || {});
+        const isWeakness = hitMuscles.includes(bossFlavor.weakness) || p.muscleKey === bossFlavor.weakness;
+        const roleMult = roleDamageMult(state.teamRole, state.teamRaidSize || 4);
+        const thisRaidDmg = Math.floor(raidDmg * (isWeakness ? 2 : 1) * roleMult);
+        teamRaidContribution += thisRaidDmg;
+      }
+    }
+
+    musclesHitThisSubmission.add(p.muscleKey);
+
+    state.workoutLog.push({
+      date: logDate,
+      exercise: p.exercise, muscle: p.muscleKey,
+      sets: p.sets, duration: p.duration,
+      xp: totalXP, gold: goldEarned,
+    });
+
+    grandTotalXP += totalXP;
+    grandTotalGold += goldEarned;
+  }
+
+  updateStreak(logDate);
+  checkPeriodXPReset(); // recomputes all period XP from workoutLog (already includes this session)
+
+  saveWithPin(true); // confirmed action — push to the cloud right away
+
+  playSFX('submit');
+  const recap = _stopXPRecording(grandTotalXP, grandTotalGold);
+  _backdateLogDate = null;
+  _updateBackdateBtnLabel();
+
+  // Party effects (damage log, healer's heal) — fire-and-forget, never blocks submit
+  if (state.teamId && state.teamRole) {
+    _applyTeamWorkoutEffects(teamRaidContribution, grandTotalXP, musclesHitThisSubmission).catch(() => {});
+  }
+
+  // The toasts and any achievement modal wait for the recap to finish, otherwise they'd
+  // be stranded behind the overlay and expire unseen.
+  const afterRecap = () => {
+    toast(isBackdated ? `+${grandTotalXP} XP logged for ${formatDate(logDate + 'T12:00:00')}` : `+${grandTotalXP} XP`, 'xp');
+    toast(`+${grandTotalGold} Gold`, 'gold');
+    checkAchievements();
+    document.getElementById('exercise-entries').innerHTML = '';
+    addExerciseRow();
+    renderDashboard();
+    _updateCustomChallengeProgress().catch(() => {});
+  };
+
+  if (state.recapAnimation !== false && recap && recap.rows.length) showWorkoutRecap(recap, afterRecap);
+  else afterRecap();
+}
+
+function awardMuscleXP(key, xp) {
+  const bonus = getEquipmentXPBonus(key);
+  if (bonus > 0) xp = Math.floor(xp * (1 + bonus));
+  const m = state.muscles[key];
+  // While a workout recap is recording, capture the pre-gain position of this muscle so
+  // the animation can replay the fill from where the bar actually was.
+  if (_xpRecording) {
+    if (!_xpRecording.muscles[key]) {
+      _xpRecording.muscles[key] = { before: { level: m.level, xp: m.xp }, gained: 0, levelUps: 0 };
+    }
+    _xpRecording.muscles[key].gained += xp;
+  }
+  m.xp += xp;
+  let needed = xpForMuscleLevel(m.level);
+  while (m.xp >= needed) {
+    m.xp -= needed;
+    m.level++;
+    m.scale = muscleScale(m.level);
+    needed = xpForMuscleLevel(m.level);
+    state.gold += 5;
+    state.totalGold += 5;
+    if (_xpRecording) {
+      // The recap fires the sound, the avatar flash and the level readout itself, at the
+      // moment the animated bar crosses over — firing them here would put all of it
+      // before the animation even starts.
+      _xpRecording.muscles[key].levelUps++;
+      _xpRecording.bonusGold += 5;
+    } else {
+      playSFX('levelup');
+      flashMuscleGroup(key);
+      showLevelUp(`${MUSCLES[key].name} leveled up to Lv. ${m.level}!`, `+5 Bonus Gold`);
+    }
+  }
+}
+
+// Glow-pulses the leveling muscle's own SVG group(s) on the avatar (front and back both
+// carry a matching .body-part[data-muscle] element, though only one view is visible at
+// a time) so it's obvious AT A GLANCE which muscle just grew, not just a modal with text.
+function flashMuscleGroup(key) {
+  document.querySelectorAll(`.body-part[data-muscle="${key}"]`).forEach(el => {
+    el.classList.remove('muscle-levelup-flash');
+    void el.offsetWidth; // restart animation if it's still mid-flash from a rapid double level-up
+    el.classList.add('muscle-levelup-flash');
+  });
+}
+
+// ─── Achievements ───
+function checkAchievements() {
+  const stats = { ...state, level: calcOverallLevel(state.muscles).level };
+  for (const a of ACHIEVEMENTS) {
+    if (!state.achievements.includes(a.id) && a.check(stats)) {
+      state.achievements.push(a.id);
+      showAchievement(a);
+      state.gold += 25;
+      state.totalGold += 25;
+      saveWithPin();
+    }
+  }
+}
+
+let previousTab = 'dashboard';
+let currentTab = 'dashboard';
+
+function toggleSettings() {
+  if (currentTab === 'settings') {
+    showTab(previousTab);
+  } else {
+    showTab('settings');
+  }
+}
+
+let avatarView = 'front';
+function toggleAvatarView() {
+  avatarView = avatarView === 'front' ? 'back' : 'front';
+  renderAvatar();
+  syncAvatarToggleIcon();
+}
+
+// The dashboard rotate button and the one inside the character panel both reflect
+// avatarView, so keep the glyph in one place. Icon, not text — every control around the
+// avatar is a Tabler icon so they read as one set.
+function syncAvatarToggleIcon() {
+  const btn = document.getElementById('avatar-toggle-btn');
+  if (btn) btn.innerHTML = `<i class="ti ${avatarView === 'front' ? 'ti-rotate-clockwise' : 'ti-rotate'}"></i>`;
+}
+
+// Cycles between the pages stacked inside a "combined" Home card (Health Sync ⇄
+// Nutrition, Quests ⇄ Achievements) — just shows/hides .home-card-page children and
+// updates the dot counter, no page-specific logic needed here.
+function cycleHomeCard(wrapId, dir) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const pages = [...wrap.querySelectorAll(':scope > .home-card-page')];
+  if (!pages.length) return;
+  let active = pages.findIndex(p => p.style.display !== 'none');
+  if (active === -1) active = 0;
+  pages[active].style.display = 'none';
+  active = (active + dir + pages.length) % pages.length;
+  pages[active].style.display = '';
+  const dots = document.getElementById(wrapId + '-dots');
+  if (dots) dots.textContent = `${active + 1}/${pages.length}`;
+}
+
+// ─── Height ───
+// Stored in whole inches. Everything scales off a 5'10" (70in) reference, so an
+// average-height character renders exactly as before this existed.
+const HEIGHT_MIN_IN = 55;   // 4'7"
+const HEIGHT_MAX_IN = 85;   // 7'1"
+const HEIGHT_REF_IN = 70;   // 5'10" → scale 1.0
+// Bands are labels only — the avatar scales continuously, not in steps.
+const HEIGHT_BANDS = [
+  { max: 59, label: 'Extremely Small' },
+  { max: 63, label: 'Very Short' },
+  { max: 67, label: 'Short' },
+  { max: 71, label: 'Average' },
+  { max: 75, label: 'Tall' },
+  { max: 80, label: 'Very Tall' },
+  { max: 99, label: 'Extremely Tall' },
+];
+function getHeightIn() {
+  const h = Number(state.heightIn);
+  if (!Number.isFinite(h)) return HEIGHT_REF_IN;
+  return Math.min(HEIGHT_MAX_IN, Math.max(HEIGHT_MIN_IN, Math.round(h)));
+}
+function heightLabel(inches) {
+  return (HEIGHT_BANDS.find(b => inches <= b.max) || HEIGHT_BANDS[HEIGHT_BANDS.length - 1]).label;
+}
+function formatHeight(inches) {
+  return `${Math.floor(inches / 12)}'${inches % 12}"`;
+}
+// Uniform scale anchored at the feet (100, 310) — the ground line every avatar
+// pose already stands on — so height changes read as height, not as zoom.
+function avatarHeightTransform() {
+  const k = getHeightIn() / HEIGHT_REF_IN;
+  if (Math.abs(k - 1) < 0.0001) return '';
+  return `translate(100,310) scale(${k.toFixed(4)}) translate(-100,-310)`;
+}
+function setHeight(inches) {
+  state.heightIn = Math.min(HEIGHT_MAX_IN, Math.max(HEIGHT_MIN_IN, Math.round(Number(inches) || HEIGHT_REF_IN)));
+  saveWithPin();
+  // Only touch the readout text on every drag tick — NOT renderHeightScale(), which
+  // replaces the <input type="range"> itself via innerHTML. Recreating that element
+  // mid-drag steals the browser's pointer capture from it, so the native drag gesture
+  // dies after the first tick and the slider reads as "locked", only moving one step
+  // per separate click. The <input> now stays untouched for the life of the drag.
+  _updateHeightReadout();
+  renderAvatar();
+  if (document.getElementById('character-panel')) renderCharacterPanel();
+}
+function _updateHeightReadout() {
+  const h = getHeightIn();
+  const band = document.querySelector('#height-scale .height-band');
+  const val = document.querySelector('#height-scale .height-value');
+  if (band) band.textContent = heightLabel(h);
+  if (val) val.textContent = formatHeight(h);
+}
+// Builds the slider + readout from scratch. Call this only when the container is being
+// set up (Settings tab opening) — never from inside the drag handler, see setHeight().
+function renderHeightScale() {
+  const el = document.getElementById('height-scale');
+  if (!el) return;
+  const h = getHeightIn();
+  el.innerHTML = `
+    <input type="range" id="height-range" class="height-range" min="${HEIGHT_MIN_IN}" max="${HEIGHT_MAX_IN}" step="1" value="${h}"
+      oninput="MQ.setHeight(this.value)" aria-label="Height">
+    <div class="height-readout">
+      <span class="height-band">${heightLabel(h)}</span>
+      <span class="height-value">${formatHeight(h)}</span>
+    </div>
+    <div class="height-ends"><span>${formatHeight(HEIGHT_MIN_IN)}</span><span>${formatHeight(HEIGHT_MAX_IN)}</span></div>`;
+}
+
+// ─── UI ───
+function showTab(tab) {
+  // The store/pet shop/black market (store.js) write purchases straight to localStorage
+  // via their own getState()/saveState() — they never touch this file's in-memory
+  // `state`. Without this, leaving the store after buying something (gold, pets, food,
+  // cosmetics...) shows stale pre-purchase values until a full page reload.
+  if (currentTab === 'store' && tab !== 'store') syncStateFromStorage();
+  if (currentTab !== tab) previousTab = currentTab;
+  currentTab = tab;
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  const tabEl = document.getElementById(`tab-${tab}`);
+  if (tabEl) tabEl.classList.add('active');
+  const navBtn = document.querySelector(`[data-tab="${tab}"]`);
+  if (navBtn) navBtn.classList.add('active');
+
+  if (tab === 'dashboard') renderDashboard();
+  else if (tab === 'workouts') showHistoryTab('personal');
+  else if (tab === 'quests') renderQuestsTab();
+  else if (tab === 'store') {
+    if (typeof GainsShop !== 'undefined') GainsShop.render();
+  }
+  else if (tab === 'fight') {
+    if (typeof PunchOut !== 'undefined') PunchOut.init();
+  }
+  else if (tab === 'leaderboards') {
+    renderLeaderboard('weekly');
+    const statusEl = document.getElementById('firebase-status');
+    if (statusEl) statusEl.textContent = db ? 'Live leaderboard' : 'Offline mode — showing mock data';
+  }
+  else if (tab === 'settings') {
+    document.getElementById('player-name-input').value = state.name;
+    document.getElementById('gender-select').value = state.gender || 'male';
+    document.getElementById('settings-username').textContent = currentUser || '—';
+    const privToggle = document.getElementById('private-toggle');
+    if (privToggle) privToggle.checked = !!state.private;
+    const recapToggle = document.getElementById('recap-toggle');
+    if (recapToggle) recapToggle.checked = state.recapAnimation !== false;
+    const ccToggle = document.getElementById('challenges-optin-toggle');
+    if (ccToggle) ccToggle.checked = !!state.challengesOptIn;
+      renderSkinToneSwatches();
+    renderHeightScale();
+    const hSetup = document.getElementById('health-sync-setup');
+    if (hSetup) hSetup.innerHTML = getHealthSyncSetupHTML();
+    renderGoalsSection();
+    renderSettingsSplits();
+    const versionEl = document.getElementById('app-version');
+    if (versionEl) versionEl.textContent = `Version ${APP_VERSION}`;
+  }
+}
+
+function renderDashboard() {
+  // One-time strip: remove rank achievements that couldn't be legitimately earned yet
+  const RANK_IDS = ['rank1_weekly', 'rank1_monthly', 'rank1_yearly'];
+  if (RANK_IDS.some(id => state.achievements.includes(id))) {
+    state.achievements = state.achievements.filter(id => !RANK_IDS.includes(id));
+    state._rank1Weekly = 0; state._rank1Monthly = 0; state._rank1Yearly = 0;
+    saveWithPin();
+  }
+
+  document.getElementById('current-date').textContent = formatDate();
+
+  const overall = calcOverallLevel(state.muscles);
+  document.getElementById('player-level').textContent = overall.level;
+  document.getElementById('player-gold').textContent = state.gold.toLocaleString();
+  document.getElementById('player-xp-bar').style.width = `${(overall.xp / overall.xpNeeded) * 100}%`;
+  document.getElementById('player-xp-text').textContent = `${overall.xp} / ${overall.xpNeeded} XP`;
+  document.getElementById('streak-count').textContent = state.streak;
+  if (_streakPulsePending) {
+    _streakPulsePending = false;
+    const banner = document.getElementById('streak-banner');
+    if (banner) { banner.classList.remove('streak-pulse'); void banner.offsetWidth; banner.classList.add('streak-pulse'); }
+  }
+
+  renderMuscleStats();
+  renderAvatar();
+  renderPoseSelector();
+  renderTodayLog();
+  renderDailyQuest();
+  renderRaidProgress();
+  renderAchievementsPreview();
+  renderHealthPanel();
+  renderNutritionChart();
+  loadHealthSync();
+  populateMuscleGroupSelect();
+  renderChallengeSummaryCard();
+}
+
+function renderMuscleStats() {
+  const grid = document.getElementById('muscle-stats-grid');
+  grid.innerHTML = '';
+  for (const [key, info] of Object.entries(MUSCLES)) {
+    if (key === 'rest' || key === 'cardio') continue;
+    const m = state.muscles[key];
+    const needed = xpForMuscleLevel(m.level);
+    const pct = (m.xp / needed) * 100;
+    grid.innerHTML += `
+      <div class="muscle-stat">
+        <span class="stat-name">${info.name}</span>
+        <span class="stat-level">Lv.${m.level}</span>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${info.color}"></div></div>
+      </div>`;
+  }
+}
+
+function muscleScale(level) {
+  return 1.0 + 0.85 * (1 - Math.exp(-0.06 * (level - 1)));
+}
+
+const POSES = [
+  { level: 1,  name: 'Relaxed',              lArm: 0,    rArm: 0,    lFore: 0,    rFore: 0   },
+  { level: 1,  name: 'Front Double Bicep',    lArm: 130,  rArm: -130, lFore: 90,   rFore: -90 },
+  { level: 1,  name: 'Side Chest',            lArm: -30,  rArm: -70,  lFore: -90,  rFore: -30 },
+  { level: 5,  name: 'Frank Zane Vacuum',     lArm: 105,  rArm: -105, lFore: 55,   rFore: -55 },
+  { level: 8,  name: 'Most Muscular',         lArm: 130,  rArm: -130, lFore: 90,   rFore: -90 },
+  { level: 12, name: 'Side Tricep',           lArm: 15,   rArm: -20,  lFore: 30,   rFore: -90 },
+  { level: 16, name: 'Rear Lat Spread',       lArm: 20,   rArm: -20,  lFore: -70,  rFore: 70  },
+  { level: 20, name: 'Victory Pose',          lArm: -110, rArm: 110,  lFore: -20,  rFore: 20  },
+  { level: 25, name: 'High V',                lArm: -175, rArm: 175,  lFore: 31,   rFore: -31 },
+];
+
+let selectedPoseIndex = null;
+
+// Console-only. Renders arbitrary arm angles so pose variants can be drafted and compared
+// without editing the POSES table. Pass null to clear.
+//   MQ.debugPreviewPose({ lArm:-95, rArm:95, lFore:-25, rFore:25, name:'Draft A' })
+let _posePreviewOverride = null;
+function debugPreviewPose(angles) {
+  _posePreviewOverride = angles || null;
+  renderAvatar();
+  if (document.getElementById('character-panel')) renderCharacterPanel();
+  return _posePreviewOverride;
+}
+
+function getCurrentPose(level) {
+  if (_posePreviewOverride) return { level: 1, name: 'Preview', lArm: 0, rArm: 0, lFore: 0, rFore: 0, ..._posePreviewOverride };
+  if (selectedPoseIndex !== null) {
+    const pose = POSES[selectedPoseIndex];
+    if (pose && level >= pose.level) return pose;
+  }
+  let pose = POSES[0];
+  for (const p of POSES) {
+    if (level >= p.level) pose = p;
+  }
+  return pose;
+}
+
+function selectPose(index) {
+  const overall = calcOverallLevel(state.muscles);
+  if (POSES[index].level > overall.level) return;
+  selectedPoseIndex = (selectedPoseIndex === index) ? null : index;
+  renderAvatar();
+  renderPoseSelector();
+}
+
+function renderPoseSelector() {
+  const container = document.getElementById('pose-selector');
+  if (!container) return;
+  const overall = calcOverallLevel(state.muscles);
+  const defaultPose = (() => { let p = POSES[0]; for (const pp of POSES) { if (overall.level >= pp.level) p = pp; } return p; })();
+
+  container.innerHTML = POSES.map((p, i) => {
+    const unlocked = overall.level >= p.level;
+    const isActive = selectedPoseIndex === i || (selectedPoseIndex === null && p === defaultPose);
+    return `<button class="pose-btn ${isActive ? 'active' : ''} ${unlocked ? '' : 'locked'}"
+      onclick="${unlocked ? `MQ.selectPose(${i})` : ''}"
+      title="${unlocked ? p.name : 'Unlocks at Lv.' + p.level}">${unlocked ? p.name : 'Lv.' + p.level}</button>`;
+  }).join('');
+}
+
+function renderAvatar(targetId) {
+  const c = document.getElementById(targetId || 'avatar-container');
+  if (!c) return;
+  const m = state.muscles;
+  const s = k => muscleScale(m[k].level);
+  const front = avatarView === 'front';
+  const female = state.gender === 'female';
+  const skn = SKIN_TONES[state.skinTone ?? 1];
+  const skinAccent = skn.s4;
+
+  const torsoW = 56 * (front ? s('chest') : s('back'));
+  const torsoX = 100 - torsoW / 2;
+
+  const shoulderR = 16 * s('shoulders');
+  const shoulderRY = 14 * s('shoulders');
+  const shoulderLX = 100 - torsoW / 2 - shoulderR * 0.5;
+  const shoulderRX = 100 + torsoW / 2 + shoulderR * 0.5;
+
+  const armMainW = 24 * (front ? s('biceps') : s('triceps'));
+  const armSecW = 18 * (front ? s('triceps') : s('biceps'));
+  const armLX = shoulderLX - armMainW * 0.4;
+  const armRX = shoulderRX - armMainW * 0.6;
+  const armSecLX = armLX + (armMainW - armSecW) / 2;
+  const armSecRX = armRX + (armMainW - armSecW) / 2;
+
+  const forearmW = 18;
+  const forearmLX = armLX + (armMainW - forearmW) / 2;
+  const forearmRX = armRX + (armMainW - forearmW) / 2;
+  const handLX = forearmLX + forearmW / 2;
+  const handRX = forearmRX + forearmW / 2;
+
+  const legMainW = 28 * (front ? s('quads') : s('hamstrings'));
+  const legSecW = 22 * (front ? s('hamstrings') : s('quads'));
+  const legGap = 8;
+  const legLX = 100 - legGap / 2 - legMainW;
+  const legRX = 100 + legGap / 2;
+  const legSecLX = legLX + (legMainW - legSecW) / 2;
+  const legSecRX = legRX + (legMainW - legSecW) / 2;
+
+  const calfW = 24 * s('calves');
+  const calfLX = legLX + (legMainW - calfW) / 2;
+  const calfRX = legRX + (legMainW - calfW) / 2;
+
+  const gluteRX = 22 * s('glutes');
+  const gluteRY = 12 * s('glutes');
+
+  const absW = 36 * s('abs');
+  const absX = 100 - absW / 2;
+
+  const shortsW = Math.max(60, legMainW * 2 + legGap + 4);
+  const shortsX = 100 - shortsW / 2;
+
+  const backW = 56 * s('back');
+  const backX = 100 - backW / 2;
+  const chestW = 56 * s('chest');
+  const chestX = 100 - chestW / 2;
+
+  let bodyHTML;
+
+  if (front) {
+    bodyHTML = `
+    <!-- Legs / Quads (front) -->
+    <g class="body-part" data-muscle="quads">
+      <rect x="${legLX}" y="210" width="${legMainW}" height="60" rx="10" fill="url(#skin)"/>
+      <rect x="${legRX}" y="210" width="${legMainW}" height="60" rx="10" fill="url(#skin)"/>
+    </g>
+    <!-- Hamstrings (shadow) -->
+    <g class="body-part" data-muscle="hamstrings" opacity="0.3">
+      <rect x="${legSecLX}" y="230" width="${legSecW}" height="35" rx="8" fill="#8B6914"/>
+      <rect x="${legSecRX}" y="230" width="${legSecW}" height="35" rx="8" fill="#8B6914"/>
+    </g>
+    <!-- Calves -->
+    <g class="body-part" data-muscle="calves">
+      <rect x="${calfLX}" y="268" width="${calfW}" height="40" rx="9" fill="url(#skinDark)"/>
+      <rect x="${calfRX}" y="268" width="${calfW}" height="40" rx="9" fill="url(#skinDark)"/>
+    </g>
+    <!-- Glutes (shadow) -->
+    <g class="body-part" data-muscle="glutes" opacity="0.25">
+      <ellipse cx="100" cy="210" rx="${gluteRX}" ry="${gluteRY}" fill="${skinAccent}"/>
+    </g>
+    <!-- Back (shadow) -->
+    <g class="body-part" data-muscle="back">
+      <rect x="${backX}" y="110" width="${backW}" height="95" rx="16" fill="url(#skinDark)" opacity="0.5"/>
+    </g>
+    <!-- Chest (front) -->
+    <g class="body-part" data-muscle="chest">
+      <rect x="${chestX}" y="108" width="${chestW}" height="50" rx="18" fill="url(#skin)"/>
+      ${female ? `
+      <rect x="${chestX + 3}" y="118" width="${chestW - 6}" height="28" rx="10" fill="#2a2a3e"/>
+      <path d="M${chestX + 8} 118 L${100 - 3} 122 L${100 + 3} 122 L${chestX + chestW - 8} 118" stroke="#3a3a5e" stroke-width="0.8" fill="none"/>
+      <line x1="100" y1="122" x2="100" y2="118" stroke="#3a3a5e" stroke-width="0.8"/>
+      ` : `<path d="M${100-12} 125 Q100 132 ${100+12} 125" stroke="${skinAccent}" stroke-width="1" fill="none" opacity="0.6"/>`}
+    </g>
+    <!-- Abs -->
+    <g class="body-part" data-muscle="abs">
+      <rect x="${absX}" y="155" width="${absW}" height="50" rx="10" fill="url(#skinDark)" opacity="0.7"/>
+      ${[0,12,24,36].map(dy => `<line x1="100" y1="${158+dy}" x2="100" y2="${164+dy}" stroke="${skinAccent}" stroke-width="0.8" opacity="0.5"/>`).join('')}
+      ${[6,18,30].map(dy => `<line x1="${absX+6}" y1="${161+dy}" x2="${absX+absW-6}" y2="${161+dy}" stroke="${skinAccent}" stroke-width="0.6" opacity="0.4"/>`).join('')}
+    </g>
+    <!-- Shoulders -->
+    <g class="body-part" data-muscle="shoulders">
+      <ellipse cx="${shoulderLX}" cy="115" rx="${shoulderR}" ry="${shoulderRY}" fill="url(#skin)"/>
+      <ellipse cx="${shoulderRX}" cy="115" rx="${shoulderR}" ry="${shoulderRY}" fill="url(#skin)"/>
+    </g>
+    `;
+  } else {
+    bodyHTML = `
+    <!-- Hamstrings (back, primary) -->
+    <g class="body-part" data-muscle="hamstrings">
+      <rect x="${legLX}" y="210" width="${legMainW}" height="60" rx="10" fill="url(#skin)"/>
+      <rect x="${legRX}" y="210" width="${legMainW}" height="60" rx="10" fill="url(#skin)"/>
+    </g>
+    <!-- Quads (shadow) -->
+    <g class="body-part" data-muscle="quads" opacity="0.3">
+      <rect x="${legSecLX}" y="220" width="${legSecW}" height="40" rx="8" fill="${skinAccent}"/>
+      <rect x="${legSecRX}" y="220" width="${legSecW}" height="40" rx="8" fill="${skinAccent}"/>
+    </g>
+    <!-- Calves -->
+    <g class="body-part" data-muscle="calves">
+      <rect x="${calfLX}" y="268" width="${calfW}" height="40" rx="9" fill="url(#skinDark)"/>
+      <rect x="${calfRX}" y="268" width="${calfW}" height="40" rx="9" fill="url(#skinDark)"/>
+    </g>
+    <!-- Glutes (back, primary) -->
+    <g class="body-part" data-muscle="glutes">
+      <ellipse cx="100" cy="210" rx="${gluteRX}" ry="${gluteRY}" fill="url(#skinDark)"/>
+      <line x1="100" y1="${210 - gluteRY + 2}" x2="100" y2="${210 + gluteRY - 2}" stroke="${skinAccent}" stroke-width="0.8" opacity="0.4"/>
+    </g>
+    <!-- Chest (shadow) -->
+    <g class="body-part" data-muscle="chest" opacity="0.3">
+      <rect x="${chestX}" y="112" width="${chestW}" height="45" rx="16" fill="${skinAccent}"/>
+    </g>
+    <!-- Back (back, primary) -->
+    <g class="body-part" data-muscle="back">
+      <rect x="${backX}" y="108" width="${backW}" height="95" rx="16" fill="url(#skin)"/>
+      <!-- Spine -->
+      <line x1="100" y1="115" x2="100" y2="195" stroke="${skinAccent}" stroke-width="1" opacity="0.5"/>
+      <!-- Lats -->
+      <path d="M${backX+8} 130 Q${backX+4} 160 ${backX+10} 190" stroke="${skinAccent}" stroke-width="0.8" fill="none" opacity="0.4"/>
+      <path d="M${backX+backW-8} 130 Q${backX+backW-4} 160 ${backX+backW-10} 190" stroke="${skinAccent}" stroke-width="0.8" fill="none" opacity="0.4"/>
+      <!-- Shoulder blade hints -->
+      <ellipse cx="${100-14}" cy="140" rx="10" ry="14" fill="url(#skinDark)" opacity="0.3"/>
+      <ellipse cx="${100+14}" cy="140" rx="10" ry="14" fill="url(#skinDark)" opacity="0.3"/>
+      ${female ? `<line x1="${backX + 10}" y1="122" x2="${backX + backW - 10}" y2="122" stroke="#2a2a3e" stroke-width="3" stroke-linecap="round"/>
+      <line x1="100" y1="122" x2="100" y2="132" stroke="#2a2a3e" stroke-width="3" stroke-linecap="round"/>` : ''}
+    </g>
+    <!-- Lower back / no abs visible -->
+    <g class="body-part" data-muscle="abs" opacity="0.15">
+      <rect x="${absX}" y="160" width="${absW}" height="40" rx="8" fill="${skinAccent}"/>
+    </g>
+    <!-- Shoulders -->
+    <g class="body-part" data-muscle="shoulders">
+      <ellipse cx="${shoulderLX}" cy="115" rx="${shoulderR}" ry="${shoulderRY}" fill="url(#skin)"/>
+      <ellipse cx="${shoulderRX}" cy="115" rx="${shoulderR}" ry="${shoulderRY}" fill="url(#skin)"/>
+      <!-- Rear delt detail -->
+      <ellipse cx="${shoulderLX+2}" cy="118" rx="${shoulderR*0.5}" ry="${shoulderRY*0.4}" fill="url(#skinDark)" opacity="0.3"/>
+      <ellipse cx="${shoulderRX-2}" cy="118" rx="${shoulderR*0.5}" ry="${shoulderRY*0.4}" fill="url(#skinDark)" opacity="0.3"/>
+    </g>
+    `;
+  }
+
+  const hclr = HAIR_COLORS[state.hairColor ?? 0];
+  const hairColor = hclr.c1;
+  const hairDark = hclr.c2;
+  const resolvedHairId = state.hair || (female ? 'space_buns' : 'default');
+  const fh = getFullHairSVG(resolvedHairId, hairColor, hairDark);
+
+  // Tattoo — compute _activeTat before headHTML so face tat can go inside head group
+  const _TAT_DEFS = window._TATTOOS || [];
+  const _activeTat = _TAT_DEFS.find(t => t.id === state.tattoo);
+  // Face tats: translate(0,36) scale(2,2) maps mini head coords (cx=50,cy=22) → main head (cx=100,cy=80)
+  const _faceTatSVG = (_activeTat?.placement === 'face')
+    ? `<g transform="translate(0,36) scale(2,2)" opacity="0.9">${_activeTat.svg}</g>` : '';
+
+  const headHTML = front ? `
+    <!-- Head (front) -->
+    <g class="head-group" style="transform-origin: 100px 95px;">
+      ${fh.fb}
+      <ellipse cx="100" cy="80" rx="24" ry="28" fill="url(#skin)"/>
+      ${fh.ft}
+      <ellipse cx="91" cy="78" rx="3" ry="3.5" fill="#2c1810"/>
+      <ellipse cx="109" cy="78" rx="3" ry="3.5" fill="#2c1810"/>
+      <circle class="eye-highlight eye-left" cx="92" cy="77" r="1.2" fill="#fff"/>
+      <circle class="eye-highlight eye-right" cx="110" cy="77" r="1.2" fill="#fff"/>
+      ${female ? `<ellipse cx="91" cy="77" rx="1.5" ry="2" fill="#2c1810" opacity="0.15"/>
+      <ellipse cx="109" cy="77" rx="1.5" ry="2" fill="#2c1810" opacity="0.15"/>` : ''}
+      <path d="M94 90 Q100 94 106 90" stroke="${skinAccent}" stroke-width="1.2" fill="none"/>
+      ${_faceTatSVG}
+      ${renderHeadCosmeticsSVG(true)}
+    </g>` : `
+    <!-- Head (back) -->
+    <g class="head-group" style="transform-origin: 100px 95px;">
+      ${fh.bb}
+      <ellipse cx="100" cy="80" rx="24" ry="28" fill="url(#skin)"/>
+      ${fh.bt}
+      ${resolvedHairId === 'default' || resolvedHairId === 'buzz' || resolvedHairId === 'crew' || resolvedHairId === 'slick_back' || resolvedHairId === 'taper_fade' || resolvedHairId === 'undercut' || resolvedHairId === 'pompadour' || resolvedHairId === 'mohawk' ? `
+      <ellipse cx="76" cy="82" rx="4" ry="6" fill="url(#skinDark)"/>
+      <ellipse cx="124" cy="82" rx="4" ry="6" fill="url(#skinDark)"/>` : ''}
+      <rect x="90" y="98" width="20" height="12" rx="4" fill="url(#skinDark)"/>
+      <line x1="100" y1="99" x2="100" y2="108" stroke="${skinAccent}" stroke-width="0.6" opacity="0.3"/>
+      ${renderHeadCosmeticsSVG(false)}
+    </g>`;
+
+  const overall = calcOverallLevel(state.muscles);
+  const pose = getCurrentPose(overall.level);
+
+  const lShoulderCX = shoulderLX;
+  const rShoulderCX = shoulderRX;
+  const shY = 118;
+
+  const lElbowX = armLX + armMainW / 2;
+  const rElbowX = armRX + armMainW / 2;
+  const elbowY = 170;
+
+  // Arm tattoo: inject inside arm group so it rotates with arm
+  // Mini arm center (37,47) → scale(2,2) → (74,94) → translate(lElbowX-74,53) → (lElbowX,147)
+  const _armTatSVG = (front && _activeTat?.placement === 'arm')
+    ? `<g transform="translate(${lElbowX - 74},53) scale(2,2)" opacity="0.88">${_activeTat.svg}</g>` : '';
+  // Chest tattoos: front view only. translate(0,39) scale(2,2) maps mini chest (50,47) → main chest (100,133)
+  const _chestTatSVG = (front && _activeTat?.placement === 'chest')
+    ? `<g transform="translate(0,39) scale(2,2)" opacity="0.88">${_activeTat.svg}</g>` : '';
+  // Back tattoos: back view only, same coordinate mapping as chest
+  const _backTatSVG = (!front && _activeTat?.placement === 'back')
+    ? `<g transform="translate(0,39) scale(2,2)" opacity="0.88">${_activeTat.svg}</g>` : '';
+
+  c.innerHTML = `<svg viewBox="0 0 200 320" class="avatar-svg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="skin" cx="50%" cy="30%"><stop offset="0%" stop-color="${skn.s1}"/><stop offset="100%" stop-color="${skn.s2}"/></radialGradient>
+      <radialGradient id="skinDark" cx="50%" cy="30%"><stop offset="0%" stop-color="${skn.s3}"/><stop offset="100%" stop-color="${skn.s4}"/></radialGradient>
+    </defs>
+    <g transform="${avatarHeightTransform()}">
+    ${bodyHTML}
+    <!-- Left arm group (posed) -->
+    <g transform="rotate(${pose.lArm}, ${lShoulderCX}, ${shY})">
+      ${front ? `
+      <g class="body-part" data-muscle="biceps">
+        <rect x="${armLX}" y="125" width="${armMainW}" height="45" rx="10" fill="url(#skin)"/>
+      </g>
+      <g class="body-part" data-muscle="triceps" opacity="0.35">
+        <rect x="${armSecLX}" y="130" width="${armSecW}" height="38" rx="8" fill="${skinAccent}"/>
+      </g>` : `
+      <g class="body-part" data-muscle="triceps">
+        <rect x="${armLX}" y="125" width="${armMainW}" height="45" rx="10" fill="url(#skin)"/>
+      </g>
+      <g class="body-part" data-muscle="biceps" opacity="0.35">
+        <rect x="${armSecLX}" y="130" width="${armSecW}" height="38" rx="8" fill="${skinAccent}"/>
+      </g>`}
+      ${_armTatSVG}
+      <g transform="rotate(${pose.lFore}, ${lElbowX}, ${elbowY})">
+        <rect x="${forearmLX}" y="170" width="${forearmW}" height="38" rx="7" fill="url(#skinDark)"/>
+        ${renderWristCosmeticSVG(forearmLX, forearmW, false)}
+        <circle cx="${handLX}" cy="212" r="7" fill="url(#skinDark)"/>
+      </g>
+    </g>
+    <!-- Right arm group (posed) -->
+    <g transform="rotate(${pose.rArm}, ${rShoulderCX}, ${shY})">
+      ${front ? `
+      <g class="body-part" data-muscle="biceps">
+        <rect x="${armRX}" y="125" width="${armMainW}" height="45" rx="10" fill="url(#skin)"/>
+      </g>
+      <g class="body-part" data-muscle="triceps" opacity="0.35">
+        <rect x="${armSecRX}" y="130" width="${armSecW}" height="38" rx="8" fill="${skinAccent}"/>
+      </g>` : `
+      <g class="body-part" data-muscle="triceps">
+        <rect x="${armRX}" y="125" width="${armMainW}" height="45" rx="10" fill="url(#skin)"/>
+      </g>
+      <g class="body-part" data-muscle="biceps" opacity="0.35">
+        <rect x="${armSecRX}" y="130" width="${armSecW}" height="38" rx="8" fill="${skinAccent}"/>
+      </g>`}
+      ${state.equippedCosmetics?.includes('arm_sleeve') ? `
+      <!-- Compression sleeve, bicep segment — lives in the UPPER arm's own rotate group
+           so it bends with the bicep, not the forearm, matching the wrist-side segment
+           at the elbow instead of tearing apart when the pose bends the elbow. -->
+      <rect x="${armRX-1}" y="125" width="${armMainW+2}" height="45" rx="8" fill="#0d1a2e"/>
+      <line x1="${armRX+3}" y1="130" x2="${armRX+3}" y2="166" stroke="#4488ff" stroke-width="1" opacity="0.6"/>
+      <line x1="${armRX+armMainW-3}" y1="130" x2="${armRX+armMainW-3}" y2="166" stroke="#4488ff" stroke-width="1" opacity="0.6"/>` : ''}
+      <g transform="rotate(${pose.rFore}, ${rElbowX}, ${elbowY})">
+        <rect x="${forearmRX}" y="170" width="${forearmW}" height="38" rx="7" fill="url(#skinDark)"/>
+        ${renderWristCosmeticSVG(forearmRX, forearmW, true)}
+        <circle cx="${handRX}" cy="212" r="7" fill="url(#skinDark)"/>
+      </g>
+    </g>
+    <!-- Shorts -->
+    <rect x="${shortsX}" y="200" width="${shortsW}" height="22" rx="6" fill="#1a1a2e"/>
+    <line x1="100" y1="200" x2="100" y2="222" stroke="#2a2a4e" stroke-width="1"/>
+    <!-- Neck -->
+    <rect x="93" y="105" width="14" height="10" rx="4" fill="url(#skinDark)"/>
+    <!-- Body cosmetics/armor painted BEFORE the head group, so neck items (chain, medal,
+         dog tags, towel — all rendered inside the head group for head-tracking) paint on
+         top of torso/waist armor instead of getting buried under it. -->
+    ${renderBodyCosmeticsSVG(front, forearmLX, forearmRX, forearmW, shortsX, shortsW, torsoX, torsoW, calfLX, calfRX, calfW)}
+    ${headHTML}
+    ${_chestTatSVG}${_backTatSVG}
+    </g>
+    ${pose.name !== 'Relaxed' ? `<text x="100" y="312" text-anchor="middle" font-size="9" fill="#9e7cff" font-family="Inter, sans-serif" opacity="0.7">${pose.name}</text>` : ''}
+  </svg>`;
+  fitAvatarViewBox(c);
+  renderPetCompanion();
+}
+
+// The 200×320 frame was sized for a starting character. A maxed-out avatar is wide
+// enough to run off both sides, and the tall end of the height slider pushes the head
+// past the top edge — both got cropped. Measuring what was actually drawn covers every
+// combination of muscle scale, pose and height without hand-maintained bounds, and only
+// ever grows the frame, so an ordinary character renders exactly as before.
+function fitAvatarViewBox(container) {
+  const svg = container.querySelector('svg');
+  if (!svg) return;
+  let box;
+  try { box = svg.getBBox(); } catch (e) { return; }
+  // Zero width means the element isn't laid out (inactive tab) — leave the default
+  // frame alone; whatever shows the avatar next re-renders it.
+  if (!box || !box.width || !box.height) return;
+  const PAD = 8;
+  const minX = Math.min(0, box.x - PAD);
+  const maxX = Math.max(200, box.x + box.width + PAD);
+  const minY = Math.min(0, box.y - PAD);
+  const maxY = Math.max(320, box.y + box.height + PAD);
+  svg.setAttribute('viewBox', `${minX.toFixed(1)} ${minY.toFixed(1)} ${(maxX - minX).toFixed(1)} ${(maxY - minY).toFixed(1)}`);
+}
+
+function renderPetCompanion() {
+  const wrapper = document.querySelector('.avatar-wrapper');
+  if (!wrapper) return;
+  let el = document.getElementById('pet-companion');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'pet-companion';
+    el.className = 'pet-companion-wrap';
+    wrapper.appendChild(el);
+  }
+  const pets = state.pets || {};
+  // Fish lives in its own tank in the Home Gym now — don't also float it beside the avatar.
+  const ownedIds = Object.keys(pets).filter(k => pets[k] && k !== 'fish');
+  if (!ownedIds.length) { el.innerHTML = ''; return; }
+  // A pet pinned in the character panel's Pet tab wins; otherwise cycle the owned ones.
+  const pinned = state.activePet && ownedIds.includes(state.activePet) ? state.activePet : null;
+  const pid = pinned || ownedIds[Math.floor(Date.now() / 8000) % ownedIds.length];
+  if (typeof GainsShop === 'undefined') return;
+  const icon = GainsShop._petIcon(pid, 54);
+  el.innerHTML = `<div class="pet-companion-bob">${icon}</div>`;
+}
+
+function renderHeadCosmeticsSVG(front) {
+  const equipped = state.equippedCosmetics || [];
+  const headArmor = _visibleArmorPiece('head');
+  if (!equipped.length && !headArmor) return '';
+  let svg = '';
+
+  if (front) {
+    if (equipped.includes('do_rag')) {
+      svg += `<path d="M77 82 Q76 52 100 50 Q124 52 123 82 Q116 64 100 62 Q84 64 77 82Z" fill="#111" opacity="0.93"/>`;
+    }
+    if (equipped.includes('sunglasses')) {
+      svg += `<rect x="82" y="72" width="16" height="11" rx="4" fill="#0d0d0d" stroke="#333" stroke-width="1"/>`;
+      svg += `<rect x="102" y="72" width="16" height="11" rx="4" fill="#0d0d0d" stroke="#333" stroke-width="1"/>`;
+      svg += `<line x1="98" y1="76" x2="102" y2="76" stroke="#333" stroke-width="2"/>`;
+      svg += `<ellipse cx="87" cy="75" rx="2" ry="1.3" fill="#4a90d9" opacity="0.5"/>`;
+      svg += `<ellipse cx="107" cy="75" rx="2" ry="1.3" fill="#4a90d9" opacity="0.5"/>`;
+    }
+    if (equipped.includes('dog_tags')) {
+      svg += `<path d="M92 105 Q100 112 108 105" stroke="#8a8a8a" stroke-width="1.3" fill="none"/>`;
+      svg += `<rect x="96" y="113" width="8" height="11" rx="1.5" fill="#c8c8c8" stroke="#8a8a8a" stroke-width="0.6"/>`;
+      svg += `<rect x="96" y="118" width="8" height="7" rx="1.5" fill="#b0b0b0" stroke="#8a8a8a" stroke-width="0.6"/>`;
+    }
+    if (equipped.includes('headband_red')) {
+      svg += `<rect x="78" y="64" width="44" height="6" rx="3" fill="#e53935"/>`;
+    }
+    if (equipped.includes('headband_blue')) {
+      svg += `<rect x="78" y="64" width="44" height="6" rx="3" fill="#1e88e5"/>`;
+    }
+    if (equipped.includes('headband_gold')) {
+      svg += `<rect x="78" y="64" width="44" height="6" rx="3" fill="#ffd700"/>`;
+    }
+    if (equipped.includes('laurel_wreath')) {
+      svg += `<ellipse cx="100" cy="59" rx="26" ry="8" fill="none" stroke="#5a8a1a" stroke-width="4" opacity="0.9"/>`;
+      svg += `<ellipse cx="100" cy="59" rx="26" ry="8" fill="none" stroke="#7bc82e" stroke-width="2"/>`;
+      svg += `<circle cx="100" cy="52" r="3" fill="#ffd700"/>`;
+    }
+    if (equipped.includes('iron_crown')) {
+      svg += `<polygon points="80,66 85,50 92,60 100,44 108,60 115,50 120,66" fill="#9e7cff" stroke="#6a3dcc" stroke-width="1"/>`;
+      svg += `<circle cx="100" cy="46" r="3" fill="#ffd700"/>`;
+      svg += `<circle cx="86" cy="52" r="2" fill="#ffd700"/>`;
+      svg += `<circle cx="114" cy="52" r="2" fill="#ffd700"/>`;
+    }
+    if (equipped.includes('crown')) {
+      svg += `<polygon points="85,60 90,48 95,56 100,44 105,56 110,48 115,60" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>`;
+    }
+    if (equipped.includes('gold_chain') || equipped.includes('legend_chain')) {
+      const cc = equipped.includes('legend_chain') ? '#c0c0ff' : '#ffd700';
+      svg += `<path d="M90 105 Q100 115 110 105" stroke="${cc}" stroke-width="1.5" fill="none"/>`;
+      svg += `<circle cx="100" cy="114" r="3" fill="${cc}"/>`;
+    }
+    if (equipped.includes('medal_bronze') || equipped.includes('medal_silver') || equipped.includes('medal_gold')) {
+      // Sits on the neck/upper chest, same depth as the gold chain above — not the chin.
+      const mc = equipped.includes('medal_gold') ? '#ffd700' : equipped.includes('medal_silver') ? '#dcdcdc' : '#cd7f32';
+      svg += `<path d="M91 106 L100 121 L109 106" stroke="#c0392b" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+      svg += `<circle cx="100" cy="126" r="7" fill="${mc}" stroke="#00000066" stroke-width="1"/>`;
+      svg += `<circle cx="100" cy="126" r="4" fill="${mc}" opacity="0.55"/>`;
+      svg += `<circle cx="98.5" cy="124" r="1.3" fill="#fff" opacity="0.6"/>`;
+    }
+    if (equipped.includes('raid_trophy')) {
+      svg += `<path d="M92 107 L92 116 Q92 122 100 122 Q108 122 108 116 L108 107 Z" fill="#ffd700" stroke="#c9a600" stroke-width="1"/>`;
+      svg += `<path d="M92 109 Q86 109 87 115 Q88 119 92 118" fill="none" stroke="#c9a600" stroke-width="1.3"/>`;
+      svg += `<path d="M108 109 Q114 109 113 115 Q112 119 108 118" fill="none" stroke="#c9a600" stroke-width="1.3"/>`;
+      svg += `<rect x="97" y="122" width="6" height="5" fill="#c9a600"/>`;
+      svg += `<rect x="93" y="127" width="14" height="3" rx="1" fill="#ffd700" stroke="#c9a600" stroke-width="0.6"/>`;
+    }
+    if (equipped.includes('gym_towel')) {
+      // Same neck socket as the chain/medal/trophy above (y~105-115) — shares the
+      // head-group, so it moves together with head tracking instead of sitting static.
+      svg += `<path d="M86 100 Q100 107 114 100 L114 106 Q100 113 86 106 Z" fill="#3d8b40"/>`;
+      svg += `<path d="M89 103 Q83 135 88 170 L98 170 Q95 135 97 103 Z" fill="#4caf50"/>`;
+      svg += `<path d="M111 103 Q117 135 112 170 L102 170 Q105 135 103 103 Z" fill="#43a047"/>`;
+      svg += `<line x1="92" y1="118" x2="92" y2="162" stroke="#2e7031" stroke-width="1" opacity="0.5"/>`;
+      svg += `<line x1="108" y1="118" x2="108" y2="162" stroke="#2e7031" stroke-width="1" opacity="0.5"/>`;
+      svg += `<rect x="87" y="158" width="11" height="5" rx="1" fill="#e8f5e9" opacity="0.85"/>`;
+      svg += `<rect x="102" y="158" width="11" height="5" rx="1" fill="#e8f5e9" opacity="0.85"/>`;
+    }
+    if (headArmor) {
+      const c = _armorColor(headArmor);
+      const theme = ARMOR_SETS[headArmor.setId].theme;
+      // All 5 helmets are sized to actually enclose the real head (the ellipse drawn
+      // just above this block is cx=100 cy=80 rx=24 ry=28, i.e. spans y52-108) — every
+      // shape below targets that same y52-108 span (plus a little extra above for
+      // crests/horns/spikes) instead of floating near the old, wrong y44-66 band that a
+      // small accessory like a headband sits at.
+      if (theme === 'roman') {
+        // Classic Greco-Roman helm: domed bronze skull, hinged cheek guards, a nose
+        // guard, and a tall horsehair crest arcing front-to-back like a mohawk.
+        svg += `<path d="M76 84 Q76 46 100 42 Q124 46 124 84 L124 92 Q100 100 76 92 Z" fill="${c.primary}" stroke="${c.accent}" stroke-width="2"/>`;
+        svg += `<path d="M76 68 Q68 74 70 88 L78 92 L78 70Z" fill="${c.primary}" stroke="${c.accent}" stroke-width="1.5"/>`;
+        svg += `<path d="M124 68 Q132 74 130 88 L122 92 L122 70Z" fill="${c.primary}" stroke="${c.accent}" stroke-width="1.5"/>`;
+        svg += `<rect x="97" y="74" width="6" height="18" rx="2" fill="${c.accent}"/>`;
+        svg += `<path d="M78 68 Q100 62 122 68" stroke="${c.accent}" stroke-width="1.5" fill="none" opacity="0.7"/>`;
+        svg += `<path d="M78 42 Q100 16 122 42 Q110 28 100 26 Q90 28 78 42Z" fill="#8a1414"/>`;
+        svg += `<path d="M82 40 Q100 20 118 40 Q108 28 100 27 Q92 28 82 40Z" fill="#c0392b"/>`;
+        svg += `<path d="M84 38 Q100 23 116 38 Q107 29 100 28 Q93 29 84 38Z" fill="#e05a4a"/>`;
+      } else if (theme === 'viking') {
+        svg += `<ellipse cx="100" cy="78" rx="27" ry="27" fill="${c.primary}" stroke="${c.accent}" stroke-width="2"/>`;
+        svg += `<path d="M76 66 Q65 44 72 30 Q81 48 83 66Z" fill="#e8e0d0" stroke="${c.accent}" stroke-width="1"/>`;
+        svg += `<path d="M124 66 Q135 44 128 30 Q119 48 117 66Z" fill="#e8e0d0" stroke="${c.accent}" stroke-width="1"/>`;
+      } else if (theme === 'ashen') {
+        // Full ninja hood — soft cloth wrap covering the whole head, fold lines instead
+        // of hard plate edges, just an eye-slit showing, with a trailing cloth tail.
+        svg += `<path d="M74 70 Q74 44 100 40 Q126 44 126 70 L126 100 Q100 110 74 100 Z" fill="${c.primary}" stroke="${c.accent}" stroke-width="1.5"/>`;
+        svg += `<path d="M76 58 Q100 51 124 58" stroke="${c.accent}" stroke-width="1" fill="none" opacity="0.55"/>`;
+        svg += `<path d="M75 78 Q100 71 125 78" stroke="${c.accent}" stroke-width="1" fill="none" opacity="0.55"/>`;
+        svg += `<path d="M77 94 Q100 87 123 94" stroke="${c.accent}" stroke-width="1" fill="none" opacity="0.55"/>`;
+        svg += `<rect x="80" y="70" width="40" height="9" rx="3" fill="#0a0806"/>`;
+        svg += `<ellipse cx="89" cy="74.5" rx="3" ry="3.2" fill="#ff5a3a" opacity="0.9"/>`;
+        svg += `<ellipse cx="111" cy="74.5" rx="3" ry="3.2" fill="#ff5a3a" opacity="0.9"/>`;
+        svg += `<path d="M124 76 Q140 82 136 102 Q132 90 122 86Z" fill="${c.primary}" stroke="${c.accent}" stroke-width="1"/>`;
+      } else if (theme === 'forest') {
+        svg += `<ellipse cx="100" cy="78" rx="26" ry="26" fill="${c.primary}" stroke="${c.accent}" stroke-width="2"/>`;
+        svg += `<path d="M84 58 Q79 40 87 29 Q86 46 90 58Z" fill="${c.accent}"/>`;
+        svg += `<path d="M116 58 Q121 40 113 29 Q114 46 110 58Z" fill="${c.accent}"/>`;
+        svg += `<path d="M75 74 Q100 82 125 74" stroke="${c.accent}" stroke-width="2" fill="none" opacity="0.75"/>`;
+      } else if (theme === 'knight') {
+        // A proper enclosed great helm — domed crown, brow ridge, narrow T-visor slit
+        // (not a plus sign), a small crest spike on top, and a flared jaw guard at the
+        // bottom, so it reads as a helmet instead of a flat disc.
+        svg += `<path d="M74 84 Q74 52 100 48 Q126 52 126 84 L126 94 Q100 102 74 94 Z" fill="${c.primary}" stroke="${c.accent}" stroke-width="2"/>`;
+        svg += `<rect x="74" y="74" width="52" height="6" rx="2" fill="${c.accent}"/>`;
+        svg += `<rect x="97" y="78" width="6" height="18" fill="#1a1410"/>`;
+        svg += `<rect x="83" y="83" width="34" height="4" fill="#1a1410"/>`;
+        svg += `<path d="M100 48 L100 38" stroke="${c.accent}" stroke-width="3" stroke-linecap="round"/>`;
+        svg += `<ellipse cx="100" cy="36" rx="3" ry="4" fill="${c.accent}"/>`;
+        svg += `<path d="M78 92 Q100 106 122 92 L122 98 Q100 110 78 98 Z" fill="${c.primary}" stroke="${c.accent}" stroke-width="1.5"/>`;
+      }
+    }
+  } else {
+    if (equipped.includes('do_rag')) {
+      svg += `<path d="M77 82 Q76 52 100 50 Q124 52 123 82 Q116 64 100 62 Q84 64 77 82Z" fill="#111" opacity="0.93"/>`;
+      svg += `<ellipse cx="100" cy="90" rx="7" ry="4" fill="#222"/>`;
+      svg += `<path d="M94 88 Q100 95 106 88" stroke="#444" stroke-width="2" fill="none"/>`;
+    }
+    if (equipped.includes('headband_red')) {
+      svg += `<rect x="80" y="64" width="40" height="6" rx="3" fill="#e53935"/>`;
+    }
+    if (equipped.includes('headband_blue')) {
+      svg += `<rect x="80" y="64" width="40" height="6" rx="3" fill="#1e88e5"/>`;
+    }
+    if (equipped.includes('headband_gold')) {
+      svg += `<rect x="80" y="64" width="40" height="6" rx="3" fill="#ffd700"/>`;
+    }
+    if (equipped.includes('laurel_wreath')) {
+      svg += `<ellipse cx="100" cy="59" rx="26" ry="8" fill="none" stroke="#5a8a1a" stroke-width="4" opacity="0.9"/>`;
+      svg += `<ellipse cx="100" cy="59" rx="26" ry="8" fill="none" stroke="#7bc82e" stroke-width="2"/>`;
+    }
+    if (equipped.includes('iron_crown')) {
+      svg += `<polygon points="80,66 85,50 92,60 100,44 108,60 115,50 120,66" fill="#9e7cff" stroke="#6a3dcc" stroke-width="1"/>`;
+    }
+    if (equipped.includes('crown')) {
+      svg += `<polygon points="85,60 90,48 95,56 100,44 105,56 110,48 115,60" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>`;
+    }
+    if (equipped.includes('gym_towel')) {
+      svg += `<path d="M86 100 Q100 107 114 100 L114 106 Q100 113 86 106 Z" fill="#3d8b40"/>`;
+      svg += `<path d="M89 103 Q83 135 88 170 L98 170 Q95 135 97 103 Z" fill="#4caf50"/>`;
+      svg += `<path d="M111 103 Q117 135 112 170 L102 170 Q105 135 103 103 Z" fill="#43a047"/>`;
+    }
+    if (headArmor) {
+      const c = _armorColor(headArmor);
+      svg += `<ellipse cx="100" cy="80" rx="26" ry="27" fill="${c.primary}" stroke="${c.accent}" stroke-width="2"/>`;
+    }
+  }
+
+  return svg;
+}
+
+function renderWristCosmeticSVG(fx, fw, isRight) {
+  const equipped = state.equippedCosmetics || [];
+  const wristArmor = _visibleArmorPiece('wrist');
+  if (!equipped.length && !wristArmor) return '';
+  let svg = '';
+  if (wristArmor) {
+    // Same anchor as every other wrist cosmetic (lifting_gloves/wraps) — this function
+    // runs inside each arm's own forearm rotate group, so this now actually follows the
+    // pose instead of sitting at a fixed world position like it did in the old spot.
+    const c = _armorColor(wristArmor);
+    svg += `<rect x="${fx-1}" y="168" width="${fw+2}" height="14" rx="3" fill="${c.primary}" stroke="${c.accent}" stroke-width="1.5"/>`;
+  }
+  if (isRight && equipped.includes('arm_sleeve')) {
+    // Single-arm sleeve, right side — moved off the left arm since that's where arm
+    // tattoos render, and stacking both looked cluttered. This is the FOREARM segment
+    // only — confined to the forearm rect's own bounds (y170-208), because this function
+    // runs inside the forearm's own rotate group. The bicep segment is drawn separately
+    // in the upper-arm group in renderAvatar() so each half bends correctly with its own
+    // joint instead of one rigid shape tearing at the elbow when the pose rotates it.
+    svg += `<rect x="${fx-1}" y="170" width="${fw+2}" height="38" rx="6" fill="#0d1a2e"/>`;
+    svg += `<line x1="${fx+2}" y1="174" x2="${fx+2}" y2="204" stroke="#4488ff" stroke-width="1" opacity="0.6"/>`;
+    svg += `<line x1="${fx+fw-2}" y1="174" x2="${fx+fw-2}" y2="204" stroke="#4488ff" stroke-width="1" opacity="0.6"/>`;
+  }
+  if (equipped.includes('lifting_gloves')) {
+    svg += `<rect x="${fx}" y="170" width="${fw}" height="12" rx="4" fill="#6d4c2a"/>`;
+    svg += `<rect x="${fx+1}" y="175" width="${fw-2}" height="5" rx="2" fill="#4a3018" opacity="0.55"/>`;
+  }
+  if (equipped.includes('wrist_wraps')) {
+    svg += `<rect x="${fx}" y="168" width="${fw}" height="8" rx="3" fill="#e0e0e0"/>`;
+  }
+  if (equipped.includes('wrist_wraps_red')) {
+    svg += `<rect x="${fx}" y="168" width="${fw}" height="8" rx="3" fill="#e53935"/>`;
+  }
+  if (equipped.includes('sweatbands')) {
+    svg += `<rect x="${fx}" y="168" width="${fw}" height="8" rx="3" fill="#42a5f5"/>`;
+    svg += `<line x1="${fx+2}" y1="172" x2="${fx+fw-2}" y2="172" stroke="#1e88e5" stroke-width="0.8"/>`;
+  }
+  return svg;
+}
+
+function renderBodyCosmeticsSVG(front, fLX, fRX, fW, shortsX, shortsW, torsoX, torsoW, calfLX, calfRX, calfW) {
+  const equipped = state.equippedCosmetics || [];
+  const hasAnyArmor = ARMOR_SLOTS.some(s => _visibleArmorPiece(s));
+  if (!equipped.length && !hasAnyArmor) return '';
+  let svg = '';
+
+  // ── Mankini (full body). The waistband piece is opaque and sized to fully cover the
+  // character's default shorts (drawn underneath at shortsX/y=200-222), so it replaces
+  // them instead of layering over a thin sliver of them. Front = sling + pouch; back = thong. ──
+  if (equipped.includes('borat_suit')) {
+    // Waistband — opaque, spans/exceeds the default shorts region to fully hide them
+    svg += `<rect x="${shortsX-2}" y="196" width="${shortsW+4}" height="28" rx="10" fill="#00c853"/>`;
+    // Shoulder straps, visible from both front and back since they run over the shoulders
+    svg += `<line x1="86" y1="112" x2="92" y2="198" stroke="#00c853" stroke-width="6" stroke-linecap="round"/>`;
+    svg += `<line x1="114" y1="112" x2="108" y2="198" stroke="#00c853" stroke-width="6" stroke-linecap="round"/>`;
+    if (front) {
+      // Front modesty pouch + high-cut string sides
+      svg += `<path d="M92 200 L100 222 L108 200 Z" fill="#00b34a"/>`;
+      svg += `<line x1="${shortsX+3}" y1="200" x2="${shortsX+3}" y2="215" stroke="#00c853" stroke-width="3" opacity="0.85"/>`;
+      svg += `<line x1="${shortsX+shortsW-3}" y1="200" x2="${shortsX+shortsW-3}" y2="215" stroke="#00c853" stroke-width="3" opacity="0.85"/>`;
+    } else {
+      // Back — thong strap only, no coverage (tasteful: a slender line, nothing graphic)
+      svg += `<line x1="100" y1="200" x2="100" y2="222" stroke="#00c853" stroke-width="4" stroke-linecap="round"/>`;
+    }
+  }
+
+  // ── Tops ──
+  if (equipped.includes('tank_top') && front) {
+    // High-contrast red tank with white trim + straps, so it actually reads as a
+    // garment on the character instead of blending into the dark background.
+    svg += `<rect x="${torsoX+2}" y="110" width="${torsoW-4}" height="48" rx="8" fill="#d32f2f"/>`;
+    svg += `<rect x="${torsoX+2}" y="110" width="${torsoW-4}" height="5" rx="2" fill="#fff" opacity="0.9"/>`;
+    svg += `<path d="M${torsoX+10} 112 Q${100-6} 106 ${100} 112 Q${100+6} 106 ${torsoX+torsoW-10} 112" fill="none" stroke="#fff" stroke-width="2.5" opacity="0.9"/>`;
+    svg += `<line x1="${torsoX+8}" y1="155" x2="${torsoX+torsoW-8}" y2="155" stroke="#fff" stroke-width="1.5" opacity="0.5"/>`;
+  }
+  if (equipped.includes('stringer') && front) {
+    svg += `<path d="M${torsoX+8} 110 L${100-6} 108 L${100-6} 156 L${torsoX+4} 156 Z" fill="#1a1a3e" opacity="0.8"/>`;
+    svg += `<path d="M${torsoX+torsoW-8} 110 L${100+6} 108 L${100+6} 156 L${torsoX+torsoW-4} 156 Z" fill="#1a1a3e" opacity="0.8"/>`;
+  }
+  if (equipped.includes('forged_tank') && front) {
+    svg += `<rect x="${torsoX+2}" y="110" width="${torsoW-4}" height="48" rx="8" fill="#1a1a2e" opacity="0.92"/>`;
+    svg += `<rect x="${torsoX+10}" y="108" width="${torsoW-20}" height="4" rx="2" fill="#1a1a2e"/>`;
+    svg += `<line x1="${torsoX+4}" y1="155" x2="${torsoX+torsoW-4}" y2="155" stroke="#7c4dff" stroke-width="1.5" opacity="0.85"/>`;
+  }
+
+  // ── Bottoms ──
+  if (equipped.includes('forged_joggers')) {
+    svg += `<rect x="${shortsX}" y="195" width="${shortsW}" height="115" rx="8" fill="#0d1117" opacity="0.9"/>`;
+    svg += `<line x1="${shortsX+5}" y1="200" x2="${shortsX+5}" y2="308" stroke="#9e7cff" stroke-width="1.5" opacity="0.7"/>`;
+    svg += `<line x1="${shortsX+shortsW-5}" y1="200" x2="${shortsX+shortsW-5}" y2="308" stroke="#9e7cff" stroke-width="1.5" opacity="0.7"/>`;
+  }
+  if (equipped.includes('compression_set')) {
+    svg += `<rect x="${shortsX}" y="195" width="${shortsW}" height="115" rx="8" fill="#0d1a2e" opacity="0.8"/>`;
+    svg += `<line x1="${shortsX+8}" y1="200" x2="${shortsX+8}" y2="308" stroke="#4488ff" stroke-width="1" opacity="0.4"/>`;
+    svg += `<line x1="${shortsX+shortsW-8}" y1="200" x2="${shortsX+shortsW-8}" y2="308" stroke="#4488ff" stroke-width="1" opacity="0.4"/>`;
+  }
+
+  // ── Belt / knees ──
+  if (equipped.includes('lifting_belt')) {
+    svg += `<rect x="${shortsX-1}" y="197" width="${shortsW+2}" height="8" rx="2" fill="#5d4037" stroke="#3e2723" stroke-width="0.5"/>`;
+    svg += `<rect x="97" y="198" width="6" height="6" rx="1" fill="#ffd700" opacity="0.8"/>`;
+  }
+  if (equipped.includes('knee_sleeves')) {
+    const klx = shortsX + 4;
+    const krx = shortsX + shortsW - 4 - 16;
+    svg += `<rect x="${klx}" y="220" width="16" height="16" rx="4" fill="#333" opacity="0.7"/>`;
+    svg += `<rect x="${krx}" y="220" width="16" height="16" rx="4" fill="#333" opacity="0.7"/>`;
+  }
+
+  // ── Feet ──
+  if (equipped.includes('flip_flops') && calfLX != null) {
+    const lCX = calfLX + (calfW || 18) / 2;
+    const rCX = calfRX + (calfW || 18) / 2;
+    const rx = Math.max((calfW || 18) / 2 + 4, 12);
+    svg += `<ellipse cx="${lCX}" cy="310" rx="${rx}" ry="4" fill="#0288d1"/>`;
+    svg += `<ellipse cx="${rCX}" cy="310" rx="${rx}" ry="4" fill="#0288d1"/>`;
+    svg += `<line x1="${lCX}" y1="306" x2="${lCX}" y2="310" stroke="#b3e5fc" stroke-width="2" stroke-linecap="round"/>`;
+    svg += `<line x1="${rCX}" y1="306" x2="${rCX}" y2="310" stroke="#b3e5fc" stroke-width="2" stroke-linecap="round"/>`;
+  }
+
+  // ── Champion's Cape — full flowing shape from the back, just the collar/edges peeking
+  // past the shoulders from the front so it doesn't look like it's floating in front of you.
+  if (equipped.includes('champ_cape')) {
+    if (front) {
+      svg += `<path d="M78 100 Q74 108 76 118" stroke="#7c1520" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.9"/>`;
+      svg += `<path d="M122 100 Q126 108 124 118" stroke="#7c1520" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.9"/>`;
+    } else {
+      svg += `<path d="M76 98 Q60 160 68 230 Q100 245 132 230 Q140 160 124 98 Q100 108 76 98Z" fill="#7c1520"/>`;
+      svg += `<path d="M76 98 Q60 160 68 230 Q100 245 132 230 Q140 160 124 98 Q100 108 76 98Z" fill="none" stroke="#ffd700" stroke-width="2" opacity="0.85"/>`;
+      svg += `<path d="M84 110 Q80 165 86 220" stroke="#5a0f18" stroke-width="1.5" fill="none" opacity="0.5"/>`;
+      svg += `<path d="M116 110 Q120 165 114 220" stroke="#5a0f18" stroke-width="1.5" fill="none" opacity="0.5"/>`;
+      svg += `<circle cx="100" cy="102" r="4" fill="#ffd700"/>`;
+    }
+  }
+
+  // ── Footwear ──
+  // All four share one ground line and straddle each calf, so the layout math lives
+  // here once instead of being repeated per shoe.
+  const feetCX = (calfLX != null) ? [calfLX + (calfW || 18) / 2, calfRX + (calfW || 18) / 2] : null;
+  const footW = Math.max((calfW || 18) + 8, 20);
+
+  if (equipped.includes('sneakers') && feetCX) feetCX.forEach(cx => {
+    svg += `<rect x="${cx - footW / 2}" y="296" width="${footW}" height="10" rx="4" fill="#fafafa" stroke="#dcdcdc" stroke-width="0.8"/>`;
+    svg += `<rect x="${cx - footW / 2}" y="304" width="${footW}" height="6" rx="3" fill="#e53935"/>`;
+    svg += `<path d="M${cx - footW / 2 + 2} 300 Q${cx} 305 ${cx + footW / 2 - 2} 299" stroke="#1e88e5" stroke-width="2" fill="none"/>`;
+  });
+  if (equipped.includes('lifting_shoes') && feetCX) feetCX.forEach(cx => {
+    svg += `<rect x="${cx - footW / 2 + 2}" y="289" width="${footW - 4}" height="5" rx="2" fill="#ffb300"/>`;
+    svg += `<rect x="${cx - footW / 2}" y="293" width="${footW}" height="11" rx="3" fill="#212121" stroke="#424242" stroke-width="0.8"/>`;
+    svg += `<rect x="${cx - footW / 2}" y="302" width="${footW}" height="8" rx="2" fill="#ffb300"/>`;
+  });
+  if (equipped.includes('slides_recovery') && feetCX) feetCX.forEach(cx => {
+    svg += `<rect x="${cx - footW / 2}" y="298" width="${footW}" height="12" rx="6" fill="#eceff1" stroke="#cfd8dc" stroke-width="0.8"/>`;
+    svg += `<path d="M${cx - footW / 2 + 3} 301 Q${cx} 294 ${cx + footW / 2 - 3} 301" stroke="#b0bec5" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  });
+  if (equipped.includes('hightops') && feetCX) feetCX.forEach(cx => {
+    svg += `<rect x="${cx - footW / 2}" y="284" width="${footW}" height="22" rx="5" fill="#ff7043" stroke="#e64a19" stroke-width="0.8"/>`;
+    svg += `<rect x="${cx - footW / 2}" y="304" width="${footW}" height="6" rx="3" fill="#fafafa"/>`;
+    for (let i = 0; i < 3; i++) svg += `<line x1="${cx - footW / 2 + 3}" y1="${289 + i * 5}" x2="${cx + footW / 2 - 3}" y2="${289 + i * 5}" stroke="#fff" stroke-width="1.2" opacity="0.75"/>`;
+  });
+
+  // ── Waist ──
+  if (equipped.includes('champ_belt')) {
+    svg += `<rect x="${shortsX - 3}" y="194" width="${shortsW + 6}" height="14" rx="3" fill="#2b1a0e" stroke="#120b05" stroke-width="0.8"/>`;
+    svg += `<circle cx="${shortsX + 3}" cy="201" r="3.5" fill="#ffd700" opacity="0.9"/>`;
+    svg += `<circle cx="${shortsX + shortsW - 3}" cy="201" r="3.5" fill="#ffd700" opacity="0.9"/>`;
+    svg += `<ellipse cx="100" cy="201" rx="14" ry="10" fill="#ffd700" stroke="#c9a227" stroke-width="1.5"/>`;
+    svg += `<ellipse cx="100" cy="201" rx="8" ry="5.5" fill="none" stroke="#c9a227" stroke-width="1"/>`;
+  }
+  if (equipped.includes('chalk_bag')) {
+    const bx = shortsX + shortsW - 1;
+    svg += `<rect x="${shortsX - 1}" y="198" width="${shortsW + 2}" height="5" rx="2" fill="#5d4037"/>`;
+    svg += `<rect x="${bx}" y="200" width="14" height="16" rx="5" fill="#8d6e63" stroke="#5d4037" stroke-width="1"/>`;
+    svg += `<ellipse cx="${bx + 7}" cy="201" rx="7" ry="2.5" fill="#efebe9"/>`;
+  }
+  if (equipped.includes('fanny_pack')) {
+    svg += `<rect x="${shortsX - 2}" y="195" width="${shortsW + 4}" height="4" rx="2" fill="#37474f"/>`;
+    svg += `<rect x="${shortsX + shortsW * 0.18}" y="197" width="${shortsW * 0.64}" height="14" rx="5" fill="#7c4dff" stroke="#5e35b1" stroke-width="1"/>`;
+    svg += `<line x1="${shortsX + shortsW * 0.18 + 3}" y1="204" x2="${shortsX + shortsW * 0.82 - 3}" y2="204" stroke="#d1c4e9" stroke-width="1.2" opacity="0.9"/>`;
+  }
+
+  // ── Back / accessory ──
+  if (equipped.includes('forged_bag')) {
+    svg += `<path d="M${torsoX + 6} 106 L${torsoX + torsoW - 4} 168" stroke="#1a1a2e" stroke-width="7" stroke-linecap="round"/>`;
+    svg += `<path d="M${torsoX + 6} 106 L${torsoX + torsoW - 4} 168" stroke="#7c4dff" stroke-width="1.4" stroke-linecap="round" opacity="0.8"/>`;
+    if (!front) {
+      svg += `<rect x="${torsoX + torsoW - 18}" y="162" width="34" height="18" rx="6" fill="#1a1a2e" stroke="#7c4dff" stroke-width="1.2"/>`;
+      svg += `<line x1="${torsoX + torsoW - 14}" y1="171" x2="${torsoX + torsoW + 12}" y2="171" stroke="#7c4dff" stroke-width="1" opacity="0.7"/>`;
+    }
+  }
+  if (equipped.includes('forged_shaker')) {
+    const sx = Math.max(shortsX - 16, 4);
+    svg += `<rect x="${sx}" y="196" width="12" height="24" rx="3" fill="#7c4dff" stroke="#5e35b1" stroke-width="1"/>`;
+    svg += `<rect x="${sx + 1.5}" y="191" width="9" height="6" rx="2" fill="#f5f5f5"/>`;
+    svg += `<line x1="${sx + 2}" y1="207" x2="${sx + 10}" y2="207" stroke="#fff" stroke-width="1" opacity="0.55"/>`;
+  }
+  // Boombox rides the right shoulder, so it reads from the front and the back.
+  if (equipped.includes('boombox')) {
+    const bx = Math.min(torsoX + torsoW - 4, 162), by = 84;
+    svg += `<path d="M${bx + 2} ${by} Q${bx + 17} ${by - 13} ${bx + 32} ${by}" stroke="#263238" stroke-width="3" fill="none"/>`;
+    svg += `<rect x="${bx}" y="${by}" width="34" height="20" rx="3" fill="#37474f" stroke="#90a4ae" stroke-width="1"/>`;
+    svg += `<circle cx="${bx + 9}" cy="${by + 10}" r="6" fill="#263238" stroke="#90a4ae" stroke-width="1"/>`;
+    svg += `<circle cx="${bx + 25}" cy="${by + 10}" r="6" fill="#263238" stroke="#90a4ae" stroke-width="1"/>`;
+    svg += `<rect x="${bx + 15}" y="${by + 4}" width="4" height="6" rx="1" fill="#ffca28"/>`;
+    svg += `<text x="${bx + 6}" y="${by - 8}" font-size="9" fill="#9e7cff" opacity="0.85" font-family="Inter, sans-serif">♪</text>`;
+  }
+
+  // ── Full-body outfits ──
+  // Drawn over the torso AND legs, and sized to cover the default shorts the same way
+  // the Mankini does, so they replace the base outfit instead of layering on a sliver.
+  if (equipped.includes('onesie')) {
+    const c = '#43a047', belly = '#c5e1a5', dark = '#2e7d32';
+    svg += `<rect x="${shortsX}" y="192" width="${shortsW}" height="118" rx="10" fill="${c}"/>`;
+    svg += `<rect x="${torsoX}" y="104" width="${torsoW}" height="94" rx="12" fill="${c}"/>`;
+    if (front) {
+      svg += `<ellipse cx="100" cy="152" rx="${Math.max(torsoW * 0.28, 10)}" ry="28" fill="${belly}" opacity="0.9"/>`;
+      svg += `<line x1="100" y1="196" x2="100" y2="308" stroke="${dark}" stroke-width="1.5" opacity="0.55"/>`;
+    } else {
+      for (let i = 0; i < 5; i++) svg += `<path d="M96 ${114 + i * 18} L100 ${105 + i * 18} L104 ${114 + i * 18} Z" fill="${dark}"/>`;
+      svg += `<path d="M${shortsX + shortsW} 248 Q${shortsX + shortsW + 22} 256 ${shortsX + shortsW + 13} 281 Q${shortsX + shortsW + 7} 266 ${shortsX + shortsW} 262 Z" fill="${c}" stroke="${dark}" stroke-width="1"/>`;
+    }
+  }
+  if (equipped.includes('toga')) {
+    const cloth = '#f5f0e1', shade = '#d8d0bb', trim = '#c9a227';
+    svg += `<rect x="${shortsX - 2}" y="186" width="${shortsW + 4}" height="78" rx="9" fill="${cloth}"/>`;
+    svg += `<rect x="${torsoX}" y="104" width="${torsoW}" height="88" rx="9" fill="${cloth}"/>`;
+    if (front) {
+      svg += `<path d="M${torsoX} 104 L${torsoX + torsoW} 104 L${torsoX + torsoW} 120 L${torsoX + 6} 152 Z" fill="${shade}" opacity="0.5"/>`;
+      svg += `<path d="M${torsoX + torsoW - 4} 100 Q${torsoX + torsoW + 5} 122 ${torsoX + torsoW - 11} 152" stroke="${shade}" stroke-width="3" fill="none"/>`;
+    } else {
+      svg += `<path d="M${torsoX + 4} 106 Q100 132 ${torsoX + torsoW - 4} 106" stroke="${shade}" stroke-width="3" fill="none" opacity="0.6"/>`;
+    }
+    svg += `<rect x="${torsoX}" y="186" width="${torsoW}" height="4" fill="${trim}" opacity="0.85"/>`;
+    svg += `<rect x="${shortsX - 2}" y="257" width="${shortsW + 4}" height="5" fill="${trim}" opacity="0.9"/>`;
+  }
+  if (equipped.includes('singlet')) {
+    const c = '#c62828', tr = '#ffffff';
+    svg += `<rect x="${shortsX}" y="192" width="${shortsW}" height="44" rx="8" fill="${c}"/>`;
+    svg += `<rect x="${torsoX + 3}" y="112" width="${torsoW - 6}" height="86" rx="8" fill="${c}"/>`;
+    svg += `<line x1="${torsoX + 8}" y1="112" x2="${torsoX + 8}" y2="196" stroke="${tr}" stroke-width="2" opacity="0.7"/>`;
+    svg += `<line x1="${torsoX + torsoW - 8}" y1="112" x2="${torsoX + torsoW - 8}" y2="196" stroke="${tr}" stroke-width="2" opacity="0.7"/>`;
+    if (front) svg += `<line x1="${torsoX + 4}" y1="196" x2="${torsoX + torsoW - 4}" y2="196" stroke="${tr}" stroke-width="2" opacity="0.85"/>`;
+  }
+  if (equipped.includes('sauna_suit')) {
+    const c = '#b0bec5', hl = '#eceff1', dk = '#78909c';
+    svg += `<rect x="${shortsX - 1}" y="190" width="${shortsW + 2}" height="120" rx="10" fill="${c}"/>`;
+    svg += `<rect x="${torsoX - 1}" y="102" width="${torsoW + 2}" height="96" rx="10" fill="${c}"/>`;
+    for (let i = 0; i < 4; i++) svg += `<path d="M${torsoX + 3} ${120 + i * 18} Q100 ${114 + i * 18} ${torsoX + torsoW - 3} ${120 + i * 18}" stroke="${hl}" stroke-width="1.2" fill="none" opacity="0.55"/>`;
+    for (let i = 0; i < 4; i++) svg += `<path d="M${shortsX + 2} ${212 + i * 24} Q100 ${206 + i * 24} ${shortsX + shortsW - 2} ${212 + i * 24}" stroke="${hl}" stroke-width="1.2" fill="none" opacity="0.45"/>`;
+    svg += `<line x1="100" y1="196" x2="100" y2="308" stroke="${dk}" stroke-width="1" opacity="0.45"/>`;
+  }
+
+  // ── Raid armor — torso gets a per-theme silhouette, the rest are recolored bands.
+  // Simplified relative to the helmet detail above (scope cut, not a bug): the goal was
+  // "distinct sets you can tell apart," not five bespoke sprites per set. ──
+  const torsoArmor = _visibleArmorPiece('torso');
+  if (torsoArmor) {
+    const c = _armorColor(torsoArmor);
+    const theme = ARMOR_SETS[torsoArmor.setId].theme;
+    if (theme === 'roman') {
+      svg += `<rect x="${torsoX}" y="100" width="${torsoW}" height="60" rx="8" fill="${c.primary}" stroke="${c.accent}" stroke-width="2"/>`;
+      svg += `<path d="M${torsoX+torsoW*0.3} 112 Q${torsoX+torsoW/2} 102 ${torsoX+torsoW*0.7} 112" stroke="${c.accent}" stroke-width="2" fill="none"/>`;
+      svg += `<line x1="${torsoX+torsoW/2}" y1="106" x2="${torsoX+torsoW/2}" y2="155" stroke="${c.accent}" stroke-width="2"/>`;
+    } else if (theme === 'viking') {
+      svg += `<rect x="${torsoX}" y="100" width="${torsoW}" height="60" rx="8" fill="${c.primary}" stroke="${c.accent}" stroke-width="2"/>`;
+      svg += `<ellipse cx="${torsoX-6}" cy="105" rx="14" ry="10" fill="#e8e0d0" stroke="${c.accent}" stroke-width="1"/>`;
+      svg += `<ellipse cx="${torsoX+torsoW+6}" cy="105" rx="14" ry="10" fill="#e8e0d0" stroke="${c.accent}" stroke-width="1"/>`;
+      svg += `<path d="M${torsoX-10} 100 L${torsoX-16} 88" stroke="${c.accent}" stroke-width="4" stroke-linecap="round"/>`;
+      svg += `<path d="M${torsoX+torsoW+10} 100 L${torsoX+torsoW+16} 88" stroke="${c.accent}" stroke-width="4" stroke-linecap="round"/>`;
+    } else if (theme === 'ashen') {
+      // Wrapped cloth ninja gi — soft rounded silhouette, fold lines instead of hard
+      // plate edges, and a diagonal sash instead of a seam.
+      svg += `<rect x="${torsoX}" y="100" width="${torsoW}" height="60" rx="14" fill="${c.primary}" stroke="${c.accent}" stroke-width="1.5"/>`;
+      svg += `<path d="M${torsoX+4} 110 Q${torsoX+torsoW/2} 103 ${torsoX+torsoW-4} 110" stroke="${c.accent}" stroke-width="1" fill="none" opacity="0.5"/>`;
+      svg += `<path d="M${torsoX+4} 130 Q${torsoX+torsoW/2} 123 ${torsoX+torsoW-4} 130" stroke="${c.accent}" stroke-width="1" fill="none" opacity="0.5"/>`;
+      svg += `<path d="M${torsoX+4} 150 Q${torsoX+torsoW/2} 144 ${torsoX+torsoW-4} 150" stroke="${c.accent}" stroke-width="1" fill="none" opacity="0.5"/>`;
+      svg += `<path d="M${torsoX} 106 L${torsoX+torsoW} 150" stroke="#ff5a3a" stroke-width="4" opacity="0.85"/>`;
+    } else if (theme === 'forest') {
+      svg += `<rect x="${torsoX}" y="100" width="${torsoW}" height="60" rx="10" fill="${c.primary}" stroke="${c.accent}" stroke-width="2"/>`;
+      svg += `<path d="M${torsoX+6} 110 Q${torsoX+torsoW/2} 100 ${torsoX+torsoW-6} 110" stroke="${c.accent}" stroke-width="2" fill="none" opacity="0.75"/>`;
+      svg += `<ellipse cx="${torsoX+torsoW*0.3}" cy="130" rx="4" ry="3" fill="${c.accent}" opacity="0.7"/>`;
+      svg += `<ellipse cx="${torsoX+torsoW*0.7}" cy="145" rx="4" ry="3" fill="${c.accent}" opacity="0.7"/>`;
+    } else if (theme === 'knight') {
+      // Comically over-defined "contour fitted" plate, per the brief
+      svg += `<rect x="${torsoX-4}" y="98" width="${torsoW+8}" height="64" rx="10" fill="${c.primary}" stroke="${c.accent}" stroke-width="2.5"/>`;
+      svg += `<ellipse cx="${torsoX+torsoW*0.3}" cy="112" rx="10" ry="8" fill="${c.accent}" opacity="0.15"/>`;
+      svg += `<ellipse cx="${torsoX+torsoW*0.7}" cy="112" rx="10" ry="8" fill="${c.accent}" opacity="0.15"/>`;
+      svg += `<line x1="${torsoX+torsoW*0.5}" y1="122" x2="${torsoX+torsoW*0.5}" y2="158" stroke="${c.accent}" stroke-width="2"/>`;
+      for (let i = 0; i < 3; i++) svg += `<path d="M${torsoX+8} ${132+i*10} Q${torsoX+torsoW/2} ${126+i*10} ${torsoX+torsoW-8} ${132+i*10}" stroke="${c.accent}" stroke-width="1.5" fill="none" opacity="0.6"/>`;
+    }
+  }
+  const waistArmor = _visibleArmorPiece('waist');
+  if (waistArmor) {
+    const c = _armorColor(waistArmor);
+    svg += `<rect x="${shortsX-2}" y="196" width="${shortsW+4}" height="10" rx="2" fill="${c.primary}" stroke="${c.accent}" stroke-width="1.5"/>`;
+  }
+  const legsArmor = _visibleArmorPiece('legs');
+  if (legsArmor && calfLX != null) {
+    const c = _armorColor(legsArmor);
+    const cw = (calfW || 18) + 4;
+    svg += `<rect x="${calfLX-2}" y="270" width="${cw}" height="36" rx="4" fill="${c.primary}" stroke="${c.accent}" stroke-width="1.5"/>`;
+    svg += `<rect x="${calfRX-2}" y="270" width="${cw}" height="36" rx="4" fill="${c.primary}" stroke="${c.accent}" stroke-width="1.5"/>`;
+  }
+
+  return svg;
+}
+
+function formatSets(e) {
+  if (Array.isArray(e.sets)) {
+    return e.sets.map((s, i) => `${s.weight}×${s.reps}`).join(', ');
+  }
+  if (e.weight > 0) return `${e.weight}lbs × ${e.reps} × ${e.sets}`;
+  return '';
+}
+
+function renderTodayLog() {
+  const container = document.getElementById('today-log');
+  const today = todayStr();
+  const todayEntries = state.workoutLog.filter(e => e.date === today);
+  if (!todayEntries.length) { container.innerHTML = ''; return; }
+  container.innerHTML = todayEntries.map(e => `
+    <div class="log-entry">
+      <div>
+        <div class="log-exercise">${e.exercise}</div>
+        <div class="log-details">${formatSets(e)}${e.duration > 0 ? ` ${e.duration}min` : ''}</div>
+      </div>
+      <div class="log-xp">+${e.xp} XP</div>
+    </div>`).join('');
+}
+
+let _dailyQuestWasDone = null; // null = not yet observed this session, so the first render never "just completed" it
+function renderDailyQuest() {
+  ensureDaily();
+  const dp = state.dailyProgress;
+  const q = DAILY_QUESTS[0];
+  const prog = dp.groups.length;
+  const done = prog >= q.target;
+  document.getElementById('daily-quest-progress').textContent = `${prog}/${q.target}`;
+  const checkEl = document.getElementById('daily-quest-check');
+  checkEl.innerHTML = done ? '<i class="ti ti-square-check"></i>' : '<i class="ti ti-square"></i>';
+  if (_dailyQuestWasDone === false && done) {
+    checkEl.classList.remove('quest-pop');
+    void checkEl.offsetWidth;
+    checkEl.classList.add('quest-pop');
+    toast('✅ Daily Quest complete!', 'success');
+  }
+  _dailyQuestWasDone = done;
+
+  const today = todayStr();
+  document.getElementById('workout-count').textContent = state.workoutLog.filter(e => e.date === today).length;
+}
+
+function renderRaidProgress() {
+  const challenge = getWeeklyChallenge();
+  const dmg = state.weeklyChallengeDamage || 0;
+  const pct = Math.min(100, (dmg / challenge.hp) * 100);
+  const beaten = pct >= 100;
+  document.getElementById('raid-boss-name').textContent = `${challenge.icon} ${challenge.name}`;
+  document.getElementById('raid-percent').textContent = beaten ? '✓ DEFEATED' : `${Math.floor(pct)}%`;
+  document.getElementById('raid-bar-fill').style.width = `${pct}%`;
+  document.getElementById('raid-damage').textContent = `${dmg.toLocaleString()} / ${challenge.hp.toLocaleString()}`;
+}
+
+function renderAchievementsPreview() {
+  const container = document.getElementById('achievements-preview');
+  container.innerHTML = ACHIEVEMENTS.slice(0, 6).map(a => {
+    const unlocked = state.achievements.includes(a.id);
+    const count = a.repeatable ? (a.count?.(state) || 0) : 0;
+    return `<div class="achievement-badge ${unlocked ? 'unlocked' : 'locked'}" title="${a.desc}" style="position:relative">
+      ${count > 1 ? `<span class="badge-count" style="position:absolute;top:2px;right:2px;background:#7c4dff;color:#fff;font-size:9px;font-weight:700;border-radius:9px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px">×${count}</span>` : ''}
+      <span class="badge-icon">${a.icon}</span>
+      <span>${a.name}</span>
+      <span class="badge-req">${unlocked ? 'Unlocked' : a.desc}</span>
+    </div>`;
+  }).join('');
+}
+
+function populateMuscleGroupSelect() {
+  const sel = document.getElementById('split-select');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = `<option value="">Choose split or muscle…</option>`;
+
+  const splits = state.customSplits || [];
+  if (splits.length) {
+    const og = document.createElement('optgroup');
+    og.label = 'My Splits';
+    splits.forEach(sp => {
+      const opt = document.createElement('option');
+      opt.value = `split:${sp.id}`;
+      opt.textContent = sp.name;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  }
+
+  const og2 = document.createElement('optgroup');
+  og2.label = 'Quick Pick — Muscle';
+  ['chest','back','biceps','triceps','shoulders','quads','hamstrings','glutes','calves','abs','cardio'].forEach(key => {
+    const opt = document.createElement('option');
+    opt.value = `muscle:${key}`;
+    opt.textContent = MUSCLES[key]?.name || key;
+    og2.appendChild(opt);
+  });
+  sel.appendChild(og2);
+
+  if (prev) sel.value = prev;
+  if (state.activeSplitId && !prev) sel.value = `split:${state.activeSplitId}`;
+  // Selecting a value via JS doesn't fire onchange — render its chips now so the split isn't blank
+  if (sel.value) onSplitChange();
+}
+
+function onMuscleGroupChange() {}
+
+function onSplitGroupChange() { onSplitChange(); }
+
+// Auto-advance a split's active day once per calendar day, so "Today's Split" actually
+// tracks today rather than staying wherever the user last manually left it.
+function _autoAdvanceSplitDay(splitId, split) {
+  if (!state.splitLastAutoDate) state.splitLastAutoDate = {};
+  const today = todayStr();
+  const last = state.splitLastAutoDate[splitId];
+  if (last === today) return;
+  if (last) {
+    const daysElapsed = Math.max(1, Math.round((new Date(today) - new Date(last)) / 86400000));
+    const cur = state.splitDayIndices[splitId] ?? 0;
+    state.splitDayIndices[splitId] = (cur + daysElapsed) % split.days.length;
+  }
+  state.splitLastAutoDate[splitId] = today;
+}
+
+function onSplitChange() {
+  const sel = document.getElementById('split-select');
+  const chipsWrapper = document.getElementById('split-exercise-chips');
+  const chipsList = document.getElementById('split-chips-list');
+  const val = sel?.value || '';
+
+  if (!val) { if (chipsWrapper) chipsWrapper.style.display = 'none'; return; }
+
+  if (val.startsWith('split:')) {
+    const splitId = val.slice(6);
+    const split = (state.customSplits || []).find(s => s.id === splitId);
+    if (!split) { if (chipsWrapper) chipsWrapper.style.display = 'none'; return; }
+    state.activeSplitId = splitId;
+    if (!state.splitDayIndices) state.splitDayIndices = {};
+    if (state.splitDayIndices[splitId] == null) state.splitDayIndices[splitId] = 0;
+    _autoAdvanceSplitDay(splitId, split);
+    saveWithPin();
+    _renderSplitDay(split, state.splitDayIndices[splitId]);
+  } else {
+    // Quick Pick — single muscle group
+    const muscle = val.startsWith('muscle:') ? val.slice(7) : val;
+    const exercises = (EXERCISES[muscle] || []).filter(e => e !== 'Other');
+    const hintEl = chipsWrapper?.querySelector('p');
+    if (hintEl) hintEl.textContent = 'Tap to quick-add to workout above:';
+    // Hide the day nav if showing
+    document.getElementById('split-day-nav')?.remove();
+    chipsList.innerHTML = exercises.map(ex => _splitChipHTML(muscle, ex)).join('');
+    if (chipsWrapper) chipsWrapper.style.display = exercises.length ? 'block' : 'none';
+  }
+}
+
+// Muscle-colored pill chip used for both Quick Pick and split-day exercise lists
+function _splitChipHTML(muscle, ex) {
+  const color = MUSCLES[muscle]?.color || '#7c4dff';
+  return `<button class="split-chip" onclick="MQ.quickAddExercise('${muscle}','${ex.replace(/'/g,"\\'")}',this)"
+    style="--chip-color:${color};font-size:13px;padding:6px 13px 6px 10px;border-radius:20px;border:1px solid ${color}55;background:${color}14;color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+    <span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>${ex}
+  </button>`;
+}
+
+function _renderSplitDay(split, dayIdx) {
+  const chipsWrapper = document.getElementById('split-exercise-chips');
+  const chipsList = document.getElementById('split-chips-list');
+  if (!chipsWrapper || !chipsList) return;
+
+  const total = split.days.length;
+  const day = split.days[dayIdx];
+  const muscles = day.muscles || [];
+  const isRest = muscles.length === 0;
+
+  // Day navigator — replace or insert above hint
+  let nav = document.getElementById('split-day-nav');
+  if (!nav) {
+    nav = document.createElement('div');
+    nav.id = 'split-day-nav';
+    chipsWrapper.insertBefore(nav, chipsWrapper.firstChild);
+  }
+  nav.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px';
+  const dayDots = muscles.map(m => `<span title="${MUSCLES[m]?.name || m}" style="width:8px;height:8px;border-radius:50%;background:${MUSCLES[m]?.color || '#888'};display:inline-block"></span>`).join('');
+  const isToday = state.splitLastAutoDate?.[state.activeSplitId] === todayStr();
+  nav.innerHTML = `
+    <button class="split-nav-btn" onclick="MQ.cycleSplitDay(-1)">‹</button>
+    <div style="flex:1;text-align:center;min-width:0">
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">
+        <span class="split-day-label">${day.label}</span>
+        ${isToday ? '<span class="split-today-badge">TODAY</span>' : ''}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px">
+        <span style="font-size:10px;color:var(--muted)">Day ${dayIdx + 1}/${total}</span>
+        ${dayDots ? `<span style="display:flex;gap:3px">${dayDots}</span>` : ''}
+      </div>
+    </div>
+    <button class="split-nav-btn" onclick="MQ.cycleSplitDay(1)">›</button>`;
+
+  const hintEl = chipsWrapper.querySelector('p');
+  if (hintEl) hintEl.style.display = isRest ? 'none' : 'block';
+
+  if (isRest) {
+    chipsList.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:8px 0;text-align:center">😴 Rest & recover</div>`;
+  } else {
+    // Build exercise list — respect exercises whitelist if set
+    const allExs = [];
+    for (const m of muscles) {
+      if (EXERCISES[m]) EXERCISES[m].filter(e => e !== 'Other').forEach(ex => allExs.push({ muscle: m, ex }));
+    }
+    const whitelist = day?.exercises?.length ? day.exercises : null;
+    const filtered = whitelist ? allExs.filter(({ ex }) => whitelist.includes(ex)) : allExs;
+    chipsList.innerHTML = filtered.map(({ muscle, ex }) => _splitChipHTML(muscle, ex)).join('');
+  }
+  chipsWrapper.style.display = 'block';
+}
+
+function cycleSplitDay(dir) {
+  const splitId = state.activeSplitId;
+  if (!splitId) return;
+  const split = (state.customSplits || []).find(s => s.id === splitId);
+  if (!split) return;
+  if (!state.splitDayIndices) state.splitDayIndices = {};
+  const cur = state.splitDayIndices[splitId] ?? 0;
+  state.splitDayIndices[splitId] = (cur + dir + split.days.length) % split.days.length;
+  saveWithPin();
+  _renderSplitDay(split, state.splitDayIndices[splitId]);
+}
+
+// ─── Split System ───
+function adoptLegendSplit(trainerId) {
+  if (!state.customSplits) state.customSplits = [];
+  const existingId = `legend_${trainerId}`;
+  if (state.customSplits.find(s => s.id === existingId)) {
+    toast('Split already in your list!');
+    return;
+  }
+  const splitDays = typeof GainsShop !== 'undefined' ? GainsShop.getTrainerSplitDays(trainerId) : [];
+  if (!splitDays?.length) { toast('Split data unavailable'); return; }
+  const trainerName = splitDays._name || trainerId;
+  state.customSplits.push({ id: existingId, name: `${trainerName}'s Split`, source: 'legend', legendId: trainerId, days: splitDays });
+  saveWithPin();
+  populateMuscleGroupSelect();
+  renderSettingsSplits();
+  toast(`Split adopted! Select it from Today's Split.`);
+}
+
+function adoptHomeSplit() {
+  if (!state.customSplits) state.customSplits = [];
+  const existingId = 'home_workout';
+  if (state.customSplits.find(s => s.id === existingId)) {
+    toast('Split already adopted!');
+    return;
+  }
+  const days = [
+    { label: 'MON — PUSH',            muscles: ['chest','triceps','shoulders'] },
+    { label: 'TUE — PULL',            muscles: ['back','biceps'] },
+    { label: 'WED — LEGS',            muscles: ['quads','glutes','calves'] },
+    { label: 'THU — ACTIVE RECOVERY', muscles: [] },
+    { label: 'FRI — PUSH + CORE',     muscles: ['chest','triceps','abs'] },
+    { label: 'SAT — FULL BODY HIIT',  muscles: ['cardio'] },
+    { label: 'SUN — REST',            muscles: [] },
+  ];
+  state.customSplits.push({ id: existingId, name: 'AthleanX Home Split', source: 'home', days });
+  saveWithPin();
+  populateMuscleGroupSelect();
+  renderSettingsSplits();
+  toast('Home split adopted! Select it from Today\'s Split.');
+}
+
+function deleteSplit(splitId) {
+  if (!state.customSplits) return;
+  state.customSplits = state.customSplits.filter(s => s.id !== splitId);
+  if (state.activeSplitId === splitId) state.activeSplitId = null;
+  saveWithPin();
+  populateMuscleGroupSelect();
+  renderSettingsSplits();
+  onSplitChange();
+  toast('Split removed');
+}
+
+// ─── Split Builder ───
+let _builderDays = [];
+
+function openSplitBuilder(editId) {
+  const edit = editId ? (state.customSplits || []).find(s => s.id === editId) : null;
+  _builderDays = (edit?.days || [
+    { label: 'Day 1', muscles: [], exercises: [] },
+    { label: 'Day 2', muscles: [], exercises: [] },
+    { label: 'Day 3', muscles: [], exercises: [] },
+  ]).map((d, i) => ({ label: d.label || `Day ${i+1}`, muscles: [...(d.muscles||[])], exercises: [...(d.exercises||[])] }));
+
+  document.getElementById('split-builder-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'split-builder-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7)';
+  modal.innerHTML = `
+    <div id="split-builder-card" style="background:#1a1d2e;border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:20px 20px 40px;max-height:88vh;overflow-y:auto;box-shadow:0 -6px 48px rgba(0,0,0,0.8)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0;font-size:16px;font-family:Cinzel,serif;color:#e8e8f0">${edit ? 'Edit Split' : 'Create Split'}</h3>
+        <button onclick="document.getElementById('split-builder-modal').remove()" style="background:none;border:none;color:#8888aa;font-size:22px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="font-size:11px;color:#8888aa;font-weight:600;letter-spacing:.4px;margin-bottom:4px">SPLIT NAME</div>
+      <input id="split-builder-name" value="${edit?.name || ''}" placeholder="e.g. My PPL Split"
+        style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #2a2d45;background:#0d0f1a;color:#e8e8f0;font-size:14px;box-sizing:border-box;margin-bottom:18px">
+      <div id="builder-days-container"></div>
+      <button onclick="MQ._sbAddDay()"
+        style="width:100%;padding:10px;border-radius:8px;border:1px dashed #3a3d55;background:none;color:#8888aa;font-size:13px;cursor:pointer;margin-bottom:14px">
+        + Add Day
+      </button>
+      <button onclick="MQ._saveSplitBuilder(${editId ? `'${editId}'` : 'null'})"
+        style="width:100%;padding:13px;border-radius:10px;border:none;background:#7c4dff;color:white;font-size:15px;font-weight:600;cursor:pointer">
+        Save Split
+      </button>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+  _sbRefreshDays();
+}
+
+function _sbGetAllExercises(muscles) {
+  const seen = new Set();
+  const result = [];
+  for (const m of muscles) {
+    if (EXERCISES[m]) EXERCISES[m].filter(e => e !== 'Other').forEach(ex => { if (!seen.has(ex)) { seen.add(ex); result.push({ muscle: m, ex }); } });
+  }
+  return result;
+}
+
+function _sbDayHTML(day, i) {
+  const presetsHTML = DAY_PRESETS.map(p => {
+    const match = p.label === day.label || (p.muscles.length && p.muscles.slice().sort().join() === day.muscles.slice().sort().join());
+    return `<option value="${p.label}" ${match ? 'selected' : ''}>${p.label}</option>`;
+  }).join('');
+
+  const allExs = _sbGetAllExercises(day.muscles);
+  const selExs = day.exercises || [];
+  // Empty exercises = all selected
+  const isSelected = ex => selExs.length === 0 || selExs.includes(ex);
+
+  const chips = allExs.map(({ ex }) => {
+    const on = isSelected(ex);
+    return `<button type="button" onclick="MQ._sbToggleEx(${i},'${ex.replace(/'/g,"\\'")}')"
+      style="font-size:12px;padding:5px 11px;border-radius:16px;cursor:pointer;margin:0;transition:all .12s;
+      border:1px solid ${on ? '#7c4dff' : '#2a2d45'};
+      background:${on ? 'rgba(124,77,255,0.22)' : '#0d0f1a'};
+      color:${on ? '#b39dff' : '#666688'}">${ex}</button>`;
+  }).join('');
+
+  // Free-form muscle multiselect — mix and match any combination, not just presets
+  const muscleKeys = Object.keys(MUSCLES).filter(k => k !== 'rest');
+  const muscleChips = muscleKeys.map(k => {
+    const on = day.muscles.includes(k);
+    const info = MUSCLES[k];
+    return `<button type="button" onclick="MQ._sbToggleMuscle(${i},'${k}')"
+      style="font-size:12px;padding:5px 11px;border-radius:16px;cursor:pointer;margin:0;transition:all .12s;
+      border:1px solid ${on ? info.color : '#2a2d45'};
+      background:${on ? info.color + '2e' : '#0d0f1a'};
+      color:${on ? info.color : '#666688'}">${info.name}</button>`;
+  }).join('');
+
+  return `<div style="border:1px solid #2a2d45;border-radius:10px;padding:12px;margin-bottom:10px;background:#12111c">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:700;color:#8888aa;min-width:40px;flex-shrink:0">Day ${i+1}</span>
+      <select onchange="MQ._sbChangePreset(${i},this.value)"
+        style="flex:1;padding:7px 10px;border-radius:7px;border:1px solid #2a2d45;background:#0d0f1a;color:#e8e8f0;font-size:13px">
+        <option value="">Quick fill preset…</option>
+        ${presetsHTML}
+      </select>
+      <button type="button" onclick="MQ._sbRemoveDay(${i})"
+        style="background:none;border:none;color:#f44336;font-size:20px;cursor:pointer;line-height:1;flex-shrink:0;opacity:0.65;padding:0 2px">×</button>
+    </div>
+    <div style="font-size:10px;color:#555577;margin-bottom:6px;letter-spacing:.3px">MUSCLE GROUPS (mix & match any combo)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:${allExs.length ? '10px' : '0'}">${muscleChips}</div>
+    ${allExs.length ? `
+      <div style="font-size:10px;color:#555577;margin-bottom:6px;letter-spacing:.3px">ALL SELECTED BY DEFAULT — TAP TO EXCLUDE</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${chips}</div>` : ''}
+  </div>`;
+}
+
+function _sbRefreshDays() {
+  const el = document.getElementById('builder-days-container');
+  if (el) el.innerHTML = _builderDays.map((d, i) => _sbDayHTML(d, i)).join('');
+}
+
+function _sbAddDay() {
+  _builderDays.push({ label: `Day ${_builderDays.length + 1}`, muscles: [], exercises: [] });
+  _sbRefreshDays();
+}
+
+function _sbRemoveDay(i) {
+  if (_builderDays.length <= 1) { toast('Need at least 1 day'); return; }
+  _builderDays.splice(i, 1);
+  _sbRefreshDays();
+}
+
+function _sbChangePreset(i, label) {
+  if (!label) return;
+  const preset = DAY_PRESETS.find(p => p.label === label) || DAY_PRESETS[0];
+  _builderDays[i] = { label: preset.label, muscles: [...preset.muscles], exercises: [] };
+  _sbRefreshDays();
+}
+
+function _sbToggleMuscle(i, muscle) {
+  const day = _builderDays[i];
+  if (!day) return;
+  const idx = day.muscles.indexOf(muscle);
+  if (idx >= 0) day.muscles.splice(idx, 1);
+  else day.muscles.push(muscle);
+  day.exercises = []; // muscle set changed — reset to "use all" for the new combo
+  // Custom combo — clear the preset label so it doesn't misleadingly show a preset name
+  const matchedPreset = DAY_PRESETS.find(p => p.muscles.slice().sort().join() === day.muscles.slice().sort().join());
+  day.label = matchedPreset ? matchedPreset.label : (day.muscles.length ? day.muscles.map(m => MUSCLES[m]?.name || m).join(' & ') : 'Rest');
+  _sbRefreshDays();
+}
+
+function _sbToggleEx(dayIdx, ex) {
+  const day = _builderDays[dayIdx];
+  if (!day) return;
+  const allExs = _sbGetAllExercises(day.muscles).map(e => e.ex);
+  let sel = day.exercises.length === 0 ? [...allExs] : [...day.exercises];
+  const idx = sel.indexOf(ex);
+  if (idx >= 0) sel.splice(idx, 1); else sel.push(ex);
+  day.exercises = sel.length === allExs.length ? [] : sel; // back to "all" if everything selected
+  _sbRefreshDays();
+}
+
+function _saveSplitBuilder(editId) {
+  const nameEl = document.getElementById('split-builder-name');
+  const name = nameEl?.value?.trim() || 'My Split';
+  const days = _builderDays.map(d => ({ label: d.label, muscles: [...d.muscles], exercises: [...(d.exercises||[])] }));
+
+  if (!state.customSplits) state.customSplits = [];
+  if (editId) {
+    const idx = state.customSplits.findIndex(s => s.id === editId);
+    if (idx >= 0) state.customSplits[idx] = { ...state.customSplits[idx], name, days };
+  } else {
+    state.customSplits.push({ id: `custom_${Date.now()}`, name, source: 'custom', days });
+  }
+  saveWithPin();
+  populateMuscleGroupSelect();
+  renderSettingsSplits();
+  document.getElementById('split-builder-modal')?.remove();
+  toast(`Split "${name}" saved!`);
+}
+
+function shareSplit(splitId) {
+  const split = (state.customSplits || []).find(s => s.id === splitId);
+  if (!split) return;
+  const code = btoa(unescape(encodeURIComponent(JSON.stringify({ name: split.name, days: split.days }))));
+  navigator.clipboard?.writeText(code).then(() => toast('Split code copied! Paste it to a friend.')).catch(() => {
+    // Fallback: show code in a prompt
+    prompt('Share this split code with friends:', code);
+  });
+}
+
+function importSplitCode(code) {
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+    if (!data.name || !Array.isArray(data.days)) throw new Error('Invalid');
+    if (!state.customSplits) state.customSplits = [];
+    state.customSplits.push({ id: `imported_${Date.now()}`, name: data.name, source: 'custom', days: data.days });
+    saveWithPin();
+    populateMuscleGroupSelect();
+    renderSettingsSplits();
+    toast(`Imported "${data.name}"!`);
+  } catch { toast('Invalid split code — check and try again'); }
+}
+
+function renderSettingsSplits() {
+  const el = document.getElementById('splits-list');
+  if (!el) return;
+  const splits = state.customSplits || [];
+  const rows = splits.map(s => {
+    const trainingDays = s.days.filter(d => d.muscles?.length).length;
+    const src = s.source === 'legend' ? `${s.legendId}'s program` : 'Custom';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+        <div style="font-size:12px;color:var(--muted)">${src} · ${trainingDays} training day${trainingDays !== 1 ? 's' : ''} · ${s.days.length} day cycle</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button onclick="MQ.shareSplit('${s.id}')" title="Share" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 9px;font-size:12px;cursor:pointer">↑ Share</button>
+        ${s.source === 'custom' ? `<button onclick="MQ.openSplitBuilder('${s.id}')" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 9px;font-size:12px;cursor:pointer">Edit</button>` : ''}
+        <button onclick="MQ.deleteSplit('${s.id}')" style="background:none;border:1px solid rgba(244,67,54,0.4);color:#f44336;border-radius:6px;padding:4px 9px;font-size:12px;cursor:pointer">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  el.innerHTML = rows || `<p style="color:var(--muted);font-size:13px;margin:8px 0">No splits yet. Adopt one from a Trainer profile, or create your own below.</p>`;
+  el.innerHTML += `
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button onclick="MQ.openSplitBuilder(null)" style="flex:1;padding:10px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--muted);font-size:13px;cursor:pointer">+ Create Custom Split</button>
+      <button onclick="MQ._showImportCode()" style="flex:1;padding:10px;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--muted);font-size:13px;cursor:pointer">↓ Import Code</button>
+    </div>`;
+}
+
+function _showImportCode() {
+  const code = prompt('Paste a split code from a friend:');
+  if (code) importSplitCode(code);
+}
+
+function quickAddExercise(group, exercise, btn) {
+  // Find an existing empty exercise row, or add a new one
+  const entries = document.querySelectorAll('.exercise-entry');
+  let targetId = null;
+  for (const entry of entries) {
+    const exSel = entry.querySelector('.entry-exercise');
+    const muscleSel = entry.querySelector('.entry-muscle');
+    if (exSel && (!exSel.value || exSel.value === '') && muscleSel) {
+      targetId = entry.dataset.entryId;
+      muscleSel.value = group;
+      onEntryMuscleChange(parseInt(targetId));
+      setTimeout(() => {
+        const updatedEntry = document.querySelector(`.exercise-entry[data-entry-id="${targetId}"]`);
+        if (updatedEntry) updatedEntry.querySelector('.entry-exercise').value = exercise;
+      }, 10);
+      break;
+    }
+  }
+  if (targetId === null) {
+    addExerciseRow();
+    setTimeout(() => {
+      const allEntries = document.querySelectorAll('.exercise-entry');
+      const last = allEntries[allEntries.length - 1];
+      if (!last) return;
+      const newId = last.dataset.entryId;
+      last.querySelector('.entry-muscle').value = group;
+      onEntryMuscleChange(parseInt(newId));
+      setTimeout(() => {
+        const refreshed = document.querySelector(`.exercise-entry[data-entry-id="${newId}"]`);
+        if (refreshed) refreshed.querySelector('.entry-exercise').value = exercise;
+      }, 10);
+    }, 20);
+  }
+  // Bounce + flash green + checkmark to confirm, then restore original look
+  if (btn) {
+    const originalHTML = btn.innerHTML;
+    btn.classList.add('split-chip-added');
+    btn.innerHTML = `<i class="ti ti-check"></i> Added`;
+    setTimeout(() => {
+      btn.classList.remove('split-chip-added');
+      btn.innerHTML = originalHTML;
+    }, 800);
+  }
+  // Scroll to workout card
+  document.querySelector('.workout-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ─── Workout History ───
+function showHistoryTab(tab) {
+  document.querySelectorAll('.ht-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.ht-tab[onclick*="${tab}"]`)?.classList.add('active');
+  document.getElementById('history-personal').style.display = tab === 'personal' ? 'block' : 'none';
+  document.getElementById('history-friends').style.display = tab === 'friends' ? 'block' : 'none';
+  document.getElementById('history-prs').style.display = tab === 'prs' ? 'block' : 'none';
+  document.getElementById('history-volume').style.display = tab === 'volume' ? 'block' : 'none';
+  if (tab === 'personal') renderWorkoutHistory();
+  else if (tab === 'friends') renderFriendsFeed();
+  else if (tab === 'prs') renderPRs();
+  else if (tab === 'volume') showVolume('weekly');
+}
+
+function renderWorkoutHistory() {
+  const container = document.getElementById('workout-history');
+  const byDate = {};
+  for (const e of [...state.workoutLog].reverse()) {
+    if (!byDate[e.date]) byDate[e.date] = [];
+    byDate[e.date].push(e);
+  }
+  // Also surface days that only have step data
+  const stepMap = {};
+  for (const s of (state.stepLog || [])) stepMap[s.date] = s.steps;
+  for (const d of Object.keys(stepMap)) { if (!byDate[d]) byDate[d] = []; }
+
+  const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+  if (!sortedDates.length) {
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px">No workouts logged yet.</p>';
+    return;
+  }
+  container.innerHTML = sortedDates.map(date => {
+    const entries = byDate[date];
+    const steps = stepMap[date];
+    const stepsRow = steps ? `<div class="history-entry" style="color:var(--muted)">
+      <span>👟 Steps</span>
+      <span style="color:#64b5f6;font-weight:600">${steps.toLocaleString()}</span>
+    </div>` : '';
+    return `<div class="history-day card">
+      <div class="history-date">${formatDate(date + 'T12:00:00')}</div>
+      ${entries.map(e => `<div class="history-entry">
+        <span>${e.exercise} — ${formatSets(e)}${e.duration > 0 ? ` ${e.duration}min` : ''}</span>
+        <span style="color:var(--xp-green)">+${e.xp} XP</span>
+      </div>`).join('')}
+      ${stepsRow}
+    </div>`;
+  }).join('');
+}
+
+// ─── Personal Records ───
+function renderPRs() {
+  const container = document.getElementById('pr-list');
+  if (!state.workoutLog.length) {
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px">No workouts logged yet. Hit the gym!</p>';
+    return;
+  }
+
+  const prs = {};
+  for (const entry of state.workoutLog) {
+    if (entry.muscle === 'rest') continue;
+    const key = entry.exercise;
+    if (!prs[key]) prs[key] = { muscle: entry.muscle, maxWeight: 0, maxReps: 0, maxDuration: 0, date: '' };
+
+    if (Array.isArray(entry.sets)) {
+      for (const s of entry.sets) {
+        if (s.weight > prs[key].maxWeight) {
+          prs[key].maxWeight = s.weight;
+          prs[key].maxReps = s.reps;
+          prs[key].date = entry.date;
+        } else if (s.weight === prs[key].maxWeight && s.reps > prs[key].maxReps) {
+          prs[key].maxReps = s.reps;
+          prs[key].date = entry.date;
+        }
+      }
+    } else if (entry.weight > 0) {
+      if (entry.weight > prs[key].maxWeight) {
+        prs[key].maxWeight = entry.weight;
+        prs[key].maxReps = entry.reps;
+        prs[key].date = entry.date;
+      }
+    }
+
+    if (entry.duration > 0 && entry.duration > prs[key].maxDuration) {
+      prs[key].maxDuration = entry.duration;
+      if (!prs[key].maxWeight) prs[key].date = entry.date;
+    }
+  }
+
+  const byMuscle = {};
+  for (const [exercise, data] of Object.entries(prs)) {
+    const mk = data.muscle;
+    const groupName = MUSCLES[mk]?.name || mk;
+    if (!byMuscle[groupName]) byMuscle[groupName] = { color: MUSCLES[mk]?.color || '#888', exercises: [] };
+    byMuscle[groupName].exercises.push({ exercise, ...data });
+  }
+
+  // Steps PR card
+  const stepLog = state.stepLog || [];
+  const stepsCard = stepLog.length ? (() => {
+    const best = stepLog.reduce((m, e) => e.steps > m.steps ? e : m, stepLog[0]);
+    return `<div class="pr-group card">
+      <div class="pr-group-header">
+        <span class="pr-group-dot" style="background:#64b5f6"></span>
+        <span class="pr-group-name">Daily Steps</span>
+      </div>
+      <div class="pr-entry pr-entry-tap" onclick="MQ.showStepsGraph()">
+        <span class="pr-exercise">👟 Best Day</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="pr-value">${best.steps.toLocaleString()} steps</span>
+          <span style="font-size:11px;color:var(--muted)">›</span>
+        </div>
+      </div>
+    </div>`;
+  })() : '';
+
+  container.innerHTML = stepsCard + Object.entries(byMuscle).map(([group, { color, exercises }]) => `
+    <div class="pr-group card">
+      <div class="pr-group-header">
+        <span class="pr-group-dot" style="background:${color}"></span>
+        <span class="pr-group-name">${group}</span>
+      </div>
+      ${exercises.map(e => {
+        const isCardio = e.muscle === 'cardio';
+        const val = isCardio
+          ? (e.maxDuration > 0 ? `${e.maxDuration} min` : '—')
+          : (e.maxWeight > 0 ? `${e.maxWeight} lbs × ${e.maxReps}` : (e.maxDuration > 0 ? `${e.maxDuration} min` : '—'));
+        return `<div class="pr-entry pr-entry-tap" onclick="MQ.showPRGraph('${e.exercise.replace(/'/g,"\\'")}','${e.muscle}')">
+          <span class="pr-exercise">${e.exercise}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="pr-value">${val}</span>
+            <span style="font-size:11px;color:var(--muted)">›</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+function showPRGraph(exercise, muscle) {
+  // Build per-date max weight history for this exercise
+  const history = {};
+  for (const entry of state.workoutLog) {
+    if (entry.exercise !== exercise) continue;
+    const d = entry.date || '';
+    if (Array.isArray(entry.sets)) {
+      for (const s of entry.sets) {
+        if (s.weight > 0 && (!history[d] || s.weight > history[d].w)) {
+          history[d] = { w: s.weight, r: s.reps };
+        }
+      }
+    } else if (entry.weight > 0) {
+      if (!history[d] || entry.weight > history[d].w) history[d] = { w: entry.weight, r: entry.reps };
+    } else if (entry.duration > 0) {
+      if (!history[d] || entry.duration > history[d].w) history[d] = { w: entry.duration, r: 0, isTime: true };
+    }
+  }
+
+  const pts = Object.entries(history).sort(([a],[b]) => a.localeCompare(b));
+  if (!pts.length) return;
+
+  const isTime = pts[0][1].isTime;
+  const unit = isTime ? 'min' : 'lbs';
+  const latestVal = pts[pts.length - 1][1];
+  const latestDate = pts[pts.length - 1][0];
+  const color = MUSCLES[muscle]?.color || '#4a90e2';
+
+  // SVG line chart
+  const vals = pts.map(([,v]) => v.w);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+  const W = 280, H = 100, PAD = 18;
+  const toX = i => PAD + (i / Math.max(pts.length - 1, 1)) * (W - PAD * 2);
+  const toY = v => PAD + (1 - (v - minV) / range) * (H - PAD * 2);
+
+  const points = pts.map(([,v], i) => `${toX(i).toFixed(1)},${toY(v.w).toFixed(1)}`).join(' ');
+  const areaPoints = `${toX(0).toFixed(1)},${H} ${points} ${toX(pts.length-1).toFixed(1)},${H}`;
+
+  // Label every pt if ≤6, else show first/mid/last
+  const labelIdxs = pts.length <= 6
+    ? pts.map((_,i) => i)
+    : [0, Math.floor((pts.length-1)/2), pts.length-1];
+
+  const dateLabels = labelIdxs.map(i => {
+    const d = pts[i][0]; // YYYY-MM-DD
+    const parts = d.split('-');
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+parts[1]-1] || '';
+    return `<text x="${toX(i).toFixed(1)}" y="${H+10}" text-anchor="middle" font-size="8" fill="#888" font-family="sans-serif">${mo} ${+parts[2]}</text>`;
+  }).join('');
+
+  const dotLabels = pts.map(([,v], i) => {
+    const x = toX(i).toFixed(1);
+    const y = toY(v.w).toFixed(1);
+    const labelY = (parseFloat(y) - 7).toFixed(1);
+    const valStr = isTime ? `${v.w}m` : `${v.w}`;
+    return `<circle cx="${x}" cy="${y}" r="3.5" fill="${color}" stroke="#12111a" stroke-width="1.2"/>
+    <text x="${x}" y="${labelY}" text-anchor="middle" font-size="7.5" fill="${color}" font-family="sans-serif" font-weight="600">${valStr}</text>`;
+  }).join('');
+
+  const chartSVG = `<svg viewBox="0 0 ${W} ${H+20}" xmlns="http://www.w3.org/2000/svg" style="width:100%;overflow:visible">
+    <defs><linearGradient id="prg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.25"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="${areaPoints}" fill="url(#prg)"/>
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dotLabels}
+    ${dateLabels}
+  </svg>`;
+
+  // Format latest date
+  const dp = latestDate.split('-');
+  const latestFmt = `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+dp[1]-1]} ${+dp[2]}`;
+  const latestValStr = isTime ? `${latestVal.w} min` : `${latestVal.w} lbs`;
+
+  const modal = document.createElement('div');
+  modal.id = 'pr-graph-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);padding:20px';
+  modal.innerHTML = `
+    <div style="background:#1a1d2e;border-radius:18px;width:100%;max-width:400px;padding:22px 22px 28px;box-shadow:0 8px 48px rgba(0,0,0,0.85)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:var(--text)">${latestValStr} <span style="font-size:14px;font-weight:400;color:${color}">${latestFmt}</span></div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${exercise}</div>
+        </div>
+        <button onclick="document.getElementById('pr-graph-modal').remove()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      <div style="margin:16px 0 8px">${chartSVG}</div>
+      <div style="font-size:11px;color:var(--muted);text-align:center">${pts.length} session${pts.length !== 1 ? 's' : ''} logged · tap anywhere outside to close</div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function showStepsGraph() {
+  const stepLog = (state.stepLog || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  if (!stepLog.length) return;
+  const color = '#64b5f6';
+  const W = 280, H = 100, PAD = 18;
+  const vals = stepLog.map(e => e.steps);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+  const toX = i => PAD + (i / Math.max(stepLog.length - 1, 1)) * (W - PAD * 2);
+  const toY = v => PAD + (1 - (v - minV) / range) * (H - PAD * 2);
+  const points = stepLog.map((e, i) => `${toX(i).toFixed(1)},${toY(e.steps).toFixed(1)}`).join(' ');
+  const areaPoints = `${toX(0).toFixed(1)},${H} ${points} ${toX(stepLog.length-1).toFixed(1)},${H}`;
+  const labelIdxs = stepLog.length <= 6 ? stepLog.map((_,i) => i) : [0, Math.floor((stepLog.length-1)/2), stepLog.length-1];
+  const dateLabels = labelIdxs.map(i => {
+    const parts = stepLog[i].date.split('-');
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+parts[1]-1] || '';
+    return `<text x="${toX(i).toFixed(1)}" y="${H+10}" text-anchor="middle" font-size="8" fill="#888" font-family="sans-serif">${mo} ${+parts[2]}</text>`;
+  }).join('');
+  const dotLabels = stepLog.map((e, i) => {
+    const x = toX(i).toFixed(1), y = toY(e.steps).toFixed(1);
+    const labelY = (parseFloat(y) - 7).toFixed(1);
+    return `<circle cx="${x}" cy="${y}" r="3.5" fill="${color}" stroke="#12111a" stroke-width="1.2"/>
+    <text x="${x}" y="${labelY}" text-anchor="middle" font-size="7.5" fill="${color}" font-family="sans-serif" font-weight="600">${(e.steps/1000).toFixed(1)}k</text>`;
+  }).join('');
+  const chartSVG = `<svg viewBox="0 0 ${W} ${H+20}" xmlns="http://www.w3.org/2000/svg" style="width:100%;overflow:visible">
+    <defs><linearGradient id="stg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.25"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <polygon points="${areaPoints}" fill="url(#stg)"/>
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dotLabels}${dateLabels}
+  </svg>`;
+  const best = stepLog.reduce((m, e) => e.steps > m.steps ? e : m, stepLog[0]);
+  const modal = document.createElement('div');
+  modal.id = 'pr-graph-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);padding:20px';
+  modal.innerHTML = `
+    <div style="background:#1a1d2e;border-radius:18px;width:100%;max-width:400px;padding:22px 22px 28px;box-shadow:0 8px 48px rgba(0,0,0,0.85)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:var(--text)">${best.steps.toLocaleString()} <span style="font-size:14px;font-weight:400;color:${color}">best day</span></div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">👟 Daily Steps</div>
+        </div>
+        <button onclick="document.getElementById('pr-graph-modal').remove()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      <div style="margin:16px 0 8px">${chartSVG}</div>
+      <div style="font-size:11px;color:var(--muted);text-align:center">${stepLog.length} day${stepLog.length !== 1 ? 's' : ''} tracked · tap outside to close</div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+// ─── Volume Report ───
+function showVolume(period) {
+  document.querySelectorAll('.vol-btn').forEach(b => b.classList.remove('vol-btn-active'));
+  document.querySelector(`.vol-btn[onclick*="${period}"]`)?.classList.add('vol-btn-active');
+  document.getElementById('volume-report').innerHTML = renderVolumeReport(period);
+}
+
+function renderVolumeReport(period) {
+  const days = period === 'yearly' ? 365 : period === 'monthly' ? 30 : 7;
+  const sinceDate = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  const muscleSets = {};
+
+  for (const entry of state.workoutLog) {
+    if ((entry.date || '') < sinceDate) continue;
+    const m = entry.muscle;
+    if (!m || m === 'rest' || m === 'cardio') continue;
+    const sets = Array.isArray(entry.sets) ? entry.sets.length : 1;
+    muscleSets[m] = (muscleSets[m] || 0) + sets;
+  }
+
+  const totalSets = Object.values(muscleSets).reduce((a, b) => a + b, 0);
+  const sorted = Object.entries(muscleSets).sort((a, b) => b[1] - a[1]);
+
+  return `
+    <div style="display:flex;justify-content:center;margin:8px 0 4px">
+      ${renderVolumeBody(muscleSets)}
+    </div>
+    <p style="font-size:11px;color:var(--muted);text-align:center;margin:0 0 12px"><i class="ti ti-ruler-2"></i> Tap a muscle on the model to log a measurement and see its size over time</p>
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:14px">${totalSets} total sets · last ${days === 365 ? 'year' : days + ' days'}</div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      ${sorted.length ? sorted.map(([m, sets]) => {
+        const pct = Math.min(100, (sets / 20) * 100);
+        return `<div style="display:flex;align-items:center;gap:10px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${MUSCLES[m]?.color || '#888'};flex-shrink:0"></div>
+          <div style="flex:1;font-size:13px;color:var(--text)">${MUSCLES[m]?.name || m}</div>
+          <div style="font-size:12px;color:var(--muted);width:48px;text-align:right">${sets} set${sets !== 1 ? 's' : ''}</div>
+          <div style="width:80px;height:6px;border-radius:3px;background:var(--border);overflow:hidden;flex-shrink:0">
+            <div style="height:100%;border-radius:3px;background:${MUSCLES[m]?.color || '#888'};width:${pct}%"></div>
+          </div>
+        </div>`;
+      }).join('') : '<p style="color:var(--muted);text-align:center;padding:20px">No workouts logged in this period.</p>'}
+    </div>`;
+}
+
+// ─── Body Weight Tracker ───
+// Mirrors the per-muscle measurement tracker above (same chart, same log/edit/delete
+// flow via a reused modal) but keyed on state.weightLog instead of state.measurements,
+// since body weight isn't a MUSCLES entry and uses its own unit pair (lbs/kg, not
+// in/cm). Lives here rather than folded into the muscle tracker so neither has to guard
+// against the other's unit system or MUSCLES[muscle] lookups.
+function showWeightGraph(editDate) {
+  const color = '#7c4dff';
+  const entries = (state.weightLog || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const unit = state.weightUnit || 'lbs';
+  const editEntry = editDate ? entries.find(e => e.date === editDate) : null;
+
+  const fmtDate = d => {
+    const parts = d.split('-');
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+parts[1]-1] || '';
+    return `${mo} ${+parts[2]}`;
+  };
+
+  let chartSVG = '<p style="text-align:center;color:var(--muted);font-size:12px;padding:24px 0">No weigh-ins logged yet.</p>';
+  if (entries.length) {
+    const W = 280, H = 100, PAD = 18;
+    const vals = entries.map(e => e.value);
+    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const range = maxV - minV || 1;
+    const toX = i => PAD + (i / Math.max(entries.length - 1, 1)) * (W - PAD * 2);
+    const toY = v => PAD + (1 - (v - minV) / range) * (H - PAD * 2);
+    const points = entries.map((e, i) => `${toX(i).toFixed(1)},${toY(e.value).toFixed(1)}`).join(' ');
+    const areaPoints = `${toX(0).toFixed(1)},${H} ${points} ${toX(entries.length-1).toFixed(1)},${H}`;
+    const labelIdxs = entries.length <= 6 ? entries.map((_,i) => i) : [0, Math.floor((entries.length-1)/2), entries.length-1];
+    const dateLabels = labelIdxs.map(i => `<text x="${toX(i).toFixed(1)}" y="${H+10}" text-anchor="middle" font-size="8" fill="#888" font-family="sans-serif">${fmtDate(entries[i].date)}</text>`).join('');
+    const dotLabels = entries.map((e, i) => {
+      const x = toX(i).toFixed(1), y = toY(e.value).toFixed(1);
+      const labelY = (parseFloat(y) - 7).toFixed(1);
+      const isEditing = editEntry && e.date === editEntry.date;
+      return `<g onclick="MQ.showWeightGraph('${e.date}')" style="cursor:pointer" pointer-events="all">
+        <circle cx="${x}" cy="${y}" r="10" fill="transparent"/>
+        <circle cx="${x}" cy="${y}" r="${isEditing ? 5 : 3.5}" fill="${color}" stroke="${isEditing ? '#fff' : '#12111a'}" stroke-width="1.4"/>
+        <text x="${x}" y="${labelY}" text-anchor="middle" font-size="7.5" fill="${color}" font-family="sans-serif" font-weight="600">${e.value}${e.unit || unit}</text>
+      </g>`;
+    }).join('');
+    chartSVG = `<svg viewBox="0 0 ${W} ${H+20}" xmlns="http://www.w3.org/2000/svg" style="width:100%;overflow:visible">
+      <defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.25"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+      <polygon points="${areaPoints}" fill="url(#wg)"/>
+      <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dotLabels}${dateLabels}
+    </svg>`;
+  }
+
+  const latest = entries[entries.length - 1];
+
+  const inputRow = editEntry ? `
+    <div style="font-size:12px;color:${color};font-weight:600;margin-bottom:8px;text-align:center">Editing ${fmtDate(editEntry.date)}</div>
+    <input type="number" id="weight-input" value="${editEntry.value}" step="0.1" min="0" inputmode="decimal"
+      style="display:block;width:100%;padding:16px 12px;border-radius:12px;border:2px solid ${color}88;background:var(--bg-card);color:var(--text);font-size:32px;font-weight:700;box-sizing:border-box;text-align:center">
+    <select id="weight-unit" style="display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:15px">
+      <option value="lbs" ${(editEntry.unit || unit) === 'lbs' ? 'selected' : ''}>lbs</option>
+      <option value="kg" ${(editEntry.unit || unit) === 'kg' ? 'selected' : ''}>kg</option>
+    </select>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="MQ._saveWeightEntry('${editEntry.date}')" style="flex:1;padding:12px;border-radius:10px;border:none;background:${color};color:#fff;font-size:15px;font-weight:700;cursor:pointer">Save</button>
+      <button onclick="MQ._deleteWeightEntry('${editEntry.date}')" style="padding:12px 16px;border-radius:10px;border:1px solid #f4433655;background:#f4433618;color:#f44336;font-size:15px;font-weight:600;cursor:pointer">Delete</button>
+      <button onclick="MQ.showWeightGraph()" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--muted);font-size:14px;cursor:pointer">Cancel</button>
+    </div>` : `
+    <input type="number" id="weight-input" placeholder="e.g. 178" step="0.1" min="0" inputmode="decimal"
+      style="display:block;width:100%;padding:16px 12px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text);font-size:32px;font-weight:700;box-sizing:border-box;text-align:center">
+    <select id="weight-unit" style="display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:15px">
+      <option value="lbs" ${unit === 'lbs' ? 'selected' : ''}>lbs</option>
+      <option value="kg" ${unit === 'kg' ? 'selected' : ''}>kg</option>
+    </select>
+    <button onclick="MQ._saveWeightEntry()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;background:${color};color:#fff;font-size:15px;font-weight:700;cursor:pointer">Log Today's Weight</button>`;
+
+  document.getElementById('measurement-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'measurement-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);padding:20px';
+  modal.innerHTML = `
+    <div style="background:#1a1d2e;border-radius:18px;width:100%;max-width:400px;padding:22px 22px 24px;box-shadow:0 8px 48px rgba(0,0,0,0.85)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:var(--text)">${latest ? latest.value + (latest.unit || unit) : '—'} <span style="font-size:14px;font-weight:400;color:${color}">latest</span></div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">Body Weight</div>
+        </div>
+        <button onclick="document.getElementById('measurement-modal').remove()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      <div style="margin:16px 0 8px">${chartSVG}</div>
+      <div style="margin-top:12px;padding-top:14px;border-top:1px solid var(--border)">${inputRow}</div>
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">${entries.length} weigh-in${entries.length !== 1 ? 's' : ''} logged${entries.length ? ' · tap a dot to edit or delete' : ''}</div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+// Keeps Settings › Goals' calorie-budget weight pointed at the most recent weigh-in.
+// calcCalorieBudget() always expects lbs, so a kg entry is converted on the way in.
+// Deliberately does NOT null out goals.currentWeight when the log becomes empty (via
+// delete) — a manually-typed goals value shouldn't vanish just because the separate
+// log entry that happened to match it was removed.
+function _syncGoalsCurrentWeightFromLog() {
+  const latest = (state.weightLog || []).slice().sort((a, b) => a.date.localeCompare(b.date)).pop();
+  if (!latest) return;
+  if (!state.goals) state.goals = {};
+  state.goals.currentWeight = latest.unit === 'kg' ? +(latest.value / 0.453592).toFixed(1) : latest.value;
+}
+
+function _saveWeightEntry(editDate) {
+  const input = document.getElementById('weight-input');
+  const unitSel = document.getElementById('weight-unit');
+  const value = parseFloat(input?.value);
+  if (!value || value <= 0) { toast('Enter a valid weight'); return; }
+  const unit = unitSel?.value || 'lbs';
+  state.weightUnit = unit;
+  if (!state.weightLog) state.weightLog = [];
+  const date = editDate || todayStr();
+  const existingIdx = state.weightLog.findIndex(e => e.date === date);
+  if (existingIdx >= 0) state.weightLog[existingIdx] = { date, value, unit };
+  else state.weightLog.push({ date, value, unit });
+  _syncGoalsCurrentWeightFromLog();
+  saveWithPin();
+  toast(`${editDate ? 'Updated' : 'Logged'} ${value}${unit} body weight`);
+  showWeightGraph();
+  if (document.getElementById('goals-section')) renderGoalsSection();
+}
+
+function _deleteWeightEntry(date) {
+  state.weightLog = (state.weightLog || []).filter(e => e.date !== date);
+  _syncGoalsCurrentWeightFromLog();
+  saveWithPin();
+  showWeightGraph();
+  if (document.getElementById('goals-section')) renderGoalsSection();
+}
+
+// ─── Body Measurement Tracker ───
+function showMeasurementGraph(muscle, editDate) {
+  const info = MUSCLES[muscle];
+  if (!info) return;
+  const color = info.color;
+  const entries = (state.measurements || []).filter(e => e.muscle === muscle).sort((a, b) => a.date.localeCompare(b.date));
+  const unit = state.measurementUnit || 'in';
+  const editEntry = editDate ? entries.find(e => e.date === editDate) : null;
+
+  const fmtDate = d => {
+    const parts = d.split('-');
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+parts[1]-1] || '';
+    return `${mo} ${+parts[2]}`;
+  };
+
+  let chartSVG = '<p style="text-align:center;color:var(--muted);font-size:12px;padding:24px 0">No measurements logged yet.</p>';
+  if (entries.length) {
+    const W = 280, H = 100, PAD = 18;
+    const vals = entries.map(e => e.value);
+    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const range = maxV - minV || 1;
+    const toX = i => PAD + (i / Math.max(entries.length - 1, 1)) * (W - PAD * 2);
+    const toY = v => PAD + (1 - (v - minV) / range) * (H - PAD * 2);
+    const points = entries.map((e, i) => `${toX(i).toFixed(1)},${toY(e.value).toFixed(1)}`).join(' ');
+    const areaPoints = `${toX(0).toFixed(1)},${H} ${points} ${toX(entries.length-1).toFixed(1)},${H}`;
+    const labelIdxs = entries.length <= 6 ? entries.map((_,i) => i) : [0, Math.floor((entries.length-1)/2), entries.length-1];
+    const dateLabels = labelIdxs.map(i => `<text x="${toX(i).toFixed(1)}" y="${H+10}" text-anchor="middle" font-size="8" fill="#888" font-family="sans-serif">${fmtDate(entries[i].date)}</text>`).join('');
+    const dotLabels = entries.map((e, i) => {
+      const x = toX(i).toFixed(1), y = toY(e.value).toFixed(1);
+      const labelY = (parseFloat(y) - 7).toFixed(1);
+      const isEditing = editEntry && e.date === editEntry.date;
+      return `<g onclick="MQ.showMeasurementGraph('${muscle}','${e.date}')" style="cursor:pointer" pointer-events="all">
+        <circle cx="${x}" cy="${y}" r="10" fill="transparent"/>
+        <circle cx="${x}" cy="${y}" r="${isEditing ? 5 : 3.5}" fill="${color}" stroke="${isEditing ? '#fff' : '#12111a'}" stroke-width="1.4"/>
+        <text x="${x}" y="${labelY}" text-anchor="middle" font-size="7.5" fill="${color}" font-family="sans-serif" font-weight="600">${e.value}${e.unit || unit}</text>
+      </g>`;
+    }).join('');
+    chartSVG = `<svg viewBox="0 0 ${W} ${H+20}" xmlns="http://www.w3.org/2000/svg" style="width:100%;overflow:visible">
+      <defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.25"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+      <polygon points="${areaPoints}" fill="url(#mg)"/>
+      <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dotLabels}${dateLabels}
+    </svg>`;
+  }
+
+  const latest = entries[entries.length - 1];
+
+  const inputRow = editEntry ? `
+    <div style="font-size:12px;color:${color};font-weight:600;margin-bottom:8px;text-align:center">Editing ${fmtDate(editEntry.date)}</div>
+    <input type="number" id="measurement-input" value="${editEntry.value}" step="0.1" min="0" inputmode="decimal"
+      style="display:block;width:100%;padding:16px 12px;border-radius:12px;border:2px solid ${color}88;background:var(--bg-card);color:var(--text);font-size:32px;font-weight:700;box-sizing:border-box;text-align:center">
+    <select id="measurement-unit" style="display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:15px">
+      <option value="in" ${(editEntry.unit || unit) === 'in' ? 'selected' : ''}>inches</option>
+      <option value="cm" ${(editEntry.unit || unit) === 'cm' ? 'selected' : ''}>centimeters</option>
+    </select>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="MQ._saveMeasurement('${muscle}','${editEntry.date}')" style="flex:1;padding:12px;border-radius:10px;border:none;background:${color};color:#fff;font-size:15px;font-weight:700;cursor:pointer">Save</button>
+      <button onclick="MQ._deleteMeasurement('${muscle}','${editEntry.date}')" style="padding:12px 16px;border-radius:10px;border:1px solid #f4433655;background:#f4433618;color:#f44336;font-size:15px;font-weight:600;cursor:pointer">Delete</button>
+      <button onclick="MQ.showMeasurementGraph('${muscle}')" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--muted);font-size:14px;cursor:pointer">Cancel</button>
+    </div>` : `
+    <input type="number" id="measurement-input" placeholder="e.g. 15.5" step="0.1" min="0" inputmode="decimal"
+      style="display:block;width:100%;padding:16px 12px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);color:var(--text);font-size:32px;font-weight:700;box-sizing:border-box;text-align:center">
+    <select id="measurement-unit" style="display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:15px">
+      <option value="in" ${unit === 'in' ? 'selected' : ''}>inches</option>
+      <option value="cm" ${unit === 'cm' ? 'selected' : ''}>centimeters</option>
+    </select>
+    <button onclick="MQ._saveMeasurement('${muscle}')" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;background:${color};color:#fff;font-size:15px;font-weight:700;cursor:pointer">Log Today's Measurement</button>`;
+
+  document.getElementById('measurement-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'measurement-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);padding:20px';
+  modal.innerHTML = `
+    <div style="background:#1a1d2e;border-radius:18px;width:100%;max-width:400px;padding:22px 22px 24px;box-shadow:0 8px 48px rgba(0,0,0,0.85)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:var(--text)">${latest ? latest.value + (latest.unit || unit) : '—'} <span style="font-size:14px;font-weight:400;color:${color}">latest</span></div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">${info.name} Measurement</div>
+        </div>
+        <button onclick="document.getElementById('measurement-modal').remove()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      <div style="margin:16px 0 8px">${chartSVG}</div>
+      <div style="margin-top:12px;padding-top:14px;border-top:1px solid var(--border)">${inputRow}</div>
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">${entries.length} measurement${entries.length !== 1 ? 's' : ''} logged${entries.length ? ' · tap a dot to edit or delete' : ''}</div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function _saveMeasurement(muscle, editDate) {
+  const input = document.getElementById('measurement-input');
+  const unitSel = document.getElementById('measurement-unit');
+  const value = parseFloat(input?.value);
+  if (!value || value <= 0) { toast('Enter a valid measurement'); return; }
+  const unit = unitSel?.value || 'in';
+  state.measurementUnit = unit;
+  if (!state.measurements) state.measurements = [];
+  const date = editDate || todayStr();
+  const existingIdx = state.measurements.findIndex(e => e.muscle === muscle && e.date === date);
+  if (existingIdx >= 0) state.measurements[existingIdx] = { muscle, date, value, unit };
+  else state.measurements.push({ muscle, date, value, unit });
+  saveWithPin();
+  toast(`${editDate ? 'Updated' : 'Logged'} ${value}${unit} for ${MUSCLES[muscle]?.name || muscle}`);
+  showMeasurementGraph(muscle);
+}
+
+function _deleteMeasurement(muscle, date) {
+  state.measurements = (state.measurements || []).filter(e => !(e.muscle === muscle && e.date === date));
+  saveWithPin();
+  toast('Measurement deleted');
+  showMeasurementGraph(muscle);
+}
+
+function _buildBackAvatarSVG(overrideTatId) {
+  const female = (state.gender || 'male') === 'female';
+  const mhclr = HAIR_COLORS[state.hairColor ?? 0];
+  const hc = mhclr.c1, hd = mhclr.c2;
+  const mskn = SKIN_TONES[state.skinTone ?? 1];
+  const skin = mskn.s1, skinD = mskn.s4;
+  const hair = state.hair || (female ? 'space_buns' : 'default');
+
+  // Relaxed arms-at-sides pose (same coords as front pose 1)
+  const lU = [40,40,34,58], lF = [34,58,32,70];
+  const rU = [60,40,66,58], rF = [66,58,68,70];
+
+  // Hair hanging down behind the head (rendered before head so head covers the top)
+  let hairDown = '';
+  if (hair === 'space_buns') {
+    hairDown = `<circle cx="40" cy="13" r="7" fill="${hc}"/><circle cx="60" cy="13" r="7" fill="${hc}"/>`;
+  } else if (['pigtails','double_bun','low_pigtails'].includes(hair)) {
+    hairDown = `<path d="M38 24 Q28 46 30 66" stroke="${hc}" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <path d="M62 24 Q72 46 70 66" stroke="${hc}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  } else if (['long','wavy','box_braids','cornrows','afro_puffs'].includes(hair)) {
+    hairDown = `<path d="M40 24 Q35 52 37 74" stroke="${hc}" stroke-width="9" fill="none" stroke-linecap="round" opacity="0.9"/>
+                <path d="M50 26 Q50 56 50 78" stroke="${hd}" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.85"/>
+                <path d="M60 24 Q65 52 63 74" stroke="${hc}" stroke-width="9" fill="none" stroke-linecap="round" opacity="0.9"/>`;
+  } else if (hair === 'afro') {
+    hairDown = `<ellipse cx="50" cy="14" rx="18" ry="17" fill="${hc}"/>`;
+  }
+
+  // Hair crown visible on the back of the head (rendered after head)
+  let hairCrown = '';
+  if (hair === 'afro') {
+    hairCrown = `<ellipse cx="50" cy="14" rx="18" ry="15" fill="${hc}" opacity="0.6"/>`;
+  } else if (['buzz','crew','taper_fade','undercut','pompadour','mohawk','slick_back','high_top'].includes(hair)) {
+    hairCrown = `<path d="M37 22 Q37 8 50 7 Q63 8 63 22" fill="${hc}"/>`;
+  } else {
+    // Default: standard back-of-head hair shape
+    hairCrown = `<path d="M37 22 Q37 8 50 7 Q63 8 63 22" fill="${hc}"/>`;
+  }
+
+  // Bra straps visible on female back
+  const torsoBack = female
+    ? `<rect x="44" y="37" width="3" height="20" rx="1.5" fill="#2a2a3e" opacity="0.6"/>
+       <rect x="53" y="37" width="3" height="20" rx="1.5" fill="#2a2a3e" opacity="0.6"/>
+       <rect x="40" y="50" width="20" height="2" rx="1" fill="#2a2a3e" opacity="0.5"/>`
+    : `<line x1="50" y1="37" x2="50" y2="60" stroke="${skinD}" stroke-width="0.8" opacity="0.3"/>`;
+
+  // Shoes/feet from back (same as front)
+  const shoesBack = `
+    <rect x="39" y="100" width="10" height="5" rx="2" fill="${skinD}" opacity="0.8"/>
+    <rect x="51" y="100" width="10" height="5" rx="2" fill="${skinD}" opacity="0.8"/>`;
+
+  return `<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" class="mini-avatar">
+    ${hairDown}
+    <!-- Arms back (tricep side visible) -->
+    <line x1="${lU[0]}" y1="${lU[1]}" x2="${lU[2]}" y2="${lU[3]}" stroke-width="10" stroke="${skin}" stroke-linecap="round"/>
+    <line x1="${lF[0]}" y1="${lF[1]}" x2="${lF[2]}" y2="${lF[3]}" stroke-width="8" stroke="${skinD}" stroke-linecap="round"/>
+    <line x1="${rU[0]}" y1="${rU[1]}" x2="${rU[2]}" y2="${rU[3]}" stroke-width="10" stroke="${skin}" stroke-linecap="round"/>
+    <line x1="${rF[0]}" y1="${rF[1]}" x2="${rF[2]}" y2="${rF[3]}" stroke-width="8" stroke="${skinD}" stroke-linecap="round"/>
+    <!-- Back torso -->
+    <rect x="40" y="36" width="20" height="26" rx="6" fill="${skin}"/>
+    ${torsoBack}
+    <!-- Shorts back -->
+    <rect x="38" y="60" width="24" height="10" rx="3" fill="#1a1a2e"/>
+    <line x1="50" y1="60" x2="50" y2="70" stroke="#2a2a4e" stroke-width="0.8"/>
+    <!-- Legs back -->
+    <rect x="39" y="69" width="10" height="20" rx="4" fill="${skin}"/>
+    <rect x="51" y="69" width="10" height="20" rx="4" fill="${skin}"/>
+    <!-- Calves back -->
+    <rect x="40" y="87" width="8" height="14" rx="3" fill="${skinD}"/>
+    <rect x="52" y="87" width="8" height="14" rx="3" fill="${skinD}"/>
+    ${shoesBack}
+    <!-- Neck back -->
+    <rect x="47" y="30" width="6" height="8" rx="3" fill="${skinD}"/>
+    <!-- Back tattoo -->
+    ${(()=>{const tid=overrideTatId||state.tattoo;const t=(window._TATTOOS||[]).find(x=>x.id===tid);return t?.placement==='back'?`<g opacity="0.88">${t.svg}</g>`:''})()}
+    <!-- Head back (no face) -->
+    <ellipse cx="50" cy="22" rx="13" ry="14" fill="${skin}"/>
+    ${hairCrown}
+  </svg>`;
+}
+
+function renderVolumeBody(muscleSets) {
+  const maxS = 20;
+  const col = k => MUSCLES[k]?.color || '#888';
+  // Untrained muscles still get a faint ghost opacity so their tap target is visible, not invisible
+  const op = k => muscleSets[k] ? Math.min(0.82, 0.22 + (muscleSets[k] / maxS) * 0.60) : 0.07;
+  // Every muscle region is clickable — tapping opens its measurement log/graph, regardless of training volume
+  const hit = (muscle, svgFrag) => `<g onclick="MQ.showMeasurementGraph('${muscle}')" style="cursor:pointer" pointer-events="all">${svgFrag}</g>`;
+
+  // Overlays use same mini-avatar coordinate space: viewBox "0 0 100 110"
+  const frontOverlay = [
+    hit('shoulders', `<ellipse cx="40" cy="39" rx="5" ry="5" fill="${col('shoulders')}" opacity="${op('shoulders').toFixed(2)}"/>
+    <ellipse cx="60" cy="39" rx="5" ry="5" fill="${col('shoulders')}" opacity="${op('shoulders').toFixed(2)}"/>`),
+    hit('chest', `<rect x="39" y="36" width="22" height="14" rx="3" fill="${col('chest')}" opacity="${op('chest').toFixed(2)}"/>`),
+    hit('biceps', `<ellipse cx="36" cy="49" rx="5" ry="9" fill="${col('biceps')}" opacity="${op('biceps').toFixed(2)}"/>
+    <ellipse cx="64" cy="49" rx="5" ry="9" fill="${col('biceps')}" opacity="${op('biceps').toFixed(2)}"/>`),
+    hit('abs', `<rect x="40" y="50" width="20" height="11" rx="2" fill="${col('abs')}" opacity="${op('abs').toFixed(2)}"/>`),
+    hit('quads', `<rect x="38" y="68" width="12" height="20" rx="3" fill="${col('quads')}" opacity="${op('quads').toFixed(2)}"/>
+    <rect x="50" y="68" width="12" height="20" rx="3" fill="${col('quads')}" opacity="${op('quads').toFixed(2)}"/>`),
+    hit('calves', `<rect x="39" y="86" width="10" height="14" rx="2" fill="${col('calves')}" opacity="${op('calves').toFixed(2)}"/>
+    <rect x="51" y="86" width="10" height="14" rx="2" fill="${col('calves')}" opacity="${op('calves').toFixed(2)}"/>`),
+  ].join('');
+
+  const backOverlay = [
+    hit('shoulders', `<ellipse cx="40" cy="39" rx="5" ry="5" fill="${col('shoulders')}" opacity="${op('shoulders').toFixed(2)}"/>
+    <ellipse cx="60" cy="39" rx="5" ry="5" fill="${col('shoulders')}" opacity="${op('shoulders').toFixed(2)}"/>`),
+    hit('back', `<rect x="38" y="36" width="24" height="22" rx="3" fill="${col('back')}" opacity="${op('back').toFixed(2)}"/>`),
+    hit('triceps', `<ellipse cx="36" cy="49" rx="5" ry="9" fill="${col('triceps')}" opacity="${op('triceps').toFixed(2)}"/>
+    <ellipse cx="64" cy="49" rx="5" ry="9" fill="${col('triceps')}" opacity="${op('triceps').toFixed(2)}"/>`),
+    hit('glutes', `<rect x="37" y="59" width="26" height="12" rx="3" fill="${col('glutes')}" opacity="${op('glutes').toFixed(2)}"/>`),
+    hit('hamstrings', `<rect x="38" y="68" width="12" height="20" rx="3" fill="${col('hamstrings')}" opacity="${op('hamstrings').toFixed(2)}"/>
+    <rect x="50" y="68" width="12" height="20" rx="3" fill="${col('hamstrings')}" opacity="${op('hamstrings').toFixed(2)}"/>`),
+    hit('calves', `<rect x="39" y="86" width="10" height="14" rx="2" fill="${col('calves')}" opacity="${op('calves').toFixed(2)}"/>
+    <rect x="51" y="86" width="10" height="14" rx="2" fill="${col('calves')}" opacity="${op('calves').toFixed(2)}"/>`),
+  ].join('');
+
+  const inject = (svgStr, overlay) =>
+    svgStr.replace('</svg>', `<g>${overlay}</g></svg>`);
+
+  const frontSVG = inject(renderMiniAvatarSVG(
+    state.gender || 'male', state.equippedCosmetics || [], 0, state.name || '',
+    state.hair || 'default', state.skinTone ?? 1, state.hairColor ?? 0, null, 1
+  ), frontOverlay);
+
+  const backSVG = inject(_buildBackAvatarSVG(), backOverlay);
+
+  const latestW = (state.weightLog || []).slice().sort((a, b) => a.date.localeCompare(b.date)).pop();
+  const weightWidget = `
+    <div class="volume-weight-widget" onclick="MQ.showWeightGraph()">
+      <div style="font-size:9px;color:#888;letter-spacing:1px;margin-bottom:6px;font-weight:600">WEIGHT</div>
+      <i class="ti ti-scale" style="font-size:22px;color:#7c4dff;display:block;margin-bottom:4px"></i>
+      <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap">${latestW ? latestW.value + (latestW.unit || state.weightUnit || 'lbs') : '—'}</div>
+      <div style="font-size:9px;color:var(--muted);margin-top:2px;white-space:nowrap">${latestW ? 'tap to log' : 'tap to start'}</div>
+    </div>`;
+
+  return `<div style="display:flex;gap:10px;justify-content:center;align-items:center">
+    <div style="text-align:center;min-width:0">
+      <div style="font-size:9px;color:#888;letter-spacing:1px;margin-bottom:8px;font-weight:600">FRONT</div>
+      <div style="width:min(270px, 36vw)">${frontSVG}</div>
+    </div>
+    ${weightWidget}
+    <div style="text-align:center;min-width:0">
+      <div style="font-size:9px;color:#888;letter-spacing:1px;margin-bottom:8px;font-weight:600">BACK</div>
+      <div style="width:min(270px, 36vw)">${backSVG}</div>
+    </div>
+  </div>`;
+}
+
+// ─── Friends Feed (Firebase-powered) ───
+async function renderFriendsFeed() {
+  const container = document.getElementById('friends-feed');
+
+  if (!db) {
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px">Connect Firebase to see friend activity.</p>';
+    return;
+  }
+
+  try {
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:16px">Loading...</p>';
+    const snapshot = await db.collection('users')
+      .orderBy('_lastActive', 'desc')
+      .limit(20)
+      .get();
+
+    const activities = [];
+    snapshot.forEach(doc => {
+      if (doc.id === currentUser) return;
+      const d = doc.data();
+      if (d._private) return;
+      if (!d.workoutLog || !d.workoutLog.length) return;
+      const recent = d.workoutLog.filter(e => {
+        const daysAgo = (Date.now() - new Date(e.date).getTime()) / 86400000;
+        return daysAgo < 7;
+      });
+      recent.forEach(e => {
+        activities.push({
+          name: d._leaderboardName || doc.id,
+          initials: (d._leaderboardName || doc.id).slice(0, 2).toUpperCase(),
+          date: e.date,
+          muscle: e.muscle,
+          xp: e.xp,
+        });
+      });
+    });
+
+    if (!activities.length) {
+      container.innerHTML = '<p class="muted" style="text-align:center;padding:32px">No friend activity this week.</p>';
+      return;
+    }
+
+    const byDate = {};
+    activities.forEach(a => {
+      if (!byDate[a.date]) byDate[a.date] = [];
+      byDate[a.date].push(a);
+    });
+
+    const colors = ['#f44336','#9c27b0','#4caf50','#ff9800','#2196f3','#e91e63','#00bcd4','#ff5722'];
+    container.innerHTML = Object.entries(byDate).sort((a,b) => b[0].localeCompare(a[0])).map(([date, acts]) => `
+      <div class="friend-day">
+        <div class="friend-date">${formatDate(date + 'T12:00:00')}</div>
+        ${acts.map((a, i) => `
+          <div class="friend-activity">
+            <div class="friend-avatar" style="background:${colors[i % colors.length]}22;color:${colors[i % colors.length]}">${esc(a.initials)}</div>
+            <div class="friend-activity-info">
+              <div class="friend-name">${esc(a.name)}</div>
+              <div class="friend-summary">Trained ${MUSCLES[a.muscle]?.name || a.muscle}</div>
+            </div>
+            <div class="friend-xp">+${a.xp} XP</div>
+          </div>`).join('')}
+      </div>`).join('');
+  } catch (e) {
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px">Could not load friend activity.</p>';
+  }
+}
+
+// ─── Quests Tab ───
+// Base (Tier 1) per-muscle bonuses. Tier 2/3 scale these by EQUIPMENT_TIER_MULT rather
+// than storing separate maps, so the numbers here always match store.js's tier-1
+// cost/bonus text — keep the two in sync if either changes. foam_roller's cardio bonus
+// is new as of the tiering pass: it previously had no entry here at all despite its
+// display copy promising one, so tiering it meant actually giving it real numbers.
+const EQUIPMENT_BASE_BONUSES = {
+  pull_up_bar:   { back: 0.10, biceps: 0.05 },
+  dip_bar:       { triceps: 0.10, chest: 0.05 },
+  assault_bike:  { cardio: 0.20, shoulders: 0.08 },
+  dumbbells:     { biceps: 0.10, triceps: 0.10, shoulders: 0.05 },
+  flat_bench:    { chest: 0.10, triceps: 0.05 },
+  squat_rack:    { quads: 0.10, glutes: 0.10, hamstrings: 0.05 },
+  treadmill:     { cardio: 0.15 },
+  cable_machine: { chest: 0.05, back: 0.05, shoulders: 0.05, triceps: 0.05 },
+  kettlebell:    { abs: 0.10, glutes: 0.05 },
+  foam_roller:   { cardio: 0.05 },
+};
+const EQUIPMENT_TIER_MULT = [1, 1.6, 2.2]; // index 0 = Tier 1, 1 = Tier 2, 2 = Tier 3
+
+// Legacy saves stored `true` for "owned" before tiers existed — treat that as Tier 1.
+function getEquipmentTier(eqId) {
+  const v = (state.equipment || {})[eqId];
+  if (!v) return 0;
+  if (v === true) return 1;
+  return Math.max(1, Math.min(3, Number(v) || 1));
+}
+
+function getEquipmentXPBonus(muscleKey) {
+  let bonus = 0;
+  for (const [eqId, bonusMap] of Object.entries(EQUIPMENT_BASE_BONUSES)) {
+    const tier = getEquipmentTier(eqId);
+    if (tier > 0 && bonusMap[muscleKey]) bonus += bonusMap[muscleKey] * EQUIPMENT_TIER_MULT[tier - 1];
+  }
+  return bonus;
+}
+
+// Builds "+16% Back XP, +8% Biceps XP" style text for an OWNED item at its current
+// tier — used by the Home Gym scene's tap popup, which only ever shows owned items
+// (unowned equipment renders locked/untappable, see the `gi-lock` branch below).
+function _formatOwnedEquipmentBonusText(eqId) {
+  const tier = getEquipmentTier(eqId);
+  const base = EQUIPMENT_BASE_BONUSES[eqId];
+  if (!tier || !base) return '';
+  const mult = EQUIPMENT_TIER_MULT[tier - 1];
+  return Object.entries(base)
+    .map(([muscleKey, pct]) => `+${Math.round(pct * mult * 100)}% ${MUSCLES[muscleKey]?.name || muscleKey} XP`)
+    .join(', ');
+}
+
+function renderHomeGym() {
+  const el = document.getElementById('home-gym-section');
+  if (!el) return;
+  const eq = state.equipment || {};
+  const ach = state.achievements || [];
+  const bbRaw = JSON.parse(localStorage.getItem('musclequest_bbcomp') || '{}');
+  const bbWins = bbRaw.totalWins || 0;
+
+  const medals = [
+    { label: 'Bronze', won: bbWins >= 1,  icon: '🥉' },
+    { label: 'Silver', won: bbWins >= 5,  icon: '🥈' },
+    { label: 'Gold',   won: bbWins >= 10, icon: '🥇' },
+  ];
+  const earnedMedals = medals.filter(m => m.won);
+
+  // Bonus text is computed live from the owned tier (_formatOwnedEquipmentBonusText)
+  // rather than hardcoded, so upgrading in the Iron Depot shows up here immediately.
+  const EQ_LABELS = {
+    mirror:        'Gym Mirror',
+    pull_up_bar:   'Pull-Up Bar',
+    dip_bar:       'Dip/Pull-Up Station',
+    flat_bench:    'Flat Bench',
+    squat_rack:    'Squat Rack',
+    cable_machine: 'Cable Machine',
+    treadmill:     'Treadmill',
+    dumbbells:     'Dumbbells',
+    kettlebell:    'Kettlebell',
+    foam_roller:   'Foam Roller',
+    assault_bike:  'Assault Air Bike',
+  };
+  const EQ_INFO = {};
+  for (const [id, label] of Object.entries(EQ_LABELS)) {
+    const tier = getEquipmentTier(id);
+    const tierTag = tier > 1 ? ` (Tier ${tier})` : '';
+    EQ_INFO[id] = {
+      label: label + tierTag,
+      bonus: id === 'mirror' ? 'Check your form — every gym has one 💪' : _formatOwnedEquipmentBonusText(id),
+    };
+  }
+
+  const gender = state.gender || 'male';
+  const cosmetics = state.equippedCosmetics || [];
+  const hair = state.hair || (gender === 'female' ? 'space_buns' : 'default');
+  const avatarSVG = renderMiniAvatarSVG(gender, cosmetics, 0, state.name || 'You', hair, state.skinTone ?? 1, state.hairColor ?? 0);
+
+  // Equipment positions: {left%, bottom%, size(px), flip(face left)}
+  // SVG viewBox 0 0 440 440. bottom% = (440-feetY)/440*100
+  // Back wall (feetY≈175): bottom≈60%, size≈30px
+  // Mid row  (feetY≈290): bottom≈34%, size≈52px
+  // Front row(feetY≈415): bottom≈6%,  size≈80px
+  const GYM_POS = {
+    mirror:        { left: 24,  bottom: 60, size: 28, flip: false },
+    squat_rack:    { left: 28,  bottom: 57, size: 40, flip: false },
+    pull_up_bar:   { left: 56,  bottom: 53, size: 42, flip: false },
+    dip_bar:       { left: 79,  bottom: 55, size: 36, flip: true  },
+    flat_bench:    { left: 24,  bottom: 37, size: 52, flip: true  },
+    dumbbells:     { left: 47,  bottom: 32, size: 54, flip: false },
+    cable_machine: { left: 76,  bottom: 33, size: 52, flip: true  },
+    treadmill:     { left: 20,  bottom: 5,  size: 80, flip: false },
+    assault_bike:  { left: 77,  bottom: 15, size: 50, flip: true  },
+    kettlebell:    { left: 88,  bottom: 5,  size: 76, flip: false },
+    foam_roller:   { left: 48,  bottom: 10, size: 64, flip: false },
+  };
+  const GYM_HOME = { left: 46.6, bottom: 5.5, size: 80, flip: false };
+
+  window._gymEqInfo = EQ_INFO;
+  window._gymPos = GYM_POS;
+  window._gymHome = GYM_HOME;
+  const _skn = SKIN_TONES[Math.min(state.skinTone ?? 1, SKIN_TONES.length - 1)];
+  window._gymPD = { skin: _skn.s1, skinD: _skn.s4 };
+
+  const GYM_ANIM = {
+    mirror:        { cls:'gym-flex',   dur:'1.4s',  label:'Flexing in the mirror 💪'        },
+    pull_up_bar:   { cls:'gym-pullup', dur:'.85s',  label:'Doing pull-ups...'               },
+    dip_bar:       { cls:'gym-dip',    dur:'1.4s',  label:'Hanging leg raises...'           },
+    squat_rack:    { cls:'gym-squat',  dur:'1.5s',  label:'Squatting heavy...'              },
+    flat_bench:    { cls:'gym-bench',  dur:'1.6s',  label:'Bench pressing...'               },
+    dumbbells:     { cls:'gym-curl',   dur:'.95s',  label:'Curling dumbbells...'            },
+    cable_machine: { cls:'gym-cable',  dur:'1.1s',  label:'Cable rows...'                   },
+    treadmill:     { cls:'gym-run',    dur:'.38s',  label:'Running on the treadmill...'     },
+    assault_bike:  { cls:'gym-bike',   dur:'.5s',   label:'Crushing the assault bike...'   },
+    kettlebell:    { cls:'gym-swing',  dur:'1.2s',  label:'Swinging the kettlebell...'      },
+    foam_roller:   { cls:'gym-roll',   dur:'2s',    label:'Rolling out the soreness...'     },
+  };
+  window._gymAnim = GYM_ANIM;
+
+  function getGymOverlaySVG(id) {
+    const pd = window._gymPD || { skin: '#e8a87c', skinD: '#c07050' };
+    const s = pd.skin, d = pd.skinD;
+    const wrap = (content, anim) =>
+      `<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible">
+        <style>
+          .oa { animation: ${anim} }
+        </style>
+        ${content}
+      </svg>`;
+
+    if (id === 'pull_up_bar') return wrap(`
+      <!-- Upper arms: shoulder(40,40)→elbow, shoulder(60,40)→elbow -->
+      <line x1="40" y1="40" x2="35" y2="16" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="35" y1="16" x2="32" y2="3"  stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+      <line x1="60" y1="40" x2="65" y2="16" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="65" y1="16" x2="68" y2="3"  stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+      <!-- Pull-up bar across wrists -->
+      <line x1="24" y1="3" x2="76" y2="3" stroke="#8d6e63" stroke-width="5" stroke-linecap="round"/>
+    `, 'none');
+
+    if (id === 'squat_rack') return wrap(`
+      <!-- Barbell sitting on traps (y=36 = top of torso/shoulder) -->
+      <line x1="8"  y1="36" x2="92" y2="36" stroke="#9e9e9e" stroke-width="4" stroke-linecap="round"/>
+      <!-- Plates -->
+      <rect x="4"  y="29" width="6" height="14" rx="2" fill="#555"/>
+      <rect x="90" y="29" width="6" height="14" rx="2" fill="#555"/>
+      <rect x="4"  y="31" width="4" height="10" rx="1" fill="#b71c1c" opacity=".85"/>
+      <rect x="90" y="31" width="4" height="10" rx="1" fill="#b71c1c" opacity=".85"/>
+      <!-- Arms draped over bar -->
+      <line x1="40" y1="40" x2="22" y2="36" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="22" y1="36" x2="12" y2="36" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+      <line x1="60" y1="40" x2="78" y2="36" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="78" y1="36" x2="88" y2="36" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+    `, 'none');
+
+    if (id === 'flat_bench') return wrap(`
+      <!-- Body is rotated 90deg CW; arms must reach RIGHT in SVG space to appear UP on screen -->
+      <g class="oa" style="transform-origin:50px 40px">
+        <!-- Left arm: shoulder(40,40)→elbow→wrist reaching right -->
+        <line x1="40" y1="40" x2="80" y2="32" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+        <line x1="80" y1="32" x2="92" y2="29" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+        <!-- Right arm: shoulder(60,40)→elbow→wrist -->
+        <line x1="60" y1="40" x2="80" y2="48" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+        <line x1="80" y1="48" x2="92" y2="51" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+        <!-- Barbell: vertical line in SVG = horizontal bar above body on screen -->
+        <line x1="92" y1="20" x2="92" y2="60" stroke="#9e9e9e" stroke-width="3.5" stroke-linecap="round"/>
+        <rect x="88" y="14" width="8" height="8" rx="2" fill="#555"/>
+        <rect x="88" y="58" width="8" height="8" rx="2" fill="#555"/>
+        <rect x="88" y="15" width="6" height="6" rx="1" fill="#b71c1c" opacity=".8"/>
+        <rect x="88" y="59" width="6" height="6" rx="1" fill="#b71c1c" opacity=".8"/>
+      </g>
+    `, 'arm-bench-press 1.6s ease-in-out infinite');
+
+    if (id === 'cable_machine') return wrap(`
+      <!-- Cable machine: char faces left (scaleX flipped), so extend arms leftward in SVG space -->
+      <g class="oa" style="transform-origin:50px 40px">
+        <!-- Both arms extended toward cable (left = toward machine after flip) -->
+        <line x1="40" y1="40" x2="18" y2="36" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+        <line x1="18" y1="36" x2="6"  y2="37" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+        <line x1="60" y1="40" x2="30" y2="44" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+        <line x1="30" y1="44" x2="18" y2="46" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+      </g>
+    `, 'arm-cable-pull 1.1s ease-in-out infinite');
+
+    if (id === 'kettlebell') return wrap(`
+      <g class="oa" style="transform-origin:50px 50px">
+        <!-- Both arms angled down together, meeting at hands -->
+        <line x1="40" y1="40" x2="46" y2="56" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+        <line x1="60" y1="40" x2="54" y2="56" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+        <line x1="46" y1="56" x2="48" y2="65" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+        <line x1="54" y1="56" x2="52" y2="65" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+        <!-- Kettlebell handle + ball -->
+        <path d="M43 71 Q41 66 43 61 Q46 57 50 57 Q54 57 57 61 Q59 66 57 71 Z" fill="#263238" stroke="#37474f" stroke-width="1"/>
+        <ellipse cx="50" cy="79" rx="11" ry="8" fill="#37474f"/>
+        <ellipse cx="50" cy="76" rx="11" ry="5" fill="#455a64"/>
+      </g>
+    `, 'arm-kettlebell-swing 1.2s ease-in-out infinite');
+
+    if (id === 'dip_bar') return wrap(`
+      <!-- Arms pressing down on Roman chair pads (pads are at sides, y≈42) -->
+      <line x1="40" y1="40" x2="22" y2="43" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="22" y1="43" x2="12" y2="45" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+      <line x1="60" y1="40" x2="78" y2="43" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="78" y1="43" x2="88" y2="45" stroke="${d}" stroke-width="7" stroke-linecap="round"/>
+    `, 'none');
+
+    if (id === 'dumbbells') return `<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible">
+      <style>
+        @keyframes curl-L { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(-62deg)} }
+        @keyframes curl-R { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(62deg)} }
+        .cL { animation: curl-L .95s ease-in-out infinite; transform-origin: 34px 66px; }
+        .cR { animation: curl-R .95s ease-in-out infinite; transform-origin: 66px 66px; }
+      </style>
+      <line x1="40" y1="40" x2="34" y2="66" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+      <g class="cL">
+        <line x1="34" y1="66" x2="26" y2="90" stroke="${s}" stroke-width="8" stroke-linecap="round"/>
+        <line x1="26" y1="90" x2="20" y2="92" stroke="${d}" stroke-width="6" stroke-linecap="round"/>
+        <rect x="12" y="87" width="10" height="10" rx="3" fill="#263238"/>
+        <rect x="18" y="85" width="5"  height="14" rx="1" fill="#455a64"/>
+      </g>
+      <line x1="60" y1="40" x2="66" y2="66" stroke="${s}" stroke-width="9" stroke-linecap="round"/>
+      <g class="cR">
+        <line x1="66" y1="66" x2="74" y2="90" stroke="${s}" stroke-width="8" stroke-linecap="round"/>
+        <line x1="74" y1="90" x2="80" y2="92" stroke="${d}" stroke-width="6" stroke-linecap="round"/>
+        <rect x="78" y="87" width="10" height="10" rx="3" fill="#263238"/>
+        <rect x="77" y="85" width="5"  height="14" rx="1" fill="#455a64"/>
+      </g>
+    </svg>`;
+
+    return null;
+  }
+
+  window.gymTap = function(id) {
+    const info = window._gymEqInfo[id];
+    if (!info) return;
+
+    const char  = document.getElementById('gym-char');
+    const inner = char && char.querySelector('.gym-inner');
+    const pos   = window._gymPos[id];
+    const anim  = window._gymAnim[id];
+    const panel = document.getElementById('gw-info');
+    if (!char || !pos || !inner) return;
+
+    if (panel) panel.innerHTML = `<div class="gw-info-name">${info.label}</div><div class="gw-info-bonus">${info.bonus}</div>`;
+
+    const fromLeft = parseFloat(char.style.left) || window._gymHome.left;
+    const facingRight = pos.left > fromLeft;
+
+    // Walk phase — move inner to walk animation, flip outer for direction
+    inner.style.animation = 'gymwalk .35s ease-in-out infinite';
+    char.style.transform  = `translateX(-50%)${facingRight ? '' : ' scaleX(-1)'}`;
+
+    clearTimeout(char._rt);
+    char._rt = setTimeout(() => {
+      char.style.left   = pos.left   + '%';
+      char.style.bottom = pos.bottom + '%';
+      char.style.width  = pos.size   + 'px';
+      setTimeout(() => {
+        // Arrive — face equipment then start exercise animation
+        char.style.transform = `translateX(-50%)${pos.flip ? ' scaleX(-1)' : ''}`;
+        if (anim) {
+          inner.style.animation = `${anim.cls} ${anim.dur} ease-in-out infinite`;
+          if (panel) panel.innerHTML = `<div class="gw-info-name">${info.label}</div><div class="gw-info-bonus">${anim.label}</div>`;
+        } else {
+          inner.style.animation = 'gymcb 1.1s ease-in-out infinite';
+        }
+        // Inject arm/equipment overlay
+        inner.querySelector('.gym-arm-overlay')?.remove();
+        inner.classList.remove('has-arm-overlay');
+        const overlayHTML = getGymOverlaySVG(id);
+        if (overlayHTML) {
+          const ov = document.createElement('div');
+          ov.className = 'gym-arm-overlay';
+          ov.innerHTML = overlayHTML;
+          inner.appendChild(ov);
+          inner.classList.add('has-arm-overlay');
+        }
+        char._rt = null;
+      }, 560);
+    }, 60);
+  };
+
+  window.gymShowMedal = function(icon, label) {
+    const MEDAL_DESC = {
+      '🥉': 'Bronze — Win your first bodybuilding show',
+      '🥈': 'Silver — Win 5 bodybuilding shows',
+      '🥇': 'Gold — Win 10 bodybuilding shows',
+    };
+    const panel = document.getElementById('gw-info');
+    if (panel) panel.innerHTML = `<div class="gw-info-name">${icon} ${label}</div><div class="gw-info-bonus">${MEDAL_DESC[icon] || 'Competition trophy'}</div>`;
+  };
+
+  window.gymReset = function() {
+    const char  = document.getElementById('gym-char');
+    const inner = char && char.querySelector('.gym-inner');
+    const home  = window._gymHome;
+    if (!char) return;
+    clearTimeout(char._rt);
+    char.style.left      = home.left   + '%';
+    char.style.bottom    = home.bottom + '%';
+    char.style.width     = home.size   + 'px';
+    char.style.transform = 'translateX(-50%)';
+    if (inner) {
+      inner.style.animation = 'gymcb 1.1s ease-in-out infinite';
+      inner.querySelector('.gym-arm-overlay')?.remove();
+      inner.classList.remove('has-arm-overlay');
+    }
+    const panel = document.getElementById('gw-info');
+    if (panel) panel.innerHTML = '<div class="gw-info-hint">Tap equipment to interact · Tap the floor to return</div>';
+  };
+
+  function gi(id) {
+    return eq[id] ? `class="gi" onclick="gymTap('${id}')"` : `class="gi-lock"`;
+  }
+
+  // Map achievement IDs to safe SVG-embeddable emoji (no HTML tags)
+  const ACH_EMOJI = { default: '⭐' };
+  function safeAchIcon(a) {
+    if (!a) return '⭐';
+    const icon = a.icon || '';
+    return icon.includes('<') ? '⭐' : (icon || '⭐');
+  }
+
+  const trophySlots = (() => {
+    const items = [...earnedMedals];
+    ach.slice(0, Math.max(0, 3 - items.length)).forEach(id => {
+      const a = ACHIEVEMENTS && ACHIEVEMENTS.find(x => x.id === id);
+      if (a) items.push({ icon: safeAchIcon(a), label: a.name });
+    });
+    return [0, 1, 2].map(i => {
+      const it = items[i];
+      const x = 178 + i * 36;
+      return it
+        ? `<text x="${x}" y="87" text-anchor="middle" font-size="20" style="cursor:pointer" onclick="gymShowMedal('${it.icon}','${it.label.replace(/'/g,"\\'")}')">${it.icon}</text>`
+        : `<text x="${x}" y="90" text-anchor="middle" font-size="13" fill="#4a3020" font-style="italic">?</text>`;
+    }).join('');
+  })();
+
+  el.innerHTML = `
+<style>
+  @keyframes gymcb    { 0%,100%{transform:translateY(0)}          50%{transform:translateY(-6px)} }
+  @keyframes gymwalk  { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-4px) rotate(2deg)} }
+  @keyframes gym-pullup { 0%,100%{transform:translateY(0)}         45%{transform:translateY(-18px)} }
+  @keyframes gym-dip    { 0%,100%{transform:translateY(0) rotate(0deg)} 45%{transform:translateY(-5px) rotate(-10deg)} }
+  @keyframes gym-squat  { 0%,100%{transform:translateY(0)}         50%{transform:translateY(10px)} }
+  @keyframes gym-bench  { 0%,100%{transform:rotate(-90deg) translateY(-4px)} 50%{transform:rotate(-90deg) translateY(6px)} }
+  @keyframes gym-curl   { 0%,100%{transform:translateY(0) rotate(0deg)}  50%{transform:translateY(-7px) rotate(5deg)} }
+  @keyframes gym-cable  { 0%,100%{transform:translateY(0) rotate(0deg)}  50%{transform:translateY(-3px) rotate(-6deg)} }
+  @keyframes gym-run    { 0%{transform:translateY(0) rotate(-5deg)} 50%{transform:translateY(-8px) rotate(4deg)} 100%{transform:translateY(0) rotate(-5deg)} }
+  @keyframes gym-bike   { 0%,100%{transform:rotate(-22deg) translateY(0)} 50%{transform:rotate(-26deg) translateY(-2px)} }
+  @keyframes gym-swing  { 0%,100%{transform:translateY(0) rotate(0deg)}  40%{transform:translateY(-15px) rotate(12deg)} }
+  @keyframes gym-roll   { 0%,100%{transform:rotate(-90deg) translateX(-4px)} 50%{transform:rotate(-90deg) translateX(5px)} }
+  @keyframes gym-flex   { 0%,100%{transform:scale(1)}                    50%{transform:scale(1.09)} }
+  #gym-char { transition: left .55s cubic-bezier(.4,0,.2,1), bottom .45s ease, width .45s ease; }
+  .gym-inner { animation: gymcb 1.1s ease-in-out infinite; position: relative; }
+  .gym-arm-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+  .gym-inner.has-arm-overlay .avatar-arm { display:none; }
+  @keyframes arm-bench-press  { 0%,100%{transform:translateX(0)}   50%{transform:translateX(10px)} }
+  @keyframes arm-cable-pull   { 0%,100%{transform:translateX(0)}   50%{transform:translateX(-12px)} }
+  @keyframes arm-kettlebell-swing { 0%,100%{transform:translateY(0) rotate(0deg)} 45%{transform:translateY(-18px) rotate(-18deg)} }
+  .gi { cursor:pointer; transition:filter .2s; }
+  .gi:hover { filter:brightness(1.22) drop-shadow(0 0 7px rgba(255,200,80,.55)); }
+  .gi-lock { pointer-events:none; filter:saturate(0) brightness(.44); }
+  .gw-info-panel { background:#1a1008; border:1px solid #5a3e1a; border-radius:0 0 12px 12px; padding:11px 14px; min-height:42px; }
+  .gw-info-name { font-weight:700; font-size:13px; color:#f0c060; }
+  .gw-info-bonus { font-size:11px; color:#aaa; margin-top:3px; }
+  .gw-info-hint { font-size:11px; color:#555; text-align:center; padding:4px 0; }
+</style>
+<div style="position:relative;line-height:0">
+<svg viewBox="0 0 440 440" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;border-radius:12px 12px 0 0">
+
+  <!-- CEILING -->
+  <polygon points="0,0 440,0 360,42 80,42" fill="#160e06"/>
+  <!-- Ceiling light strip -->
+  <line x1="80" y1="42" x2="360" y2="42" stroke="#f0c060" stroke-width="1.5" opacity=".3"/>
+  <rect x="160" y="36" width="120" height="8" rx="2" fill="#fffde7" opacity=".08"/>
+
+  <!-- BACK WALL -->
+  <rect x="80" y="42" width="280" height="118" fill="#1e1108"/>
+  <!-- Back wall wood trim -->
+  <rect x="80" y="154" width="280" height="7" fill="#5a3e1a"/>
+  <!-- Wall panel lines -->
+  <line x1="220" y1="42" x2="220" y2="154" stroke="#2a1a08" stroke-width="1.5"/>
+  <line x1="150" y1="42" x2="150" y2="154" stroke="#2a1a08" stroke-width="1"/>
+  <line x1="290" y1="42" x2="290" y2="154" stroke="#2a1a08" stroke-width="1"/>
+
+  <!-- LEFT WALL -->
+  <polygon points="0,0 80,42 80,161 0,440" fill="#1a0e06"/>
+  <line x1="0" y1="110" x2="80" y2="88" stroke="#2a1a08" stroke-width="1"/>
+  <line x1="0" y1="220" x2="80" y2="130" stroke="#2a1a08" stroke-width="1"/>
+  <!-- RIGHT WALL -->
+  <polygon points="440,0 360,42 360,161 440,440" fill="#1a0e06"/>
+
+  <!-- FLOOR (converging perspective) -->
+  <polygon points="80,161 360,161 440,440 0,440" fill="#2a1a0c"/>
+  <!-- Floor grid — converging lines to VP (220,148) -->
+  <line x1="220" y1="148" x2="0"   y2="440" stroke="#3a2410" stroke-width="1"/>
+  <line x1="220" y1="148" x2="110" y2="440" stroke="#3a2410" stroke-width="1"/>
+  <line x1="220" y1="148" x2="220" y2="440" stroke="#3a2410" stroke-width="1"/>
+  <line x1="220" y1="148" x2="330" y2="440" stroke="#3a2410" stroke-width="1"/>
+  <line x1="220" y1="148" x2="440" y2="440" stroke="#3a2410" stroke-width="1"/>
+  <!-- Horizontal floor depth lines -->
+  <line x1="58"  y1="230" x2="382" y2="230" stroke="#3a2410" stroke-width="1"/>
+  <line x1="26"  y1="308" x2="414" y2="308" stroke="#3a2410" stroke-width="1"/>
+  <line x1="0"   y1="386" x2="440" y2="386" stroke="#3a2410" stroke-width="1"/>
+
+  <!-- BACK WALL DECOR: Gym name banner -->
+  <rect x="158" y="47" width="124" height="18" rx="3" fill="#3a2208" opacity=".9"/>
+  <text x="220" y="60" text-anchor="middle" font-size="${(state.name||'').length > 7 ? 7 : (state.name||'').length > 4 ? 9 : 10}" fill="#f0c060" font-family="serif" font-weight="700" letter-spacing="2">${(state.name||'MY').toUpperCase()}'S GYM</text>
+
+  <!-- BACK WALL: Mirror (left side) — always interactive -->
+  <g class="gi" onclick="gymTap('mirror')" style="cursor:pointer">
+    <rect x="88"  y="53" width="52" height="72" rx="3" fill="#b0d8e8" opacity=".18"/>
+    <rect x="88"  y="53" width="52" height="72" rx="3" fill="none" stroke="#c8a050" stroke-width="2.5"/>
+    <line x1="93" y1="57" x2="136" y2="121" stroke="#ffffff0a" stroke-width="14"/>
+    <line x1="107" y1="55" x2="107" y2="125" stroke="#ffffff06" stroke-width="6"/>
+    <rect x="90"  y="55" width="48" height="2"  fill="#e8c870" opacity=".4"/>
+    <text x="114" y="137" text-anchor="middle" font-size="7" fill="#8a7040" letter-spacing="1">MIRROR</text>
+  </g>
+
+  <!-- BACK WALL: Trophy shelf -->
+  <rect x="166" y="92" width="108" height="5" rx="2" fill="#7a5a28"/>
+  <rect x="164" y="88" width="3"   height="18" rx="1" fill="#5a3e1a"/>
+  <rect x="275" y="88" width="3"   height="18" rx="1" fill="#5a3e1a"/>
+  ${trophySlots}
+
+  <!-- BACK WALL: Motivational poster (right) -->
+  <rect x="302" y="55" width="42" height="62" rx="2" fill="#0f1e0f"/>
+  <rect x="302" y="55" width="42" height="62" rx="2" fill="none" stroke="#3a6030" stroke-width="1.5"/>
+  <text x="323" y="74"  text-anchor="middle" font-size="8" fill="#4caf50" font-weight="700">NO</text>
+  <text x="323" y="85"  text-anchor="middle" font-size="8" fill="#4caf50" font-weight="700">DAYS</text>
+  <text x="323" y="96"  text-anchor="middle" font-size="8" fill="#4caf50" font-weight="700">OFF</text>
+  <line x1="308" y1="104" x2="338" y2="104" stroke="#3a6030" stroke-width="1"/>
+  <text x="323" y="112" text-anchor="middle" font-size="5" fill="#3a6030" letter-spacing="1">IRONLORE</text>
+
+  <!-- ══ BACK ROW — small (y ~165) ══ -->
+
+  <!-- Squat Rack back-left -->
+  <g ${gi('squat_rack')} transform="translate(100,163) scale(0.5)">
+    <rect x="4"  y="2" width="9"  height="72" rx="3" fill="${eq.squat_rack?'#66bb6a':'#555'}"/>
+    <rect x="67" y="2" width="9"  height="72" rx="3" fill="${eq.squat_rack?'#66bb6a':'#555'}"/>
+    <rect x="4"  y="2" width="72" height="8"  rx="2" fill="${eq.squat_rack?'#66bb6a':'#555'}"/>
+    <rect x="4"  y="67" width="72" height="6" rx="2" fill="${eq.squat_rack?'#4caf50':'#444'}"/>
+    <rect x="18" y="30" width="44" height="7" rx="3" fill="${eq.squat_rack?'#8d6e63':'#555'}"/>
+    ${eq.squat_rack?[26,38,50,62].map(x=>`<line x1="${x}" y1="31" x2="${x}" y2="36" stroke="#fff4" stroke-width="2.5"/>`).join(''):''}
+  </g>
+
+  <!-- Pull-up Tower back-center-right -->
+  <g ${gi('pull_up_bar')} transform="translate(216,130) scale(0.5)">
+    <!-- Left upright post -->
+    <rect x="4"  y="4"  width="9" height="108" rx="3" fill="${eq.pull_up_bar?'#546e7a':'#555'}"/>
+    <!-- Right upright post -->
+    <rect x="77" y="4"  width="9" height="108" rx="3" fill="${eq.pull_up_bar?'#546e7a':'#555'}"/>
+    <!-- Pull-up bar at top -->
+    <rect x="4"  y="4"  width="82" height="9"  rx="4" fill="${eq.pull_up_bar?'#8d6e63':'#555'}"/>
+    ${eq.pull_up_bar?[18,30,42,54,66,78].map(x=>`<line x1="${x}" y1="4" x2="${x}" y2="13" stroke="#fff4" stroke-width="2"/>`).join(''):''}
+    <!-- Dip arm bars (lower) -->
+    <rect x="2"  y="46" width="28" height="7"  rx="3" fill="${eq.pull_up_bar?'#607d8b':'#555'}"/>
+    <rect x="60" y="46" width="28" height="7"  rx="3" fill="${eq.pull_up_bar?'#607d8b':'#555'}"/>
+    <!-- Dip arm pads -->
+    <rect x="2"  y="42" width="16" height="9"  rx="3" fill="${eq.pull_up_bar?'#4a3728':'#444'}"/>
+    <rect x="72" y="42" width="16" height="9"  rx="3" fill="${eq.pull_up_bar?'#4a3728':'#444'}"/>
+    <!-- Bottom crossbar -->
+    <rect x="4"  y="106" width="82" height="6" rx="3" fill="${eq.pull_up_bar?'#455a64':'#444'}"/>
+    <!-- Base feet -->
+    <rect x="0"  y="110" width="22" height="5" rx="2" fill="${eq.pull_up_bar?'#37474f':'#444'}"/>
+    <rect x="68" y="110" width="22" height="5" rx="2" fill="${eq.pull_up_bar?'#37474f':'#444'}"/>
+  </g>
+
+  <!-- Roman chair (captain's chair) back-right -->
+  <g ${gi('dip_bar')} transform="translate(316,155) scale(0.48)">
+    <!-- Back post -->
+    <rect x="34" y="2"  width="10" height="62" rx="3" fill="${eq.dip_bar?'#546e7a':'#555'}"/>
+    <!-- Back pad -->
+    <rect x="30" y="8"  width="18" height="28" rx="4" fill="${eq.dip_bar?'#5c4033':'#555'}"/>
+    <rect x="30" y="8"  width="18" height="6"  rx="4" fill="${eq.dip_bar?'#ffffff22':'#ffffff11'}"/>
+    <!-- Seat -->
+    <rect x="20" y="56" width="38" height="10" rx="4" fill="${eq.dip_bar?'#5c4033':'#555'}"/>
+    <rect x="20" y="56" width="38" height="4"  rx="4" fill="${eq.dip_bar?'#ffffff22':'#ffffff11'}"/>
+    <!-- Left arm rest bar -->
+    <rect x="6"  y="36" width="26" height="6" rx="3" fill="${eq.dip_bar?'#546e7a':'#555'}"/>
+    <!-- Left arm pad -->
+    <rect x="6"  y="32" width="14" height="8" rx="3" fill="${eq.dip_bar?'#607d8b':'#666'}"/>
+    <!-- Right arm rest bar -->
+    <rect x="46" y="36" width="26" height="6" rx="3" fill="${eq.dip_bar?'#546e7a':'#555'}"/>
+    <!-- Right arm pad -->
+    <rect x="58" y="32" width="14" height="8" rx="3" fill="${eq.dip_bar?'#607d8b':'#666'}"/>
+    <!-- Legs -->
+    <rect x="22" y="66" width="7" height="16" rx="2" fill="${eq.dip_bar?'#455a64':'#444'}"/>
+    <rect x="49" y="66" width="7" height="16" rx="2" fill="${eq.dip_bar?'#455a64':'#444'}"/>
+    <rect x="35" y="62" width="8" height="12" rx="2" fill="${eq.dip_bar?'#455a64':'#444'}"/>
+  </g>
+
+  <!-- ══ MID ROW — medium (y ~255) ══ -->
+
+  <!-- Flat Bench mid-left -->
+  <g ${gi('flat_bench')} transform="translate(72,262) scale(0.78)">
+    <rect x="6"  y="10" width="78" height="14" rx="5" fill="${eq.flat_bench?'#5c4033':'#444'}"/>
+    <rect x="6"  y="10" width="78" height="5"  rx="5" fill="${eq.flat_bench?'#ffffff22':'#ffffff11'}"/>
+    <rect x="12" y="24" width="7"  height="22" rx="3" fill="${eq.flat_bench?'#2a2030':'#333'}"/>
+    <rect x="71" y="24" width="7"  height="22" rx="3" fill="${eq.flat_bench?'#2a2030':'#333'}"/>
+  </g>
+
+  <!-- Dumbbells mid-center-left -->
+  <g ${gi('dumbbells')} transform="translate(162,272) scale(0.74)">
+    <!-- Dumbbell 1 -->
+    <rect x="2"  y="10" width="12" height="24" rx="4" fill="${eq.dumbbells?'#455a64':'#444'}"/>
+    <rect x="14" y="15" width="22" height="14" rx="2" fill="${eq.dumbbells?'#607d8b':'#555'}"/>
+    <rect x="36" y="10" width="12" height="24" rx="4" fill="${eq.dumbbells?'#455a64':'#444'}"/>
+    <!-- Dumbbell 2 -->
+    <rect x="54" y="10" width="12" height="24" rx="4" fill="${eq.dumbbells?'#546e7a':'#444'}"/>
+    <rect x="66" y="15" width="22" height="14" rx="2" fill="${eq.dumbbells?'#78909c':'#555'}"/>
+    <rect x="88" y="10" width="12" height="24" rx="4" fill="${eq.dumbbells?'#546e7a':'#444'}"/>
+    <!-- Floor shadow -->
+    <rect x="0" y="34" width="102" height="4" rx="2" fill="#00000028"/>
+  </g>
+
+  <!-- Cable Machine mid-right -->
+  <g ${gi('cable_machine')} transform="translate(316,232) scale(0.8)">
+    <rect x="8"  y="2"  width="40" height="82" rx="5" fill="${eq.cable_machine?'#2e7d32':'#444'}"/>
+    <rect x="14" y="8"  width="28" height="24" rx="3" fill="${eq.cable_machine?'#1a4a1a':'#333'}"/>
+    <circle cx="28" cy="20" r="8" fill="none" stroke="${eq.cable_machine?'#66bb6a':'#666'}" stroke-width="2"/>
+    <circle cx="28" cy="20" r="3" fill="${eq.cable_machine?'#1a4a1a':'#333'}"/>
+    <rect x="16" y="38" width="24" height="18" rx="2" fill="${eq.cable_machine?'#1b5e20':'#333'}"/>
+  </g>
+
+  <!-- ══ FRONT ROW — large (y ~345+) ══ -->
+
+  <!-- TREADMILL — side profile, front-left -->
+  <g ${gi('treadmill')} transform="translate(14,348)">
+    <!-- Incline strut -->
+    <line x1="30" y1="72" x2="104" y2="20" stroke="${eq.treadmill?'#1b5e20':'#3a3a3a'}" stroke-width="5" stroke-linecap="round"/>
+    <!-- Belt deck -->
+    <rect x="6" y="60" width="134" height="20" rx="5" fill="${eq.treadmill?'#1a3a1a':'#222'}"/>
+    <rect x="6" y="60" width="134" height="9"  rx="5" fill="${eq.treadmill?'#2e7d32':'#333'}"/>
+    <!-- Belt tread lines -->
+    ${eq.treadmill?[18,30,42,54,66,78,90,102,114,126].map(x=>`<line x1="${x}" y1="61" x2="${x}" y2="79" stroke="#ffffff14" stroke-width="4.5"/>`).join(''):''}
+    <!-- Front roller -->
+    <ellipse cx="12"  cy="70" rx="10" ry="10" fill="${eq.treadmill?'#37474f':'#2a2a2a'}"/>
+    <ellipse cx="12"  cy="70" rx="4"  ry="4"  fill="${eq.treadmill?'#546e7a':'#1a1a1a'}"/>
+    <!-- Rear roller -->
+    <ellipse cx="134" cy="70" rx="10" ry="10" fill="${eq.treadmill?'#37474f':'#2a2a2a'}"/>
+    <ellipse cx="134" cy="70" rx="4"  ry="4"  fill="${eq.treadmill?'#546e7a':'#1a1a1a'}"/>
+    <!-- Feet -->
+    <rect x="4"   y="78" width="20" height="6" rx="2" fill="${eq.treadmill?'#263238':'#222'}"/>
+    <rect x="122" y="78" width="20" height="6" rx="2" fill="${eq.treadmill?'#263238':'#222'}"/>
+    <!-- Console post -->
+    <rect x="99" y="8" width="7" height="48" rx="2" fill="${eq.treadmill?'#2e7d32':'#333'}"/>
+    <!-- Handlebars -->
+    <rect x="82" y="12" width="28" height="5" rx="2" fill="${eq.treadmill?'#37474f':'#2a2a2a'}"/>
+    <rect x="82" y="28" width="28" height="5" rx="2" fill="${eq.treadmill?'#37474f':'#2a2a2a'}"/>
+    <!-- Console display -->
+    <rect x="88" y="0"  width="34" height="18" rx="3" fill="${eq.treadmill?'#1a3a1a':'#1a1a1a'}"/>
+    <rect x="91" y="3"  width="28" height="10" rx="2" fill="${eq.treadmill?'#00c853':'#2a2a2a'}"/>
+    <text x="105" y="11" text-anchor="middle" font-size="5.5" fill="${eq.treadmill?'#001a00':'#111'}" font-weight="bold">${eq.treadmill?'READY':'- - -'}</text>
+  </g>
+
+  <!-- Kettlebell front-right-near -->
+  <g ${gi('kettlebell')} transform="translate(362,390) scale(0.9)">
+    <path d="M16 26 Q12 18 16 10 Q20 2 26 2 Q32 2 36 10 Q40 18 36 26 Z" fill="${eq.kettlebell?'#263238':'#444'}" stroke="${eq.kettlebell?'#66bb6a':'#666'}" stroke-width="1.5"/>
+    <ellipse cx="26" cy="48" rx="20" ry="16" fill="${eq.kettlebell?'#37474f':'#444'}"/>
+    <ellipse cx="26" cy="40" rx="20" ry="12" fill="${eq.kettlebell?'#37474f':'#444'}"/>
+  </g>
+
+  <!-- Foam Roller front-center (left of water cooler) -->
+  <g ${gi('foam_roller')} transform="translate(196,372) scale(0.58)">
+    <ellipse cx="12" cy="19" rx="10" ry="17" fill="${eq.foam_roller?'#7c4dff':'#555'}"/>
+    <rect x="12" y="2" width="62" height="34" fill="${eq.foam_roller?'#7c4dff':'#555'}"/>
+    <ellipse cx="74" cy="19" rx="10" ry="17" fill="${eq.foam_roller?'#7c4dff':'#555'}"/>
+    ${eq.foam_roller?[24,36,48,60].map(x=>`<line x1="${x}" y1="2" x2="${x}" y2="36" stroke="#fff3" stroke-width="3"/>`).join(''):''}
+  </g>
+
+  <!-- Assault Bike front-right -->
+  <g ${gi('assault_bike')} transform="translate(296,334) scale(0.92)">
+    <line x1="44" y1="16" x2="24" y2="46" stroke="${eq.assault_bike?'#b71c1c':'#555'}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="44" y1="16" x2="64" y2="46" stroke="${eq.assault_bike?'#b71c1c':'#555'}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="24" y1="46" x2="64" y2="46" stroke="${eq.assault_bike?'#b71c1c':'#555'}" stroke-width="2.5"/>
+    <line x1="44" y1="16" x2="44" y2="6"  stroke="${eq.assault_bike?'#b71c1c':'#555'}" stroke-width="2.5"/>
+    <line x1="37" y1="6"  x2="51" y2="6"  stroke="${eq.assault_bike?'#b71c1c':'#555'}" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="22" cy="54" r="14" fill="none" stroke="${eq.assault_bike?'#b71c1c':'#555'}" stroke-width="2.5"/>
+    <circle cx="22" cy="54" r="5"  fill="none" stroke="${eq.assault_bike?'#b71c1c88':'#555'}" stroke-width="1.5"/>
+    <circle cx="22" cy="54" r="2.5" fill="${eq.assault_bike?'#b71c1c':'#555'}"/>
+    <circle cx="66" cy="54" r="14" fill="none" stroke="${eq.assault_bike?'#b71c1c':'#555'}" stroke-width="2.5"/>
+    <circle cx="66" cy="54" r="5"  fill="none" stroke="${eq.assault_bike?'#b71c1c88':'#555'}" stroke-width="1.5"/>
+    <circle cx="66" cy="54" r="2.5" fill="${eq.assault_bike?'#b71c1c':'#555'}"/>
+  </g>
+
+  <!-- Back-left corner (left of squat rack): fish tank if you've adopted the Betta,
+       otherwise the plain water cooler — the Betta never had anywhere to actually live. -->
+  ${state.pets?.fish ? `
+  <g transform="translate(44,186) scale(0.72)">
+    <rect x="-2" y="42" width="34" height="8" rx="2" fill="#3a2a1a"/>
+    <rect x="0" y="0" width="30" height="44" rx="2" fill="#0a2a3a" stroke="#4a90c0" stroke-width="1.5"/>
+    <rect x="2" y="2" width="26" height="40" rx="1" fill="#1a5a8a" opacity=".55"/>
+    <ellipse cx="9" cy="40" rx="5" ry="2" fill="#8a7050" opacity=".6"/>
+    <ellipse cx="20" cy="41" rx="4" ry="1.6" fill="#7a6040" opacity=".6"/>
+    <path d="M25 12 Q22 20 25 28" stroke="#2a7a4a" stroke-width="1.5" fill="none" opacity=".5"/>
+    <g class="fish-swim">
+      <ellipse cx="15" cy="18" rx="6" ry="3.2" fill="#e8501e"/>
+      <polygon points="9,18 4,14 4,22" fill="#e8501e"/>
+      <ellipse cx="17" cy="17" rx="1" ry="1" fill="#111"/>
+    </g>
+    <circle class="tank-bubble" cx="23" cy="34" r="1"/>
+    <circle class="tank-bubble" cx="23" cy="30" r="0.7" style="animation-delay:-1.4s"/>
+  </g>` : `
+  <g transform="translate(46,188) scale(0.7)">
+    <rect x="0"  y="0"  width="22" height="46" rx="3"  fill="#37474f"/>
+    <rect x="2"  y="2"  width="18" height="14" rx="2"  fill="#1565c0" opacity=".7"/>
+    <ellipse cx="11" cy="2" rx="9" ry="5" fill="#90caf9"/>
+    <rect x="3"  y="18" width="16" height="26" rx="2"  fill="#263238"/>
+    <rect x="5"  y="37" width="5"  height="6"  rx="1"  fill="#ef5350"/>
+    <rect x="12" y="37" width="5"  height="6"  rx="1"  fill="#1565c0"/>
+  </g>`}
+
+  <!-- Shadow handled by CSS drop-shadow on character div -->
+
+</svg>
+<!-- Reset tap zone on floor -->
+<div onclick="gymReset()" style="position:absolute;bottom:0;left:30%;width:40%;height:10%;cursor:pointer;z-index:1" title="Stand here"></div>
+<!-- Real player avatar overlaid on room -->
+<div id="gym-char" style="position:absolute;left:46.6%;bottom:5.5%;transform:translateX(-50%);width:80px;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))">
+  <div class="gym-inner">
+    ${avatarSVG}
+  </div>
+</div>
+${(function(){
+  const FOUR_LEGGED = ['dog_golden','dog_bulldog','cat_persian','cat_tabby','hamster','bunny','raccoon'];
+  const ownedPets = Object.keys(state.pets||{}).filter(k => (state.pets||{})[k] && FOUR_LEGGED.includes(k));
+  const wanderAnims = ['pet-wander-a','pet-wander-b','pet-wander-c'];
+  const positions = [
+    {left:'18%', bottom:'4.5%'},
+    {left:'74%', bottom:'4.5%'},
+    {left:'32%', bottom:'4.5%'},
+  ];
+  if (!ownedPets.length || typeof GainsShop === 'undefined') return '';
+  return ownedPets.slice(0,3).map((pid, i) => {
+    const anim = wanderAnims[i % wanderAnims.length];
+    const dur  = (8 + i * 3) + 's';
+    const delay = (i * 2.5) + 's';
+    const pos  = positions[i % positions.length];
+    const icon = GainsShop._petIcon(pid, 44);
+    return '<div class="gym-pet" style="position:absolute;left:' + pos.left + ';bottom:' + pos.bottom + ';pointer-events:none;z-index:4">'
+      + '<div class="gym-pet-wander" style="animation-name:' + anim + ';animation-duration:' + dur + ';animation-delay:-' + delay + '">'
+      + '<div class="gym-pet-bounce">' + icon + '</div>'
+      + '</div></div>';
+  }).join('');
+})()}
+</div>
+<div class="gw-info-panel" id="gw-info">
+  <div class="gw-info-hint">Tap equipment to interact · Tap the floor to return</div>
+</div>`;
+}
+
+// ─── Monthly Raid Boss — DUEL-style fight screen ───
+const RAID_VICTORY_XP = 400, RAID_VICTORY_GOLD = 150;
+
+// One-time migration: the old "Monthly Raid" feature is retired and merged into this
+// Raid Boss. Whatever damage a player had already dealt to that old monthly raid boss
+// carries over as a head start against the new shared boss.
+function _migrateMonthlyRaidToWeeklyBoss() {
+  if (state._monthlyToRaidMigrated) return;
+  const { weekStart } = getRaidBoss();
+  _syncRaidPeriod(weekStart);
+  const carryOver = state.monthlyDamage || 0;
+  if (carryOver > 0) state.raidDamage = (state.raidDamage || 0) + carryOver;
+  state._monthlyToRaidMigrated = true;
+  saveWithPin();
+}
+
+async function renderRaidFight() {
+  const el = document.getElementById('raid-fight-section');
+  if (!el) return;
+
+  // Only queued party members fight a boss at all — no team means no raid boss.
+  if (!db || !state.teamId) {
+    el.innerHTML = `
+      <div style="padding:24px 16px;text-align:center">
+        <div style="font-size:28px;margin-bottom:8px">🐲</div>
+        <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:4px">No raid boss queued</div>
+        <div style="font-size:12px;color:var(--muted)">Pick a raid on the map in the Party section below to fight your party's own boss.</div>
+      </div>`;
+    return;
+  }
+
+  let team;
+  try {
+    const doc = await db.collection('teams').doc(state.teamId).get();
+    team = doc.exists ? doc.data() : null;
+  } catch (e) { team = null; }
+  if (!team || !team.bossId) {
+    el.innerHTML = `<p class="muted" style="text-align:center;padding:20px;font-size:13px">Loading your party's raid boss…</p>`;
+    return;
+  }
+
+  const boss = RAID_BOSSES.find(b => b.id === team.bossId) || RAID_BOSSES[0];
+  const bossHp = team.bossHp || boss.hp;
+  const bossDamage = team.bossDamage || 0;
+  const pct = Math.min(100, (bossDamage / bossHp) * 100);
+  const beaten = !!team.bossDefeated || pct >= 100;
+  const hpLeft = Math.max(0, bossHp - bossDamage);
+
+  // One-time victory reward per player per this specific team+boss instance
+  const claimKey = `${state.teamId}_${team.bossId}_${team.bossMonth || ''}`;
+  const justWon = beaten && !state.raidVictoryClaimed?.[claimKey];
+  if (justWon) {
+    if (!state.raidVictoryClaimed) state.raidVictoryClaimed = {};
+    state.raidVictoryClaimed[claimKey] = true;
+    state.gold += RAID_VICTORY_GOLD;
+    state.totalGold += RAID_VICTORY_GOLD;
+    const xpPerMuscle = Math.floor(RAID_VICTORY_XP / 10);
+    for (const mk of Object.keys(MUSCLES)) {
+      if (mk === 'rest' || mk === 'cardio') continue;
+      awardMuscleXP(mk, xpPerMuscle);
+    }
+    if (state.teamRole) {
+      if (!state._raidWinsByRole) state._raidWinsByRole = {};
+      state._raidWinsByRole[state.teamRole] = (state._raidWinsByRole[state.teamRole] || 0) + 1;
+    }
+    if ((team.raidSize || 4) >= 8) {
+      if (!state._raidWinsBySize) state._raidWinsBySize = {};
+      state._raidWinsBySize.big = (state._raidWinsBySize.big || 0) + 1;
+    }
+    if (team.raidId) {
+      if (!state._raidKillCounts) state._raidKillCounts = {};
+      state._raidKillCounts[team.raidId] = (state._raidKillCounts[team.raidId] || 0) + 1;
+      _maybeDropArmor(team.raidId, team.raidSize);
+    }
+    toast(`🏆 ${boss.name} defeated! +${RAID_VICTORY_XP} XP, +${RAID_VICTORY_GOLD}g`, 'success');
+    checkAchievements();
+    saveWithPin();
+  }
+
+  const overall = calcOverallLevel(state.muscles);
+  const playerAvatar = renderMiniAvatarSVG(
+    state.gender || 'male', state.equippedCosmetics || [], 0, state.name || '',
+    state.hair || 'default', state.skinTone ?? 1, state.hairColor ?? 0, null, 1
+  );
+
+  // Once/day: the first time you check the Raid tab today, play a quick clash overlay
+  // instead of jumping straight to the HP bar — a small "here's what's happening" beat.
+  const today = todayStr();
+  const showDailyClash = state._lastRaidClashDate !== today;
+  if (showDailyClash) { state._lastRaidClashDate = today; saveWithPin(); }
+
+  const partySilhouettesSVG = _partySilhouettes(team.raidSize || 4);
+
+  const entries = team.actionLog || [];
+  const partyLogEntry = !beaten && entries.length ? entries[entries.length - 1].text : null;
+
+  const logMsg = beaten
+    ? `<div style="display:flex;align-items:center;gap:10px">
+        <img src="assets/bosses/treasure_chest.png" alt="Treasure" style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated;flex-shrink:0" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
+        <span style="display:none;font-size:22px">🏆</span>
+        <span><span style="color:#4caf50;font-weight:700">VICTORY!</span> The raid party has claimed the spoils.</span>
+      </div>`
+    : partyLogEntry
+      ? esc(partyLogEntry)
+      : pct === 0
+        ? 'Round 1 — Fight!'
+        : pct < 50
+          ? `${boss.name} braces for impact...`
+          : `${boss.name} is staggering! Keep going!`;
+
+  const weakColor = MUSCLES[boss.weakness]?.color || '#ff8a80';
+
+  el.innerHTML = `
+    <div class="${justWon ? 'raid-victory-flash' : ''}" style="background:radial-gradient(ellipse at 50% 0%,#1a1030 0%,#0a0a12 60%),linear-gradient(90deg,#1a1030 0%,#0a0a12 48%,#0a0a12 52%,#1f0e14 100%);padding:18px 14px 16px;position:relative;overflow:hidden">
+      <div style="text-align:center;margin-bottom:14px">
+        <span style="font-family:'Press Start 2P',monospace;font-size:10px;background:#e8e8e8;color:#12111a;padding:5px 12px;letter-spacing:1px;border-radius:2px">RAID</span>
+        ${team.raidName ? `<div style="margin-top:6px;font-size:9.5px;color:#c8a060">${esc(team.raidName)} · ${team.raidSize || 4}-man</div>` : ''}
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#f44336;letter-spacing:.4px">${esc(boss.name).toUpperCase()} HP</span>
+        <span style="margin-left:auto;font-size:11px;color:#ccc;font-family:monospace">${Math.round(hpLeft).toLocaleString()}/${bossHp.toLocaleString()}</span>
+      </div>
+      <div class="pixel-bar-track" style="height:10px">
+        <div class="pixel-bar-fill" style="width:${Math.max(2,100-pct)}%;background:linear-gradient(90deg,#f44336,#ff7961)"></div>
+        <div class="pixel-bar-ticks"></div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:22px;position:relative">
+        <div style="text-align:center;flex:1;max-width:130px">
+          <div style="position:relative;height:96px;display:flex;align-items:flex-end;justify-content:center">
+            <svg viewBox="-60 -80 120 90" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:150px;height:105px;pointer-events:none;z-index:0">${partySilhouettesSVG}</svg>
+            <div style="position:absolute;bottom:2px;width:76px;height:22px;border-radius:50%;background:radial-gradient(ellipse,rgba(158,124,255,0.45) 0%,transparent 72%);filter:blur(1px);z-index:1"></div>
+            <div class="duel-fighter-art" style="width:78px;height:88px;filter:drop-shadow(0 0 10px rgba(158,124,255,0.55));position:relative;z-index:1">${playerAvatar}</div>
+          </div>
+          <div style="margin-top:8px;background:#ffffff08;border-radius:4px;padding:4px 6px;border-bottom:2px solid #9e7cff">
+            <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#fff;line-height:1.4;word-break:break-word">${esc(state.name || 'You')}</div>
+            <div style="font-size:8.5px;color:#b39dff;margin-top:2px">Lv.${overall.level} Adventurer</div>
+          </div>
+        </div>
+
+        <div style="text-align:center;flex-shrink:0;position:relative;width:36px;height:36px">
+          <div class="duel-vs-burst" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;background:conic-gradient(from 45deg,#f44336,#7c4dff,#f44336);clip-path:polygon(50% 0%,63% 38%,100% 50%,63% 62%,50% 100%,37% 62%,0% 50%,37% 38%);opacity:.55"></div>
+          <div style="position:relative;font-family:'Press Start 2P',monospace;font-size:13px;color:#fff;line-height:36px">VS</div>
+        </div>
+
+        <div style="text-align:center;flex:1;max-width:130px">
+          <div style="position:relative;height:96px;display:flex;align-items:flex-end;justify-content:center">
+            <div style="position:absolute;bottom:2px;width:76px;height:22px;border-radius:50%;background:radial-gradient(ellipse,${weakColor}55 0%,transparent 72%);filter:blur(1px)"></div>
+            <div class="duel-fighter-art is-boss" style="width:78px;height:88px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 10px ${weakColor}88)">
+              <img src="${boss.img}" alt="${esc(boss.name)}" style="max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div style="display:none;width:78px;height:78px;align-items:center;justify-content:center;background:${weakColor}33;border-radius:50%;font-size:26px">👹</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;background:#ffffff08;border-radius:4px;padding:4px 6px;border-bottom:2px solid ${weakColor}">
+            <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#fff;line-height:1.4;word-break:break-word">${esc(boss.name)}</div>
+            <div style="font-size:8.5px;color:#ff8a80;margin-top:2px">${esc(boss.subtitle)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;text-align:center">
+        <span style="font-size:9px;color:${weakColor};background:${weakColor}22;padding:2px 8px;border-radius:8px">⚡ Weak to ${MUSCLES[boss.weakness]?.name || boss.weakness} — 2x damage</span>
+      </div>
+
+      ${!beaten && team.activeMechanic ? _renderSyncStrikeBanner(team.activeMechanic) : ''}
+
+      <div style="margin-top:14px;border-radius:6px;background:#12111c;padding:10px 12px;border-top:2px solid ${beaten ? '#4caf50' : '#7c4dff'}">
+        <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:#888;margin-bottom:6px">${beaten ? 'RESULT' : `ROUND`}</div>
+        <div style="font-size:13px;color:#ddd">${logMsg}</div>
+      </div>
+      <div style="font-size:10px;color:#666;text-align:center;margin-top:10px">Your party's own instance — only your party's workouts count. Resets when you beat it, quit, or the month rolls over.</div>
+      ${showDailyClash ? `
+      <div class="raid-clash-overlay" id="raid-clash-overlay">
+        <div class="raid-clash-burst">CLASH!</div>
+        <div style="font-size:11px;color:#ccc;max-width:220px;line-height:1.5">Your party is still locked in with <strong style="color:${weakColor}">${esc(boss.name)}</strong> — ${beaten ? 'and today, it finally falls.' : `${Math.round(pct)}% down so far.`}</div>
+        <div style="font-size:9px;color:#666;margin-top:6px">Tap anywhere to continue</div>
+      </div>` : ''}
+    </div>`;
+
+  if (showDailyClash) {
+    const overlay = document.getElementById('raid-clash-overlay');
+    if (overlay) {
+      const dismiss = () => { overlay.classList.add('fading'); setTimeout(() => overlay.remove(), 500); };
+      overlay.addEventListener('click', dismiss);
+      setTimeout(dismiss, 2200);
+    }
+  }
+}
+
+// A small fanned-out row of flat silhouette figures behind the player, standing in for
+// the rest of the party without needing to fetch/render every real teammate's avatar —
+// count scales with raid size so bigger raids visibly look like a bigger crowd.
+function _partySilhouettes(raidSize) {
+  const count = Math.max(0, Math.min(8, Math.round((raidSize || 4) / 2) - 1));
+  if (count <= 0) return '';
+  let svg = '';
+  for (let i = 0; i < count; i++) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const row = Math.floor(i / 2);
+    const x = side * (16 + row * 11);
+    const y = -row * 5;
+    const s = Math.max(0.34, 0.6 - row * 0.09);
+    svg += `<g transform="translate(${x},${y}) scale(${s})" opacity="${0.55 - row * 0.08}">
+      <ellipse cx="0" cy="2" rx="16" ry="5" fill="#000" opacity="0.35"/>
+      <rect x="-10" y="-38" width="20" height="34" rx="9" fill="#211c30"/>
+      <circle cx="0" cy="-46" r="10" fill="#211c30"/>
+    </g>`;
+  }
+  return svg;
+}
+
+// ─── Gyms (persistent guild — up to 32 members, WoW-style ranks) ───
+const GYM_MAX_MEMBERS = 32;
+const GYM_RANKS = {
+  gm:      { label: 'Guild Master', short: 'GM', color: '#ffd700', level: 3 },
+  officer: { label: 'Officer',      short: 'OFC', color: '#9e7cff', level: 2 },
+  member:  { label: 'Member',       short: 'MEM', color: '#4caf50', level: 1 },
+  recruit: { label: 'Recruit',      short: 'REC', color: '#888', level: 0 },
+};
+
+// Note: deliberately does NOT include joinedAt — this gets called both at actual join
+// time and on every periodic stat-sync, and joinedAt must only ever be set once (it
+// drives GM-succession tie-breaking in leaveGym). Callers add it explicitly on creation.
+function _myGymMemberEntry(rank) {
+  const overall = calcOverallLevel(state.muscles);
+  return {
+    username: currentUser, name: state.name || currentUser, level: overall.level, rank,
+    gender: state.gender || 'male', hair: state.hair || 'default',
+    skinTone: state.skinTone ?? 1, hairColor: state.hairColor ?? 0,
+    equippedCosmetics: state.equippedCosmetics || [], activeTitle: state.activeTitle || null,
+  };
+}
+
+async function createGym() {
+  if (!db) { toast('Connect to the internet first'); return; }
+  if (state.gymId) { toast('Leave your current gym first'); return; }
+  const name = document.getElementById('gym-name-input')?.value?.trim();
+  const motto = document.getElementById('gym-motto-input')?.value?.trim() || '';
+  if (!name) { toast('Enter a gym name'); return; }
+  const ref = db.collection('gyms').doc();
+  const member = { ..._myGymMemberEntry('gm'), joinedAt: Date.now() };
+  try {
+    await ref.set({ name, motto, ownerUsername: currentUser, members: [member], createdAt: Date.now() });
+  } catch (e) {
+    toast('Could not create gym: ' + e.message);
+    return;
+  }
+  state.gymId = ref.id;
+  state.gymRank = 'gm';
+  state._everJoinedGym = true;
+  state._everFoundedGym = true;
+  checkAchievements();
+  saveWithPin();
+  toast(`"${name}" founded!`);
+  renderGuildHall();
+}
+
+async function joinGym(gymId) {
+  if (!db) return;
+  if (state.gymId) { toast('Leave your current gym first'); return; }
+  try {
+    await db.runTransaction(async tx => {
+      const ref = db.collection('gyms').doc(gymId);
+      const doc = await tx.get(ref);
+      if (!doc.exists) throw new Error('gone');
+      const gym = doc.data();
+      const members = gym.members || [];
+      if (members.length >= GYM_MAX_MEMBERS) throw new Error('full');
+      if (members.some(m => m.username === currentUser)) throw new Error('already');
+      tx.update(ref, { members: [...members, { ..._myGymMemberEntry('recruit'), joinedAt: Date.now() }] });
+    });
+    state.gymId = gymId;
+    state.gymRank = 'recruit';
+    state._everJoinedGym = true;
+    checkAchievements();
+    saveWithPin();
+    toast('Joined the gym!');
+    renderGuildHall();
+  } catch (e) { toast(e.message === 'full' ? 'That gym is full' : e.message === 'already' ? "You're already in this gym" : 'Could not join'); }
+}
+
+async function leaveGym() {
+  if (!state.gymId || !db) return;
+  const gymId = state.gymId;
+  try {
+    await db.runTransaction(async tx => {
+      const ref = db.collection('gyms').doc(gymId);
+      const doc = await tx.get(ref);
+      if (!doc.exists) return;
+      const gym = doc.data();
+      const members = (gym.members || []).filter(m => m.username !== currentUser);
+      if (members.length === 0) { tx.delete(ref); return; }
+      let ownerUsername = gym.ownerUsername;
+      if (ownerUsername === currentUser) {
+        // Promote the highest-ranked remaining member (ties broken by earliest join) to GM
+        const next = [...members].sort((a, b) => (GYM_RANKS[b.rank]?.level||0) - (GYM_RANKS[a.rank]?.level||0) || a.joinedAt - b.joinedAt)[0];
+        ownerUsername = next.username;
+        next.rank = 'gm';
+      }
+      tx.update(ref, { members, ownerUsername });
+    });
+  } catch (e) {}
+  state.gymId = null;
+  state.gymRank = null;
+  saveWithPin();
+  toast('Left the gym');
+  renderGuildHall();
+}
+
+// Rank change — enforced both here (UI feedback) and structurally: only GM can create
+// another GM/Officer; Officers can only move people between Recruit and Member.
+async function setGymMemberRank(username, newRank) {
+  if (!state.gymId || !db || username === currentUser) return;
+  try {
+    await db.runTransaction(async tx => {
+      const ref = db.collection('gyms').doc(state.gymId);
+      const doc = await tx.get(ref);
+      if (!doc.exists) return;
+      const gym = doc.data();
+      const myRank = (gym.members || []).find(m => m.username === currentUser)?.rank;
+      const myLevel = GYM_RANKS[myRank]?.level || 0;
+      const targetLevel = GYM_RANKS[newRank]?.level ?? -1;
+      if (targetLevel < 0) throw new Error('bad rank');
+      // Can only promote/demote within ranks strictly below your own
+      if (myLevel <= targetLevel && !(myRank === 'gm' && newRank !== 'gm')) throw new Error('no permission');
+      if (myLevel < 2) throw new Error('no permission'); // must be Officer+ to change ranks at all
+      const members = (gym.members || []).map(m => m.username === username ? { ...m, rank: newRank } : m);
+      tx.update(ref, { members });
+    });
+    toast(`Updated ${username}'s rank`);
+    renderGuildHall();
+  } catch (e) { toast('Only Officers and the Guild Master can change ranks'); }
+}
+
+async function kickGymMember(username) {
+  if (!state.gymId || !db || username === currentUser) return;
+  try {
+    await db.runTransaction(async tx => {
+      const ref = db.collection('gyms').doc(state.gymId);
+      const doc = await tx.get(ref);
+      if (!doc.exists) return;
+      const gym = doc.data();
+      const myRank = (gym.members || []).find(m => m.username === currentUser)?.rank;
+      const targetRank = (gym.members || []).find(m => m.username === username)?.rank;
+      const myLevel = GYM_RANKS[myRank]?.level || 0;
+      const targetLevel = GYM_RANKS[targetRank]?.level || 0;
+      if (myLevel < 2 || myLevel <= targetLevel) throw new Error('no permission');
+      const members = (gym.members || []).filter(m => m.username !== username);
+      tx.update(ref, { members });
+    });
+    toast(`Removed ${username} from the gym`);
+    renderGuildHall();
+  } catch (e) { toast('You cannot remove that member'); }
+}
+
+async function renderGuildHall() {
+  const container = document.getElementById('store-container');
+  if (!container) return;
+
+  if (state.gymId && db) {
+    let gymDoc;
+    try { gymDoc = await db.collection('gyms').doc(state.gymId).get(); } catch (e) { gymDoc = null; }
+    if (!gymDoc || !gymDoc.exists) {
+      state.gymId = null; state.gymRank = null; saveWithPin();
+    } else {
+      const gym = gymDoc.data();
+      if (!(gym.members || []).some(m => m.username === currentUser)) {
+        // Kicked — forget this gym and fall through to the browse screen
+        state.gymId = null; state.gymRank = null; saveWithPin();
+      } else {
+        const myEntry = _myGymMemberEntry(null);
+        const members = (gym.members || []).map(m => m.username === currentUser ? { ...m, ...myEntry, rank: m.rank } : m);
+        if (JSON.stringify(members) !== JSON.stringify(gym.members)) {
+          try { await db.collection('gyms').doc(state.gymId).update({ members }); } catch (e) {}
+        }
+        state.gymRank = members.find(m => m.username === currentUser)?.rank || null;
+        if (members.length >= GYM_MAX_MEMBERS) state._gymWasFull = true;
+        checkAchievements();
+        _renderGymRosterScreen(container, gym.name, gym.motto, members, gym.ownerUsername);
+        return;
+      }
+    }
+  }
+
+  // Not in a gym — browse public gyms + create one
+  let gyms = [];
+  if (db) {
+    try {
+      const snap = await db.collection('gyms').limit(20).get();
+      snap.forEach(doc => gyms.push({ id: doc.id, ...doc.data() }));
+    } catch (e) {}
+  }
+
+  container.innerHTML = `
+    <div class="store-back-bar">
+      <button class="store-back-btn" onclick="GainsShop.render()">← Mall</button>
+      <span class="store-back-title">Guild Hall</span>
+    </div>
+    <div style="padding:14px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;text-align:center">Join a gym to raid, chat, and climb together — or found your own.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+        ${gyms.length ? gyms.map(g => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card)">
+            <div style="width:36px;height:36px;border-radius:9px;background:#7c4dff22;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏋</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700;color:var(--text)">${esc(g.name)}</div>
+              <div style="font-size:10.5px;color:var(--muted)">${(g.members||[]).length}/${GYM_MAX_MEMBERS} members${g.motto ? ' · ' + esc(g.motto) : ''}</div>
+            </div>
+            <button onclick="MQ.joinGym('${g.id}')" style="padding:7px 12px;border-radius:8px;border:none;background:var(--accent,#7c4dff);color:#fff;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">Join</button>
+          </div>`).join('') : '<p class="muted" style="text-align:center;padding:16px;font-size:12px">No gyms yet — be the first to found one!</p>'}
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">FOUND A NEW GYM</div>
+        <input id="gym-name-input" placeholder="Gym name" maxlength="28" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:8px">
+        <input id="gym-motto-input" placeholder="Motto (optional)" maxlength="40" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:8px">
+        <button onclick="MQ.createGym()" style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--accent,#7c4dff);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Found Gym</button>
+      </div>
+    </div>`;
+}
+
+function _renderGymRosterScreen(container, name, motto, members, ownerUsername) {
+  const myRank = members.find(m => m.username === currentUser)?.rank;
+  const myLevel = GYM_RANKS[myRank]?.level || 0;
+  const canManage = myLevel >= 2; // Officer+
+
+  const sorted = [...members].sort((a, b) => (GYM_RANKS[b.rank]?.level||0) - (GYM_RANKS[a.rank]?.level||0) || a.name.localeCompare(b.name));
+
+  // ── Top-3 by level get "posed" on the gym floor, like the Iron Temple legends ──
+  const featured = [...members].sort((a, b) => (b.level||1) - (a.level||1)).slice(0, 3);
+  const FEATURE_SPOTS = [
+    { x: 60,  pose: 1 }, // Relaxed
+    { x: 190, pose: 0 }, // Double Bicep — center stage
+    { x: 320, pose: 2 }, // Victory
+  ];
+  const featuredHTML = featured.map((m, i) => {
+    const spot = FEATURE_SPOTS[i];
+    const avatarSVG = renderMiniAvatarSVG(
+      m.gender || 'male', m.equippedCosmetics || [], i, m.name || m.username,
+      m.hair || 'default', m.skinTone ?? 1, m.hairColor ?? 0, null, spot.pose
+    );
+    const rankInfo = GYM_RANKS[m.rank] || GYM_RANKS.recruit;
+    return `<div style="position:absolute;left:${spot.x}px;bottom:8px;width:100px;text-align:center;transform:translateX(-50%)">
+      <div style="width:76px;height:84px;margin:0 auto">${avatarSVG}</div>
+      <div style="background:#1a0e04ee;border:1px solid #5a3418;border-radius:4px;padding:4px 6px;margin-top:2px">
+        <div style="font-size:9.5px;font-weight:700;color:#e8c890;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.name || m.username)}</div>
+        <div style="font-size:8px;color:${rankInfo.color};margin-top:1px">${rankInfo.label} · Lv.${m.level || 1}</div>
+        ${m.activeTitle ? `<div style="font-size:7.5px;color:#c8a060;font-style:italic;margin-top:1px">"${esc(m.activeTitle)}"</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const sceneHTML = `
+    <div style="position:relative;height:180px;border-radius:10px 10px 0 0;overflow:hidden;background:linear-gradient(180deg,#150a02 0%,#150a02 58%,#251400 58%,#1a0d00 100%);border:1px solid #3a2000;border-bottom:none">
+      <div style="position:absolute;top:8px;left:0;right:0;text-align:center">
+        <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#c87020;letter-spacing:2px">GUILD HALL</span>
+      </div>
+      <div style="position:absolute;top:24px;left:50%;transform:translateX(-50%);width:60%;height:2px;background:#3a2000"></div>
+      ${members.length ? featuredHTML : `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#6a4a2a;font-size:11px">No members yet</div>`}
+    </div>`;
+
+  const rowsHTML = sorted.map(m => {
+    const rankInfo = GYM_RANKS[m.rank] || GYM_RANKS.recruit;
+    const isMe = m.username === currentUser;
+    const iCanManageThem = canManage && !isMe && myLevel > (GYM_RANKS[m.rank]?.level || 0);
+    const rankOptions = Object.entries(GYM_RANKS).filter(([k, r]) => r.level < myLevel).map(([k, r]) => `<option value="${k}" ${m.rank === k ? 'selected' : ''}>${r.label}</option>`).join('');
+    // "Plaque" — best info we can actually show today is level/title/tenure, not literal
+    // exercise PRs (those aren't synced anywhere other members could read yet).
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid #3a2000;background:#150a02">
+      <div style="width:30px;height:30px;border-radius:50%;border:2px solid ${rankInfo.color};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:${rankInfo.color};flex-shrink:0;background:#0d0500">${rankInfo.short}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:#e8d8b8">${esc(m.name || m.username)}${isMe ? ' (You)' : ''}</div>
+        <div style="font-size:10.5px;color:${rankInfo.color}">${rankInfo.label} · Lv.${m.level || 1}${m.activeTitle ? ` · "${esc(m.activeTitle)}"` : ''}</div>
+      </div>
+      ${iCanManageThem ? `
+        <select onchange="MQ.setGymMemberRank('${m.username}', this.value)" class="gym-rank-select">${rankOptions}</select>
+        <button onclick="MQ.kickGymMember('${m.username}')" title="Remove" style="width:24px;height:24px;border-radius:50%;border:1px solid #f4433677;background:#f4433622;color:#f44336;font-size:12px;cursor:pointer;flex-shrink:0">✕</button>
+      ` : ''}
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="store-back-bar">
+      <button class="store-back-btn" onclick="GainsShop.render()">← Mall</button>
+      <span class="store-back-title">${esc(name)}</span>
+    </div>
+    ${sceneHTML}
+    <div style="padding:14px;background:#0d0500">
+      ${motto ? `<div style="font-size:12px;color:#c8a060;text-align:center;font-style:italic;margin-bottom:12px">"${esc(motto)}"</div>` : ''}
+      <div style="font-size:11px;color:#8a6a4a;text-align:center;margin-bottom:14px">${members.length}/${GYM_MAX_MEMBERS} members</div>
+      <div style="border:1px solid #3a2000;border-radius:10px;overflow:hidden;margin-bottom:16px">${rowsHTML}</div>
+      <button onclick="MQ.leaveGym()" style="width:100%;padding:9px;border-radius:8px;border:1px solid #f4433655;background:#f4433618;color:#f44336;font-size:12px;font-weight:600;cursor:pointer">${myRank === 'gm' && members.length === 1 ? 'Disband Gym' : 'Leave Gym'}</button>
+    </div>`;
+}
+
+// ─── Party (4-person team: 1 tank, 2 dps, 1 healer) ───
+const TEAM_ROLES = {
+  tank:   { label: 'Tank',   short: 'TK', slots: 1, color: '#4a90d9' },
+  dps:    { label: 'DPS',    short: 'DPS', slots: 2, color: '#e05a4f' },
+  healer: { label: 'Healer', short: 'HL', slots: 1, color: '#4caf50' },
+};
+
+// WoW-derived role ratios, scaled up per raid size (approved table). The boss itself
+// stays the same shared/global HP pool for everyone regardless of raid size — raids
+// only change how big & how role-balanced your organizing party is, not the fight.
+const RAID_ROLE_TABLES = {
+  4:  { tank: 1, healer: 1, dps: 2 },
+  6:  { tank: 1, healer: 2, dps: 3 },
+  8:  { tank: 2, healer: 2, dps: 4 },
+  12: { tank: 2, healer: 3, dps: 7 },
+};
+function rolesForSize(size) {
+  const table = RAID_ROLE_TABLES[size] || RAID_ROLE_TABLES[4];
+  const out = {};
+  for (const k of Object.keys(TEAM_ROLES)) out[k] = { ...TEAM_ROLES[k], slots: table[k] || 0 };
+  return out;
+}
+function teamCapacity(size) {
+  const table = RAID_ROLE_TABLES[size] || RAID_ROLE_TABLES[4];
+  return Object.values(table).reduce((a, b) => a + b, 0);
+}
+
+function _myTeamMemberEntry() {
+  const overall = calcOverallLevel(state.muscles);
+  const xpProgress = Math.min(100, Math.round((overall.xp / xpForPlayerLevel(overall.level)) * 100));
+  return { username: currentUser, name: state.name || currentUser, level: overall.level, xpProgress, monthlyXP: state.monthlyXP || 0 };
+}
+
+function _teamLogPush(log, text) {
+  const next = [...(log || []), { text, ts: Date.now() }];
+  return next.slice(-8); // keep the log short
+}
+
+// Telegraph banner for an in-progress Synchronized Strike — shown on the raid panel so
+// the requirement and deadline are visible without having to read the scrolling action
+// log, and so each player can see at a glance whether *they specifically* still owe the
+// party a workout (the personal-responsibility half of the mechanic).
+function _renderSyncStrikeBanner(mechanic) {
+  const muscleName = MUSCLES[mechanic.muscle]?.name || mechanic.muscle;
+  const daysLeft = Math.max(0, Math.round((new Date(mechanic.deadlineDate + 'T00:00:00') - new Date(todayStr() + 'T00:00:00')) / 86400000));
+  const iDidIt = (mechanic.completedBy || []).includes(currentUser);
+  return `
+    <div style="margin-top:12px;border-radius:8px;background:#2a1a0a;border:1px solid #6a4020;padding:10px 12px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:14px">🧘</span>
+        <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#ffb74d;letter-spacing:.5px">SYNCHRONIZED STRIKE</span>
+      </div>
+      <div style="font-size:12px;color:#e8c890;line-height:1.5">Everyone must log a <strong style="color:#fff">${esc(muscleName)}</strong> workout — ${daysLeft <= 0 ? 'today is the last day!' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}.</div>
+      <div style="margin-top:6px;font-size:11px;font-weight:700;color:${iDidIt ? '#66bb6a' : '#ff8a65'}">${iDidIt ? "✓ You're covered" : "⚠ You still need to log this — you'll take extra damage if you don't"}</div>
+    </div>`;
+}
+
+// Runs at most once per calendar month per team — fully heals everyone back to max HP
+// at the start of a new month, same transactional "first client to check it wins" pattern
+// as the daily boss attack below.
+async function _maybeResetMonthlyHP(teamId, team) {
+  if (!db || !teamId) return;
+  const thisMonth = getMonthStart();
+  if (team.lastHpResetMonth === thisMonth) return;
+
+  try {
+    await db.runTransaction(async tx => {
+      const ref = db.collection('teams').doc(teamId);
+      const doc = await tx.get(ref);
+      if (!doc.exists) return;
+      const t = doc.data();
+      if (t.lastHpResetMonth === thisMonth) return; // someone else already reset it
+      const members = (t.members || []).map(m => ({ ...m, hp: m.maxHp ?? MEMBER_MAX_HP, maxHp: m.maxHp ?? MEMBER_MAX_HP }));
+      // Reroll to a fresh boss instance each month (only if the previous one was actually
+      // beaten — a team that quit mid-fight or is still grinding keeps their current boss).
+      const rerollBoss = !!t.bossDefeated;
+      let log = _teamLogPush(t.actionLog || [], `🌙 A new month begins — the whole party is fully healed!`);
+      const update = { members, actionLog: log, lastHpResetMonth: thisMonth };
+      if (rerollBoss) {
+        const monthIdx = (() => { const [y, m] = thisMonth.split('-').map(Number); return y * 12 + m; })();
+        const { bossId, bossHp } = pickInstanceBoss(t.raidId, t.raidSize, monthIdx);
+        update.bossId = bossId; update.bossHp = bossHp; update.bossDamage = 0; update.bossDefeated = false; update.bossMonth = thisMonth;
+        update.mechanicCount = 0; update.activeMechanic = null;
+        update.actionLog = _teamLogPush(log, `⚔️ A new boss has appeared for the party!`);
+      }
+      tx.update(ref, update);
+    });
+  } catch (e) {}
+}
+
+// Runs at most once per calendar day per team. Any team member's client can trigger it
+// when they open the Party tab — the transaction's date check means only the first one
+// to actually commit does anything, so it's safe even if several members load at once.
+async function _maybeTriggerDailyBossAttack(teamId, team) {
+  if (!db || !teamId) return;
+  const today = todayStr();
+  if (team.lastBossAttackDate === today) return;
+  if (team.bossDefeated) return; // beaten boss doesn't keep attacking
+  const boss = RAID_BOSSES.find(b => b.id === team.bossId) || RAID_BOSSES[0];
+
+  try {
+    await db.runTransaction(async tx => {
+      const ref = db.collection('teams').doc(teamId);
+      const doc = await tx.get(ref);
+      if (!doc.exists) return;
+      const t = doc.data();
+      if (t.lastBossAttackDate === today || t.bossDefeated) return; // someone else already resolved it, or boss is down
+      const members = (t.members || []).map(m => ({ ...m, hp: m.hp ?? MEMBER_MAX_HP, maxHp: m.maxHp ?? MEMBER_MAX_HP }));
+      if (!members.length) { tx.update(ref, { lastBossAttackDate: today }); return; }
+
+      let log = t.actionLog || [];
+
+      // ── Resolve an already-telegraphed Synchronized Strike before anything else —
+      // this replaces today's normal attack rather than stacking on top of it. ──
+      if (t.activeMechanic && today >= t.activeMechanic.deadlineDate) {
+        const mech = t.activeMechanic;
+        const completed = new Set(mech.completedBy || []);
+        const missed = members.filter(m => !completed.has(m.username));
+        const muscleName = MUSCLES[mech.muscle]?.name || mech.muscle;
+        if (missed.length === 0) {
+          log = _teamLogPush(log, `✅ The whole party answered ${boss.name}'s challenge — everyone logged ${muscleName} in time. The strike fizzles harmlessly!`);
+        } else {
+          const teamDmg = SYNC_STRIKE_TEAM_BASE_DMG + SYNC_STRIKE_TEAM_DMG_PER_MISS * missed.length;
+          for (const m of members) m.hp = Math.max(0, m.hp - teamDmg);
+          for (const m of missed) m.hp = Math.max(0, m.hp - SYNC_STRIKE_PERSONAL_DMG);
+          const missedNames = missed.map(m => m.name || m.username).join(', ');
+          log = _teamLogPush(log, `⚡ ${boss.name}'s Synchronized Strike lands! Nobody answered the call on ${muscleName} for ${missedNames} — the party takes ${teamDmg} damage, and they take an extra ${SYNC_STRIKE_PERSONAL_DMG} on top!`);
+        }
+        tx.update(ref, { members, actionLog: log, lastBossAttackDate: today, activeMechanic: null });
+        return;
+      }
+
+      // ── No mechanic pending — maybe telegraph one instead of a normal attack today,
+      // as long as this boss instance hasn't already used up its cap. ──
+      const mechanicCount = t.mechanicCount || 0;
+      const mechanicCap = SYNC_STRIKE_MAX_BY_SIZE[t.raidSize] ?? 2;
+      if (!t.activeMechanic && mechanicCount < mechanicCap) {
+        const chance = SYNC_STRIKE_CHANCE_BY_SIZE[t.raidSize] ?? 0.2;
+        if (Math.random() < chance) {
+          const muscle = SYNC_STRIKE_MUSCLE_POOL[Math.floor(Math.random() * SYNC_STRIKE_MUSCLE_POOL.length)];
+          const muscleName = MUSCLES[muscle]?.name || muscle;
+          const deadlineDate = addDaysStr(today, SYNC_STRIKE_WINDOW_DAYS);
+          const activeMechanic = { type: 'sync_strike', muscle, announcedDate: today, deadlineDate, completedBy: [] };
+          log = _teamLogPush(log, `🧘 ${boss.name} begins to meditate... Get ready — every member must log a ${muscleName} workout by ${formatDate(deadlineDate + 'T12:00:00')} or the whole party will suffer a critical strike!`);
+          tx.update(ref, { actionLog: log, lastBossAttackDate: today, activeMechanic, mechanicCount: mechanicCount + 1 });
+          return;
+        }
+      }
+
+      const parried = Math.random() < boss.parryChance;
+
+      if (parried) {
+        const defender = members.find(m => m.role === 'tank') || members[0];
+        log = _teamLogPush(log, `🛡️ ${defender.name || defender.username} parried ${boss.name}'s attack!`);
+      } else if (boss.aoe) {
+        const dmg = Math.floor(boss.atkMin + Math.random() * (boss.atkMax - boss.atkMin));
+        for (const m of members) m.hp = Math.max(0, m.hp - dmg);
+        log = _teamLogPush(log, `💥 ${boss.name} unleashes an AOE attack — everyone takes ${dmg} damage!`);
+      } else {
+        const target = members.find(m => m.role === 'tank') || members[Math.floor(Math.random() * members.length)];
+        const dmg = Math.floor(boss.atkMin + Math.random() * (boss.atkMax - boss.atkMin));
+        target.hp = Math.max(0, target.hp - dmg);
+        log = _teamLogPush(log, `⚔️ ${boss.name} deals ${dmg} damage to ${target.name || target.username}!`);
+      }
+
+      tx.update(ref, { members, actionLog: log, lastBossAttackDate: today });
+    });
+  } catch (e) {}
+}
+
+// Applies a submitted workout's party effects: healers restore the whole team's HP
+// (scaled to how many members each healer actually has to cover), and any raid damage
+// gets applied straight to this party's OWN instanced boss — never a shared global pool.
+async function _applyTeamWorkoutEffects(raidContribution, sessionXP, musclesHit) {
+  if (!db || !state.teamId || !state.teamRole) return;
+  const ref = db.collection('teams').doc(state.teamId);
+  await db.runTransaction(async tx => {
+    const doc = await tx.get(ref);
+    if (!doc.exists) return;
+    const team = doc.data();
+    const members = (team.members || []).map(m => ({ ...m, hp: m.hp ?? MEMBER_MAX_HP, maxHp: m.maxHp ?? MEMBER_MAX_HP }));
+    const myName = state.name || currentUser;
+    let log = team.actionLog || [];
+    let bossDamage = team.bossDamage || 0;
+    let bossDefeated = !!team.bossDefeated;
+    let activeMechanic = team.activeMechanic || null;
+
+    // Mark this member as having answered the boss's Synchronized Strike, if it's
+    // still open and this submission actually hit the required muscle group.
+    if (activeMechanic && todayStr() <= activeMechanic.deadlineDate && musclesHit && musclesHit.has(activeMechanic.muscle)) {
+      const completed = new Set(activeMechanic.completedBy || []);
+      if (!completed.has(currentUser)) {
+        completed.add(currentUser);
+        activeMechanic = { ...activeMechanic, completedBy: [...completed] };
+        const mechBossName = (RAID_BOSSES.find(b => b.id === team.bossId) || RAID_BOSSES[0]).name;
+        const muscleName = MUSCLES[activeMechanic.muscle]?.name || activeMechanic.muscle;
+        log = _teamLogPush(log, `🧘 ${myName} answered the call — ${muscleName} logged before ${mechBossName}'s strike lands!`);
+      }
+    }
+
+    if (state.teamRole === 'healer') {
+      // A solo healer covering a bigger raid restores proportionally less per action —
+      // coverage is healthy (near 1x) when headcount-per-healer matches the 4-man baseline.
+      const healerCount = members.filter(m => m.role === 'healer').length || 1;
+      const coverage = Math.min(2.5, Math.max(0.5, members.length / (healerCount * 4)));
+      const heal = Math.max(1, Math.floor(sessionXP * HEAL_FACTOR * coverage));
+      for (const m of members) m.hp = Math.min(m.maxHp, m.hp + heal);
+      log = _teamLogPush(log, `💚 ${myName}'s workout healed the party for ${heal} HP!`);
+    }
+
+    if (!bossDefeated && raidContribution > 0) {
+      const bossFlavor = RAID_BOSSES.find(b => b.id === team.bossId) || RAID_BOSSES[0];
+      bossDamage = Math.min(team.bossHp || 0, bossDamage + raidContribution);
+      const verb = state.teamRole === 'tank' ? 'tanked and dealt' : state.teamRole === 'healer' ? 'also dealt' : 'dealt';
+      log = _teamLogPush(log, `⚡ ${myName} ${verb} ${raidContribution} damage to ${bossFlavor.name}!`);
+      if (bossDamage >= (team.bossHp || Infinity)) {
+        bossDefeated = true;
+        log = _teamLogPush(log, `🏆 ${bossFlavor.name} has been defeated by the party!`);
+      }
+    }
+
+    tx.update(ref, { members, actionLog: log, bossDamage, bossDefeated, activeMechanic });
+  });
+}
+
+// ── Raid selection map (SMW-style) ──
+// Local-only UI state — not synced. Picking a node just decides which raid the
+// upcoming Create/Join Team screen is for; it doesn't touch team data itself.
+let selectedRaidId = null;
+
+// Coordinates are % of the map box (0-100 on both axes) so the layout scales to
+// any container width instead of assuming a fixed 380px canvas.
+const RAID_DEFS = [
+  { id: 'ironvale',   name: 'Ironvale Depths',   size: 4,  x: 9,  y: 70, live: true },
+  { id: 'ashguard',   name: 'Ashguard Hollow',   size: 4,  x: 20, y: 15, live: true }, // right at the lakeshore now
+  { id: 'forgehold',  name: 'Forgehold Summit',  size: 6,  x: 50, y: 70, live: true }, // now nested into the mountain massif
+  { id: 'titanspire', name: "Titan's Spire",     size: 8,  x: 74, y: 20, live: true }, // reimagined as an evil castle, between the desert and its old spot
+  { id: 'godsanvil',  name: "God's Anvil",       size: 12, x: 90, y: 85, live: true }, // pushed high into the sky, near the floating forge-castle
+];
+
+// Quadratic-bezier control point per path segment (0: ironvale→ashguard, 1: ashguard→
+// forgehold, 2: forgehold→titanspire, 3: titanspire→godsanvil/staircase), in the same
+// svg y-down space as everything else (y = 100 - cssBottomPercent).
+const PATH_CONTROLS = [ [12,60], [30,55], [56,55], [86,55] ];
+const _bez = (p0, p1, p2, t) => { const mt = 1 - t; return [mt*mt*p0[0] + 2*mt*t*p1[0] + t*t*p2[0], mt*mt*p0[1] + 2*mt*t*p1[1] + t*t*p2[1]]; };
+
+// Depth cue for the 2.75D map: nodes higher up (further "into" the mountain) render
+// smaller & hazier, nodes lower down (closer to camera) render bigger & crisper —
+// same trick isometric/pseudo-3D maps use without an actual 3D transform (which would
+// make the pixel-font labels illegible on a mobile-width canvas).
+function _mapDepthScale(y) { return 1.16 - (y / 100) * 0.42; }
+function _mapDepthHaze(y) { return Math.max(0, (y - 40) / 100); }
+
+// Walks the character along the actual trail (hopping each connecting curve in turn,
+// through however many intermediate nodes lie between here and the target) instead of
+// cutting straight across the map, then locks in the raid once the walk finishes.
+function _raidMapWalkAndSelect(raidId) {
+  const raid = RAID_DEFS.find(r => r.id === raidId);
+  if (!raid || !raid.live) { toast(raid ? `${raid.name} isn't open yet — coming soon` : 'Unknown raid'); return; }
+  const guy = document.getElementById('raid-map-walker');
+  const shadow = document.getElementById('raid-map-walker-shadow');
+  if (!guy) { selectedRaidId = raidId; renderParty(); return; }
+
+  const fromId = guy.dataset.nodeId || (RAID_DEFS.find(r => r.id === state.lastDungeonId)?.id) || RAID_DEFS[0].id;
+  const fromIdx = RAID_DEFS.findIndex(r => r.id === fromId);
+  const toIdx = RAID_DEFS.findIndex(r => r.id === raidId);
+  if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) {
+    guy.dataset.nodeId = raidId;
+    selectedRaidId = raidId; renderParty();
+    return;
+  }
+
+  const dir = toIdx > fromIdx ? 1 : -1;
+  const legStarts = [];
+  for (let i = fromIdx; i !== toIdx; i += dir) legStarts.push(i);
+
+  guy.style.transition = 'none';
+  if (shadow) shadow.style.transition = 'none';
+
+  let legPtr = 0;
+  const runLeg = () => {
+    if (legPtr >= legStarts.length) {
+      guy.dataset.nodeId = raidId;
+      setTimeout(() => { selectedRaidId = raidId; renderParty(); }, 100);
+      return;
+    }
+    const segIdx = Math.min(legStarts[legPtr], legStarts[legPtr] + dir);
+    const nodeA = RAID_DEFS[segIdx], nodeB = RAID_DEFS[segIdx + 1];
+    const forward = dir === 1;
+    const from = forward ? nodeA : nodeB, to = forward ? nodeB : nodeA;
+    const p0 = [from.x, 100 - from.y], p2 = [to.x, 100 - to.y], p1 = PATH_CONTROLS[segIdx];
+    const flip = to.x >= from.x ? 1 : -1;
+    const legStart = performance.now();
+    const legDur = 550;
+    const frame = (now) => {
+      const t = Math.min(1, (now - legStart) / legDur);
+      const [px, py] = _bez(p0, p1, p2, t);
+      const cssY = 100 - py;
+      const scale = _mapDepthScale(cssY);
+      guy.style.left = px + '%';
+      guy.style.bottom = cssY + '%';
+      guy.style.transform = `translate(-50%,50%) scale(${scale}) scaleX(${flip * scale})`;
+      if (shadow) {
+        shadow.style.left = px + '%';
+        shadow.style.bottom = cssY + '%';
+        shadow.style.transform = `translate(-50%,10%) scale(${scale})`;
+      }
+      if (t < 1) requestAnimationFrame(frame);
+      else { legPtr++; runLeg(); }
+    };
+    requestAnimationFrame(frame);
+  };
+  runLeg();
+}
+
+// Each raid location is now its own landmark (no more generic gold size-badge — the
+// hover tooltip carries the size/role/lore info instead, so the button itself can just
+// be the scenery). Returns an inline <svg> sized to read clearly at map scale.
+function _landmarkArtSVG(id, live) {
+  const dim = live ? '' : 'opacity:.55;filter:grayscale(60%)';
+  switch (id) {
+    case 'ironvale': // small cave entrance, torch-lit
+      return `<svg viewBox="0 0 60 70" width="52" height="60" style="${dim}">
+        <ellipse cx="30" cy="66" rx="25" ry="5" fill="#000" opacity="0.25"/>
+        <path d="M4 62 Q2 30 20 14 Q30 4 40 14 Q58 30 56 62Z" fill="#4a3a2a"/>
+        <path d="M6 60 Q4 32 20 16 Q25 10 28 9 Q20 20 15 42 Q12 54 13 60Z" fill="#5a4838" opacity="0.55"/>
+        <ellipse cx="30" cy="58" rx="14" ry="20" fill="#0a0604"/>
+        <ellipse cx="30" cy="58" rx="10" ry="16" fill="#1a100a"/>
+        <rect x="9" y="48" width="2.4" height="11" fill="#3a2a1a"/><circle cx="10.2" cy="46" r="2.1" fill="#ff9a3c"/><circle cx="10.2" cy="46" r="4" fill="#ff9a3c33"/>
+        <rect x="48.6" y="48" width="2.4" height="11" fill="#3a2a1a"/><circle cx="49.8" cy="46" r="2.1" fill="#ff9a3c"/><circle cx="49.8" cy="46" r="4" fill="#ff9a3c33"/>
+      </svg>`;
+    case 'ashguard': // stone steps leading down into the lake
+      return `<svg viewBox="0 0 60 70" width="50" height="58" style="${dim}">
+        <rect x="15" y="16" width="30" height="7" rx="1.5" fill="#8a8478"/>
+        <rect x="11" y="25" width="34" height="8" rx="1.5" fill="#7c7668"/>
+        <rect x="7" y="35" width="38" height="9" rx="1.5" fill="#6e6858"/>
+        <rect x="3" y="46" width="42" height="10" rx="1.5" fill="#605a4a"/>
+        <ellipse cx="24" cy="62" rx="26" ry="6" fill="#3a8ab0" opacity="0.9"/>
+        <ellipse cx="22" cy="61" rx="18" ry="4" fill="#8fd0e8" opacity="0.55"/>
+        <rect x="46" y="30" width="2" height="14" fill="#3a2a1a"/><circle cx="47" cy="28" r="2" fill="#ffce6b"/><circle cx="47" cy="28" r="3.6" fill="#ffce6b33"/>
+      </svg>`;
+    case 'forgehold': // an interactive peak matching the mountain massif behind it
+      return `<svg viewBox="0 0 60 70" width="58" height="64" style="${dim}">
+        <ellipse cx="30" cy="66" rx="22" ry="4.5" fill="#000" opacity="0.2"/>
+        <polygon points="4,60 22,22 30,36 38,16 56,60" fill="#8a96ac"/>
+        <polygon points="4,60 22,22 26,29 16,60" fill="#7c879e"/>
+        <polygon points="26,28 30,36 34,24" fill="#e8edf5"/>
+        <polygon points="34,24 38,16 42,26" fill="#eef2f8"/>
+      </svg>`;
+    case 'titanspire': // the evil castle itself is the button
+      return `<svg viewBox="-16 -40 32 42" width="48" height="58" style="${dim}">
+        <polygon points="-13,0 13,0 9,-6 -9,-6" fill="#2a2530"/>
+        <rect x="-10" y="-14" width="20" height="9" fill="#332838"/>
+        <rect x="-13" y="-24" width="5.5" height="19" fill="#282030"/>
+        <polygon points="-13,-24 -10.2,-30 -7.5,-24" fill="#3a2a40"/>
+        <rect x="7.5" y="-26" width="5.5" height="21" fill="#282030"/>
+        <polygon points="7.5,-26 10.2,-32.5 13,-26" fill="#3a2a40"/>
+        <rect x="-3" y="-30" width="6" height="25" fill="#332838"/>
+        <polygon points="-3,-30 0,-38 3,-30" fill="#4a3550"/>
+        <circle cx="0" cy="-21" r="1.5" fill="#c83c64"/><circle cx="0" cy="-21" r="2.8" fill="#c83c6440"/>
+        <circle cx="-10.2" cy="-27" r="1" fill="#c83c6499"/>
+      </svg>`;
+    case 'godsanvil': // a glowing altar platform at the top of the glass stairway
+    default:
+      return `<svg viewBox="0 0 60 50" width="48" height="40" style="${dim}">
+        <ellipse cx="30" cy="45" rx="22" ry="4.5" fill="#fff" opacity="0.5"/>
+        <rect x="15" y="30" width="30" height="10" rx="2" fill="#5a5468"/>
+        <rect x="21" y="17" width="18" height="15" rx="2" fill="#6a5f78"/>
+        <circle cx="30" cy="21" r="3.2" fill="#ffb347"/><circle cx="30" cy="21" r="6.5" fill="#ffb34740"/>
+      </svg>`;
+  }
+}
+
+function renderRaidMap(el) {
+  const nodesHTML = RAID_DEFS.map(r => {
+    const scale = _mapDepthScale(r.y);
+    const haze = _mapDepthHaze(r.y);
+    return `
+    <div onclick="MQ._raidMapWalkAndSelect('${r.id}')" style="position:absolute;left:${r.x}%;bottom:${r.y}%;transform:translate(-50%,10%) scale(${scale});text-align:center;z-index:${Math.round((100-r.y))};pointer-events:none">
+      <div style="width:${scale*40}px;height:${scale*11}px;margin:0 auto 3px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,0.45) 0%,transparent 75%)"></div>
+    </div>
+    <div onclick="MQ._raidMapWalkAndSelect('${r.id}')" onmouseenter="MQ.showRaidTooltip('${r.id}')" onmouseleave="MQ.hideRaidTooltip()" style="position:absolute;left:${r.x}%;bottom:${r.y}%;transform:translate(-50%,50%) scale(${scale});text-align:center;cursor:pointer;z-index:${Math.round((100-r.y))+1};${r.live ? '' : 'opacity:.5'}">
+      ${_landmarkArtSVG(r.id, r.live)}
+      <div style="margin-top:1px;background:#150a02ee;border:1px solid #5a3418;border-radius:4px;padding:2px 5px;font-size:8.5px;color:#e8c890;white-space:nowrap;box-shadow:0 2px 0 #0a0500">${esc(r.name)}${r.live ? '' : ' 🔒'}</div>
+    </div>
+    ${haze > 0 ? `<div style="position:absolute;left:${r.x}%;bottom:${r.y}%;transform:translate(-50%,50%);width:60px;height:40px;background:radial-gradient(ellipse,rgba(180,200,230,${haze*0.5}) 0%,transparent 70%);pointer-events:none;z-index:${Math.round((100-r.y))+2}"></div>` : ''}`;
+  }).join('');
+
+  // Numeric path: node 1→2→3→4→5 in order, drawn as a curved "ribbon" (quadratic bezier
+  // through a hand-placed control point per segment, so it winds instead of running
+  // straight) with a dark base stroke + lighter dashed top stroke for the beveled look.
+  // The final segment (Titan's Spire → God's Anvil) is a special case — a dirt trail
+  // running from the ground straight into the sky looked wrong, so that leg instead
+  // renders as a translucent glass staircase climbing up into the clouds.
+  const pathHTML = RAID_DEFS.slice(1).map((r, i) => {
+    const prev = RAID_DEFS[i];
+    const [cx, cy] = PATH_CONTROLS[i];
+    const x1 = prev.x, y1 = 100-prev.y, x2 = r.x, y2 = 100-r.y;
+
+    if (i === 3) {
+      const p0 = [x1,y1], p1 = [cx,cy], p2 = [x2,y2];
+      const N = 9;
+      let steps = '';
+      for (let s = 1; s <= N; s++) {
+        const t = s / (N + 1);
+        const [px, py] = _bez(p0, p1, p2, t);
+        const [tx, ty] = _bez(p0, p1, p2, Math.min(1, t + 0.03));
+        const ang = Math.atan2(ty - py, tx - px) * 180 / Math.PI;
+        const stepScale = 1 - t * 0.35; // steps shrink slightly as they climb into the distance
+        steps += `<g transform="translate(${px},${py}) rotate(${ang}) scale(${stepScale})">
+          <rect x="-3.2" y="-0.5" width="6.4" height="1.3" rx="0.4" fill="#bfe0ff" opacity="0.32"/>
+          <rect x="-3.2" y="-0.9" width="6.4" height="0.5" rx="0.25" fill="#eaf6ff" opacity="0.6"/>
+          <rect x="-3.2" y="-0.5" width="6.4" height="1.3" rx="0.4" fill="none" stroke="#eaf6ff" stroke-width="0.15" opacity="0.4"/>
+        </g>`;
+      }
+      return `<g opacity="0.95">${steps}</g>`;
+    }
+
+    const w = 2.6 * ((_mapDepthScale(prev.y) + _mapDepthScale(r.y)) / 2);
+    return `<path d="M${x1},${y1+0.6} Q${cx},${cy+0.6} ${x2},${y2+0.6}" stroke="#5a3418" stroke-width="${w}" fill="none" stroke-linecap="round"/>
+      <path d="M${x1},${y1} Q${cx},${cy} ${x2},${y2}" stroke="#e8c890" stroke-width="${w*0.5}" fill="none" stroke-dasharray="2.4,2" stroke-linecap="round"/>`;
+  }).join('');
+
+  // Ground shadow helper — every scenery piece casts its shadow the same direction
+  // (down-right) so the whole scene reads as lit from one consistent upper-left source.
+  const gshadow = (rx, ry) => `<ellipse cx="0.8" cy="${1.2+ry*0.15}" rx="${rx}" ry="${ry}" fill="#0a0500" opacity="0.32"/>`;
+  const pine = (x, y, s) => `<g transform="translate(${x},${y}) scale(${s})">
+      ${gshadow(3.6,0.9)}
+      <rect x="-0.5" y="-1" width="1" height="2.4" fill="#4a3018"/>
+      <polygon points="-3.4,-1.4 3.4,-1.4 0,-8.6" fill="#1f4a1e"/>
+      <polygon points="-3.4,-1.4 0,-1.4 0,-8.6" fill="#2a5a28"/>
+      <polygon points="-2.6,-3.6 2.6,-3.6 0,-9.6" fill="#2a6030"/>
+      <polygon points="-2.6,-3.6 0,-3.6 0,-9.6" fill="#3a7a3a"/>
+      <polygon points="-1.8,-6 1.8,-6 0,-11" fill="#3a8038"/>
+      <polygon points="-1.8,-6 0,-6 0,-11" fill="#4a9048"/>
+    </g>`;
+  const rock = (x, y, s) => `<g transform="translate(${x},${y}) scale(${s})">
+      ${gshadow(3.2,0.7)}
+      <path d="M-2.6 0.6 Q-3 -1.8 -0.6 -2.4 Q2 -3 2.8 -0.8 Q3.4 1 1 1.4 Q-1.6 1.8 -2.6 0.6Z" fill="#565860"/>
+      <path d="M-1.6 -1.2 Q-0.2 -2.2 1.2 -1.4 L2 -0.4 Q0 -0.6 -1.6 -1.2Z" fill="#7a7d86"/>
+    </g>`;
+  const bush = (x, y, s) => `<g transform="translate(${x},${y}) scale(${s})">
+      ${gshadow(3,0.65)}
+      <ellipse cx="-1.4" cy="-1" rx="2.2" ry="1.8" fill="#2a5a28"/>
+      <ellipse cx="1.4" cy="-1.2" rx="2.4" ry="2" fill="#2a6030"/>
+      <ellipse cx="0" cy="-2.4" rx="2.6" ry="2.1" fill="#3a7a3a"/>
+      <ellipse cx="-0.6" cy="-3" rx="1.3" ry="1" fill="#4a9048" opacity="0.8"/>
+    </g>`;
+  const grassTuft = (x, y, s) => `<g transform="translate(${x},${y}) scale(${s})">
+      <path d="M-1.5 0 Q-1.8 -2.6 -0.8 -4.2" stroke="#4a9048" stroke-width="0.5" fill="none" stroke-linecap="round"/>
+      <path d="M0 0 Q0 -3.2 0.6 -4.6" stroke="#5aa858" stroke-width="0.5" fill="none" stroke-linecap="round"/>
+      <path d="M1.4 0 Q2 -2.4 2.6 -3.6" stroke="#4a9048" stroke-width="0.5" fill="none" stroke-linecap="round"/>
+    </g>`;
+  const cactus = (x, y, s) => `<g transform="translate(${x},${y}) scale(${s})">
+      ${gshadow(2.6,0.6)}
+      <rect x="-1" y="-8" width="2" height="8.2" rx="1" fill="#3a7a4a"/>
+      <rect x="-2.2" y="-6.4" width="1.8" height="1" rx="0.8" fill="#3a7a4a"/>
+      <rect x="-2.2" y="-6.4" width="1.8" height="3.2" rx="0.9" fill="#3a7a4a"/>
+      <rect x="0.6" y="-5" width="1.8" height="1" rx="0.8" fill="#3a7a4a"/>
+      <rect x="1.5" y="-5" width="0.9" height="3" rx="0.45" fill="#3a7a4a"/>
+      <rect x="-0.6" y="-8" width="0.7" height="8.2" fill="#4a9058" opacity="0.7"/>
+    </g>`;
+  const dune = (x, y, rx, ry) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#c9a86a"/>
+    <ellipse cx="${x-rx*0.2}" cy="${y-ry*0.3}" rx="${rx*0.7}" ry="${ry*0.55}" fill="#dab97e"/>
+    <path d="M${x-rx*0.6} ${y-ry*0.1} Q${x} ${y-ry*0.6} ${x+rx*0.6} ${y-ry*0.15}" stroke="#b89457" stroke-width="0.4" fill="none" opacity="0.6"/>`;
+  // A grouped mountain massif (several overlapping snow-capped peaks) instead of scattered
+  // singles — tall enough that it visually looms behind/around whichever node sits in it.
+  const mountainRange = (x, y, s) => `<g transform="translate(${x},${y}) scale(${s})">
+      <polygon points="-26,0 -14,-24 -2,0" fill="#7c879e"/>
+      <polygon points="-17,-16 -14,-24 -11,-16" fill="#e8edf5"/>
+      <polygon points="-14,0 0,-32 14,0" fill="#8a96ac"/>
+      <polygon points="-6,-22 0,-32 6,-22" fill="#eef2f8"/>
+      <polygon points="2,0 16,-26 30,0" fill="#7c879e"/>
+      <polygon points="10,-18 16,-26 22,-18" fill="#e8edf5"/>
+      <polygon points="16,0 26,-18 36,0" fill="#697389"/>
+    </g>`;
+  // Floating sky-castle for God's Anvil — perched on a cloud, warm forge-glow window.
+  const skyCastle = (x, y, s) => `<g transform="translate(${x},${y}) scale(${s})">
+      <ellipse cx="0" cy="2" rx="15" ry="4" fill="#e8edf5" opacity="0.9"/>
+      <ellipse cx="-8" cy="3.2" rx="7" ry="2.6" fill="#fff" opacity="0.85"/>
+      <ellipse cx="8" cy="3" rx="7.5" ry="2.8" fill="#fff" opacity="0.85"/>
+      <polygon points="-9,0 9,0 6,-5 -6,-5" fill="#4a4458"/>
+      <rect x="-7" y="-11" width="14" height="7" fill="#5a5468"/>
+      <rect x="-9.5" y="-17" width="4.5" height="13" fill="#4a4458"/>
+      <polygon points="-9.5,-17 -7.2,-22 -5,-17" fill="#6a5f78"/>
+      <rect x="5" y="-16" width="4.5" height="12" fill="#4a4458"/>
+      <polygon points="5,-16 7.2,-21 9.5,-16" fill="#6a5f78"/>
+      <rect x="-2.5" y="-20" width="5" height="16" fill="#5a5468"/>
+      <polygon points="-2.5,-20 0,-26 2.5,-20" fill="#7a6f88"/>
+      <circle cx="0" cy="-13" r="1.3" fill="#ffb347"/><circle cx="0" cy="-13" r="2.5" fill="#ffb34740"/>
+      <path d="M-9.5 -4 Q-9.5 3 -9.5 6" stroke="#3a3448" stroke-width="0.5" fill="none" opacity="0.6"/>
+    </g>`;
+
+  // Spawn standing at whichever raid was last entered/completed/failed, instead of
+  // always resetting to Ironvale — falls back to the first raid if none yet.
+  const start = RAID_DEFS.find(r => r.id === state.lastDungeonId) || RAID_DEFS[0];
+  const startScale = _mapDepthScale(start.y);
+  const avatarSVG = renderMiniAvatarSVG(state.gender || 'male', state.equippedCosmetics || [], 0, state.name || currentUser, state.hair || 'default', state.skinTone ?? 1, state.hairColor ?? 0, null, 1);
+
+  el.innerHTML = `
+    <div style="font-size:11px;color:#8a6a4a;text-align:center;margin-bottom:8px">Pick a raid to lock your party in for the month</div>
+    <div style="position:relative;height:300px;border-radius:10px;overflow:hidden;border:1px solid #3a2000;perspective:500px;
+      background:linear-gradient(180deg,#3a7bd5 0%,#6bb6e0 32%,#5a9a4a 32%,#3a7a3a 100%)">
+      <!-- far layer: hazy blurred mountains (atmospheric perspective = the "further away" depth cue) -->
+      <div style="position:absolute;left:0;top:26%;width:100%;height:20%;background:radial-gradient(ellipse at 15% 100%,rgba(120,150,190,0.55) 0%,transparent 65%),radial-gradient(ellipse at 55% 100%,rgba(120,150,190,0.5) 0%,transparent 60%),radial-gradient(ellipse at 88% 100%,rgba(120,150,190,0.5) 0%,transparent 65%);filter:blur(1.5px)"></div>
+      <!-- mid layer: hills, less blurred -->
+      <div style="position:absolute;left:0;bottom:34%;width:100%;height:34%;background:radial-gradient(ellipse at 20% 100%,#4a8a3a 0%,transparent 58%),radial-gradient(ellipse at 75% 100%,#4a8a3a 0%,transparent 62%)"></div>
+      <!-- near layer: foreground grass texture, darkest/closest -->
+      <div style="position:absolute;left:0;bottom:0;width:100%;height:30%;background:linear-gradient(180deg,#3a7a3a 0%,#2a5a28 100%)"></div>
+      <!-- decorative clouds -->
+      <div style="position:absolute;left:8%;top:6%;width:46px;height:16px;background:#fff;border-radius:20px;opacity:.85;box-shadow:14px 4px 0 -2px #fff, 26px 0 0 -4px #fff"></div>
+      <div style="position:absolute;left:62%;top:10%;width:36px;height:13px;background:#fff;border-radius:20px;opacity:.7;box-shadow:12px 3px 0 -2px #fff"></div>
+      <div style="position:absolute;left:40%;top:4%;width:28px;height:11px;background:#fff;border-radius:20px;opacity:.6"></div>
+      <!-- scenery layer 1 (background, behind the path): mountains, lake, desert, sparse trees -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:0" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <defs>
+          <radialGradient id="lakeGrad" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#8fd0e8"/><stop offset="60%" stop-color="#3a8ab0"/><stop offset="100%" stop-color="#245a78"/>
+          </radialGradient>
+        </defs>
+        <!-- one grouped mountain massif (not scattered peaks) — sits right around/behind
+             Forgehold Summit so the node reads as carved into the mountainside -->
+        ${mountainRange(50,40,0.7)}
+        <!-- lake: wide irregular shoreline with a sandy bank ring + layered ripples + reeds -->
+        <ellipse cx="17" cy="90" rx="13" ry="5.4" fill="#c9a86a"/>
+        <ellipse cx="17" cy="89.3" rx="11.5" ry="4.5" fill="url(#lakeGrad)"/>
+        <ellipse cx="14" cy="87.8" rx="4" ry="1.1" fill="#bfe8f5" opacity="0.7"/>
+        <ellipse cx="20" cy="90.6" rx="2.6" ry="0.8" fill="#bfe8f5" opacity="0.5"/>
+        <path d="M6.5 89.2 Q8 87.2 10.2 88" stroke="#4a8a5a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+        <path d="M26.5 90.4 Q25.3 88.2 27.4 87.5" stroke="#4a8a5a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+        <path d="M11 93.4 Q10.4 91 12.2 90" stroke="#4a8a5a" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+        <!-- desert biome: sun-bleached dunes + cacti, bottom-right corner (opposite the lake) -->
+        ${dune(72,90,15,4.4)}
+        ${dune(84,86,9,3)}
+        ${cactus(66,93,0.85)}${cactus(78,95,0.6)}${cactus(90,90,0.7)}
+        ${rock(74,88,0.5)}
+        <!-- Titan's Spire's castle is now the clickable node art itself (see _landmarkArtSVG) —
+             no separate backdrop copy needed here. -->
+        <!-- floating forge-castle in the sky, tethered near God's Anvil -->
+        ${skyCastle(87,9,0.5)}
+        <!-- background forest belt, kept behind the path/nodes -->
+        ${pine(3,55,0.55)}${pine(6,50,0.5)}${bush(96,52,0.6)}
+      </svg>
+      <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:1" viewBox="0 0 100 100" preserveAspectRatio="none">${pathHTML}</svg>
+      <!-- scenery layer 2 (foreground, ON TOP of the path): the trail ducks behind these -->
+      <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:2" viewBox="0 0 100 100" preserveAspectRatio="none">
+        ${pine(14,52,1.05)}${pine(17,55,0.8)}${bush(19,50,0.7)}
+        ${pine(58,50,1)}${pine(61,52,0.7)}${rock(56,53,0.55)}
+        ${pine(38,68,0.7)}${bush(41,70,0.6)}
+        ${rock(28,50,0.7)}${bush(46,50,0.55)}
+        ${grassTuft(24,60,1)}${grassTuft(40,44,0.9)}${grassTuft(55,72,1)}${grassTuft(78,50,0.8)}
+        ${grassTuft(12,68,0.8)}${grassTuft(35,38,0.9)}${grassTuft(66,60,0.8)}${grassTuft(50,38,0.7)}
+        ${bush(10,72,0.6)}${bush(85,42,0.65)}
+      </svg>
+      ${nodesHTML}
+      <div id="raid-map-walker-shadow" style="position:absolute;left:${start.x}%;bottom:${start.y}%;transform:translate(-50%,10%) scale(${startScale});width:40px;height:11px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,0.45) 0%,transparent 75%);z-index:${Math.round(100-start.y)}"></div>
+      <div id="raid-map-walker" data-node-id="${start.id}" style="position:absolute;left:${start.x}%;bottom:${start.y}%;transform:translate(-50%,50%) scale(${startScale});width:44px;height:52px;z-index:${Math.round(100-start.y)+1};pointer-events:none">${avatarSVG}</div>
+      <!-- subtle vignette to unify the depth layers -->
+      <div style="position:absolute;inset:0;box-shadow:inset 0 30px 30px -20px rgba(20,40,70,0.35),inset 0 -20px 25px -15px rgba(0,0,0,0.3);pointer-events:none;z-index:99"></div>
+      <!-- tooltip: fixed over the lake (bottom-left) so it never clips off the map edges -->
+      <div id="raid-map-tooltip" style="display:none;position:absolute;left:6%;right:auto;bottom:8%;z-index:200;width:62%;max-width:200px;background:#0d0500f5;border:1px solid #5a3418;border-radius:8px;padding:8px 10px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.5)"></div>
+    </div>`;
+}
+
+function _raidTooltipContent(raid) {
+  if (!raid.live) return `<div style="font-weight:700;color:#e8c890;font-size:11px">${esc(raid.name)}</div><div style="font-size:9.5px;color:#8a6a4a;margin-top:2px">🔒 Not open yet — coming soon</div>`;
+  const biome = RAID_LOCATION_BIOME[raid.id];
+  const bInfo = BIOME_INFO[biome] || {};
+  const { bossId } = pickInstanceBoss(raid.id, raid.size, 0);
+  const boss = RAID_BOSSES.find(b => b.id === bossId);
+  const roles = rolesForSize(raid.size);
+  const roleText = Object.entries(roles).filter(([,r]) => r.slots > 0).map(([k, r]) => `${r.slots} ${r.label}`).join(' · ');
+  const kills = state._raidKillCounts?.[raid.id] || 0;
+  return `
+    <div style="font-weight:700;color:#ffd8a0;font-size:11px">${esc(raid.name)} ${bInfo.icon || ''}</div>
+    <div style="font-size:9px;color:#9a8a70;margin:1px 0 6px">${bInfo.label || ''} · ${raid.size}-man (${roleText})</div>
+    <div style="font-weight:600;color:#fff;font-size:10.5px">${esc(boss.name)}</div>
+    <div style="font-size:9px;color:#ff8a80;margin-bottom:4px">${esc(boss.subtitle)}</div>
+    <div style="font-size:9px;color:#ccc;line-height:1.4;margin-bottom:4px">${esc(boss.lore)}</div>
+    <div style="font-size:8.5px;color:#8a8a8a">Base HP ${boss.hp.toLocaleString()} (scales with party size) · Weak to ${esc(MUSCLES[boss.weakness]?.name || boss.weakness)}</div>
+    <div style="font-size:9px;color:${kills > 0 ? '#7bc82e' : '#8a8a8a'};margin-top:4px;font-weight:600">${kills > 0 ? `✓ Cleared ${kills}× this account` : 'Not yet cleared'}</div>`;
+}
+
+function showRaidTooltip(raidId) {
+  const raid = RAID_DEFS.find(r => r.id === raidId);
+  const tip = document.getElementById('raid-map-tooltip');
+  if (!tip || !raid) return;
+  tip.innerHTML = _raidTooltipContent(raid);
+  tip.style.display = 'block';
+}
+
+function hideRaidTooltip() {
+  const tip = document.getElementById('raid-map-tooltip');
+  if (tip) tip.style.display = 'none';
+}
+
+async function renderParty() {
+  const el = document.getElementById('raid-party-section');
+  if (!el) return;
+  if (!db) { el.innerHTML = '<p class="muted" style="text-align:center;padding:20px;font-size:13px">Connect to the internet to form a party with friends.</p>'; return; }
+
+  if (!state.teamId && !selectedRaidId) { renderRaidMap(el); return; }
+
+  if (state.teamId) {
+    let teamDoc;
+    try { teamDoc = await db.collection('teams').doc(state.teamId).get(); } catch (e) { teamDoc = null; }
+    if (!teamDoc || !teamDoc.exists) {
+      state.teamId = null; saveWithPin();
+    } else {
+      const team = teamDoc.data();
+      // Keep my own cached member stats fresh — preserve my existing role, don't drop it.
+      // Firestore rejects `undefined` field values (and throws synchronously, not via
+      // rejection), so any missing role must be coerced to null, never left undefined.
+      // IMPORTANT: merge old-then-new (not replace) so server-mutated fields like hp/maxHp
+      // — which _myTeamMemberEntry() knows nothing about — never get clobbered on sync.
+      // Was I kicked? If I'm no longer in this team's roster, forget it and fall through
+      // to the "create/join a team" screen instead of getting stuck spectating it.
+      if (!(team.members || []).some(m => m.username === currentUser)) {
+        state.teamId = null; state.teamRole = null; saveWithPin();
+      } else {
+      const myEntry = _myTeamMemberEntry();
+      const members = (team.members || []).map(m => m.username === currentUser ? { ...m, ...myEntry, role: m.role ?? null } : { ...m, role: m.role ?? null });
+      if (JSON.stringify(members) !== JSON.stringify(team.members)) {
+        try { await db.collection('teams').doc(state.teamId).update({ members }); } catch (e) {}
+      }
+      const me = members.find(m => m.username === currentUser);
+      state.teamRole = me?.role || null;
+
+      await _maybeResetMonthlyHP(state.teamId, { ...team, members });
+      await _maybeTriggerDailyBossAttack(state.teamId, { ...team, members });
+
+      // Re-read once more in case either check above changed the doc, so the card
+      // reflects the fully-healed / post-attack state immediately, not stale data.
+      let finalTeam = team, finalMembers = members;
+      try {
+        const freshDoc = await db.collection('teams').doc(state.teamId).get();
+        if (freshDoc.exists) { finalTeam = freshDoc.data(); finalMembers = finalTeam.members || members; }
+      } catch (e) {}
+
+      // Cache this party's instanced-boss info locally so a workout submit (which
+      // doesn't await Firestore for raid math) knows what boss/size to hit against.
+      state.teamRaidSize = finalTeam.raidSize || 4;
+      state.teamBossId = finalTeam.bossId || null;
+      if (finalTeam.raidId) state.lastDungeonId = finalTeam.raidId;
+
+      let gymRoster = [];
+      if (state.gymId) {
+        try {
+          const gymDoc = await db.collection('gyms').doc(state.gymId).get();
+          if (gymDoc.exists) {
+            const onTeam = new Set(finalMembers.map(m => m.username));
+            gymRoster = (gymDoc.data().members || []).filter(m => !onTeam.has(m.username));
+          }
+        } catch (e) {}
+      }
+      renderPartyCard(el, finalTeam.name, finalMembers, finalTeam.ownerUsername, finalTeam.actionLog || [], finalTeam.raidName, finalTeam.raidSize, gymRoster);
+      return;
+      }
+    }
+  }
+
+  // Not on a team — check for pending invites addressed to me
+  let invites = [];
+  try {
+    const snap = await db.collection('teams').where('pendingInvites', 'array-contains', currentUser).limit(5).get();
+    snap.forEach(doc => invites.push({ id: doc.id, ...doc.data() }));
+  } catch (e) {}
+
+  const invitesHTML = invites.map(t => {
+    const tRoles = rolesForSize(t.raidSize || 4);
+    const roleOptions = Object.entries(tRoles).filter(([k, r]) => (t.members || []).filter(m => m.role === k).length < r.slots)
+      .map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('');
+    return `<div style="border:1px solid var(--accent-glow,#9e7cff);border-radius:10px;padding:12px;margin-bottom:10px;background:rgba(158,124,255,0.08)">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">Invited to <span style="color:var(--accent-glow,#9e7cff)">${esc(t.name)}</span>${t.raidName ? ` <span style="font-weight:400;color:var(--muted);font-size:11px">(${esc(t.raidName)}, ${t.raidSize}-man)</span>` : ''}</div>
+      <div style="display:flex;gap:6px">
+        <select id="invite-role-${t.id}" style="flex:1;padding:7px;border-radius:7px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:12px">${roleOptions}</select>
+        <button onclick="MQ.acceptTeamInvite('${t.id}')" style="padding:7px 12px;border-radius:7px;border:none;background:#4caf50;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Accept</button>
+        <button onclick="MQ.declineTeamInvite('${t.id}')" style="padding:7px 12px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--muted);font-size:12px;cursor:pointer">Decline</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const raid = RAID_DEFS.find(r => r.id === selectedRaidId);
+  el.innerHTML = `
+    ${raid ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:8px 10px;border-radius:8px;background:#150a02;border:1px solid #3a2000">
+      <span style="font-size:12px;color:#e8c890">Raid: <strong>${esc(raid.name)}</strong> (${raid.size}-man)</span>
+      <button onclick="MQ._backToRaidMap()" style="font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid #5a3418;background:none;color:#c8a060;cursor:pointer">Change</button>
+    </div>` : ''}
+    ${invitesHTML}
+    <p class="muted" style="font-size:12px;margin-bottom:10px">You're not on a team yet. Create one and invite up to 3 friends.</p>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <input id="team-name-input" placeholder="Team name" maxlength="24" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;box-sizing:border-box">
+    </div>
+    <div style="display:flex;gap:6px">
+      <select id="team-role-input" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px">
+        ${Object.entries(rolesForSize(raid ? raid.size : 4)).map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('')}
+      </select>
+      <button class="btn-neu-accent" onclick="MQ.createTeam()">Create Team</button>
+    </div>`;
+}
+
+function _backToRaidMap() {
+  selectedRaidId = null;
+  renderParty();
+}
+
+function renderPartyCard(el, teamName, members, ownerUsername, actionLog, raidName, raidSize, gymRoster) {
+  const teamRoles = rolesForSize(raidSize || 4);
+  const slots = [];
+  for (const [roleKey, roleInfo] of Object.entries(teamRoles)) {
+    for (let i = 0; i < roleInfo.slots; i++) {
+      const filled = (members || []).filter(m => m.role === roleKey)[i];
+      slots.push({ roleKey, roleInfo, member: filled || null });
+    }
+  }
+  const isFull = (members || []).length >= teamCapacity(raidSize || 4);
+
+  // Recovery path: an earlier bug could leave a member's own role as null. If that's
+  // you, surface a fix-it prompt instead of just silently vanishing from every slot.
+  const myBrokenEntry = (members || []).find(m => m.username === currentUser && !m.role);
+  const fixRoleHTML = myBrokenEntry ? `
+    <div style="border:2px solid #ffc107;border-radius:8px;background:#ffc10714;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:#ffc107;margin-bottom:8px">Your role wasn't saved — pick one to rejoin the roster:</div>
+      <div style="display:flex;gap:6px">
+        ${Object.entries(teamRoles).filter(([k, r]) => (members||[]).filter(m => m.role === k).length < r.slots).map(([k, r]) =>
+          `<button onclick="MQ.fixMyRole('${k}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid ${r.color}88;background:${r.color}22;color:${r.color};font-size:12px;font-weight:600;cursor:pointer">${r.label}</button>`
+        ).join('')}
+      </div>
+    </div>` : '';
+
+  const pixelBar = (label, valueText, pct, color) => `
+    <div style="font-family:'Press Start 2P',monospace;font-size:6.5px;color:#8886a0;display:flex;justify-content:space-between;margin-bottom:3px;letter-spacing:.3px">
+      <span>${label}</span><span>${valueText}</span>
+    </div>
+    <div class="pixel-bar-track">
+      <div class="pixel-bar-fill" style="width:${Math.max(2,Math.min(100,pct))}%;background:${color}"></div>
+      <div class="pixel-bar-ticks"></div>
+    </div>`;
+
+  const cardsHTML = slots.map(({ roleKey, roleInfo, member }) => {
+    if (!member) {
+      return `<div style="position:relative;border:2px solid #333;border-radius:8px;background:#0d0f1a;padding:16px 10px 12px;text-align:center;margin-top:14px">
+        <div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);width:32px;height:32px;border-radius:50%;border:2px solid #444;background:#12111c;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:7px;color:#555">${roleInfo.short}</div>
+        <div style="font-size:11px;color:#666;margin-top:6px">Open ${roleInfo.label} Slot</div>
+      </div>`;
+    }
+    const maxHp = member.maxHp ?? MEMBER_MAX_HP;
+    const hp = member.hp ?? maxHp;
+    const hpPct = maxHp > 0 ? (hp / maxHp) * 100 : 0;
+    const hpColor = hpPct <= 25 ? '#ff3b3b' : '#e0566b';
+    const manaPct = member.xpProgress || 0;
+    const xpVal = member.monthlyXP || 0;
+    const xpPct = Math.min(100, (xpVal/3000)*100);
+    const canKick = ownerUsername === currentUser && member.username !== currentUser;
+    return `<div style="position:relative;border:2px solid ${hp <= 0 ? '#5a2020' : '#3a3846'};border-radius:8px;background:#0d0f1a;padding:16px 10px 12px;margin-top:14px;${hp <= 0 ? 'opacity:.6' : ''}">
+      <div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);width:32px;height:32px;border-radius:50%;border:2px solid ${roleInfo.color};background:#12111c;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:6.5px;color:${roleInfo.color};box-shadow:0 0 8px ${roleInfo.color}55">${roleInfo.short}</div>
+      <div style="position:absolute;top:8px;right:9px;background:#1c1a28;border:1px solid #3a3846;border-radius:5px;padding:2px 6px;font-family:'Press Start 2P',monospace;font-size:6.5px;color:#ccc">Lv.${member.level || 1}</div>
+      ${canKick ? `<button onclick="event.stopPropagation();MQ._kickConfirm(this,'${member.username.replace(/'/g,"\\'")}')" title="Remove from party" style="position:absolute;top:6px;left:6px;width:18px;height:18px;border-radius:50%;border:1px solid #f4433677;background:#f4433622;color:#f44336;font-size:10px;line-height:1;cursor:pointer;padding:0;font-weight:700">✕</button>` : ''}
+      <div style="text-align:center;margin:8px 0 10px">
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(member.name || member.username)}</div>
+        ${member.username === ownerUsername ? `<div style="font-size:8px;color:${roleInfo.color};margin-top:3px;letter-spacing:.4px">★ LEADER</div>` : hp <= 0 ? `<div style="font-size:8px;color:#ff3b3b;margin-top:3px;letter-spacing:.4px">DOWN</div>` : ''}
+      </div>
+      ${pixelBar('Health', `${hp}/${maxHp}`, hpPct, hpColor)}
+      <div style="height:5px"></div>
+      ${pixelBar('Mana', `${manaPct}/100`, manaPct, '#4a90d9')}
+      <div style="height:5px"></div>
+      ${pixelBar('Raid XP', xpVal.toLocaleString(), xpPct, '#ffc107')}
+    </div>`;
+  }).join('');
+
+  const logHTML = (actionLog || []).length ? `
+    <div style="border:2px solid #3a3846;border-radius:8px;background:#0d0f1a;padding:10px 12px;margin-bottom:12px">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:#666;margin-bottom:8px;letter-spacing:.4px">PARTY LOG</div>
+      ${[...actionLog].reverse().map(e => `<div style="font-size:11.5px;color:#ccc;padding:3px 0;border-top:1px solid #221f2e">${esc(e.text)}</div>`).join('')}
+    </div>` : '';
+
+  // Guild-roster picker lives in the SAME row as the manual username field now, instead
+  // of a separate row above it with its own button — one Invite button serves both:
+  // picking a name here just fills the text input, same as typing it. Disabled (not
+  // hidden) when there's no gym or nobody left to invite, so the row layout never
+  // shifts depending on guild status.
+  const hasGymOptions = !!(gymRoster && gymRoster.length);
+  const gymSelectDisabled = !state.gymId || !hasGymOptions;
+  const gymSelectPlaceholder = !state.gymId ? 'No guild' : (!hasGymOptions ? 'Guild (none free)' : 'Guild…');
+  const gymSelectHTML = `<select id="team-gym-invite-select" ${gymSelectDisabled ? 'disabled' : ''}
+      onchange="if(this.value){document.getElementById('team-invite-input').value=this.value;}"
+      title="${gymSelectDisabled ? esc(gymSelectPlaceholder) : 'Pick a guild member to invite'}"
+      style="width:104px;flex-shrink:0;padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:${gymSelectDisabled ? 'var(--text-muted)' : 'var(--text)'};font-size:12px;opacity:${gymSelectDisabled ? '0.55' : '1'}">
+      <option value="">${esc(gymSelectPlaceholder)}</option>
+      ${hasGymOptions ? gymRoster.map(m => `<option value="${esc(m.username)}">${esc(m.name || m.username)} (Lv.${m.level || 1})</option>`).join('') : ''}
+    </select>`;
+
+  el.innerHTML = `
+    <div style="font-size:14px;font-weight:700;color:var(--text);text-align:center">${esc(teamName)}</div>
+    ${raidName ? `<div style="font-size:10.5px;color:#c8a060;text-align:center;margin-bottom:10px">${esc(raidName)}${raidSize ? ` · ${raidSize}-man` : ''}</div>` : '<div style="margin-bottom:10px"></div>'}
+    ${fixRoleHTML}
+    <div style="display:grid;grid-template-columns:repeat(${slots.length > 6 ? 3 : 2},1fr);gap:8px;margin-bottom:12px">${cardsHTML}</div>
+    ${logHTML}
+    ${!isFull ? `<div style="display:flex;gap:6px;margin-bottom:8px">
+      <input id="team-invite-input" placeholder="Invite by username" style="flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;box-sizing:border-box">
+      ${gymSelectHTML}
+      <button onclick="MQ.inviteToTeam()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--accent,#7c4dff);color:#fff;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0">Invite</button>
+    </div>` : ''}
+    <button onclick="MQ.leaveTeam()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #f4433655;background:#f4433618;color:#f44336;font-size:12px;font-weight:600;cursor:pointer">Leave Team</button>`;
+}
+
+async function createTeam() {
+  if (!db) { toast('Connect to the internet first'); return; }
+  if (state.teamId) { toast('Leave your current team first'); return; }
+  const raid = RAID_DEFS.find(r => r.id === selectedRaidId);
+  if (!raid) { toast('Pick a raid on the map first'); renderParty(); return; }
+  const name = document.getElementById('team-name-input')?.value?.trim();
+  const role = document.getElementById('team-role-input')?.value || 'tank';
+  if (!name) { toast('Enter a team name'); return; }
+  const ref = db.collection('teams').doc();
+  const member = { ..._myTeamMemberEntry(), role, hp: MEMBER_MAX_HP, maxHp: MEMBER_MAX_HP };
+  const thisMonth = getMonthStart();
+  const { bossId, bossHp } = pickInstanceBoss(raid.id, raid.size, 0);
+  try {
+    await ref.set({ name, ownerUsername: currentUser, members: [member], pendingInvites: [], actionLog: [], lastBossAttackDate: null, lastHpResetMonth: getMonthStart(), createdAt: Date.now(),
+      raidId: raid.id, raidName: raid.name, raidSize: raid.size,
+      bossId, bossHp, bossDamage: 0, bossDefeated: false, bossMonth: thisMonth });
+  } catch (e) {
+    toast('Could not create team: ' + e.message);
+    return;
+  }
+  state.teamId = ref.id;
+  state.teamRole = role;
+  state._everJoinedRaid = true;
+  checkAchievements();
+  saveWithPin();
+  toast(`Team "${name}" created!`);
+  renderParty();
+}
+
+async function inviteToTeam(usernameArg) {
+  if (!state.teamId) return;
+  const username = (usernameArg || document.getElementById('team-invite-input')?.value?.trim().toLowerCase());
+  if (!username) { toast('Enter a username'); return; }
+  if (username === currentUser) { toast("That's you!"); return; }
+  try {
+    const ref = db.collection('teams').doc(state.teamId);
+    const doc = await ref.get();
+    if (!doc.exists) return;
+    const team = doc.data();
+    if ((team.members || []).length >= teamCapacity(team.raidSize || 4)) { toast('Team is full'); return; }
+    if ((team.members || []).some(m => m.username === username)) { toast('Already on the team'); return; }
+    if ((team.pendingInvites || []).includes(username)) { toast('Already invited'); return; }
+    const userDoc = await db.collection('users').doc(username).get();
+    if (!userDoc.exists) { toast('No player with that username'); return; }
+    await ref.update({ pendingInvites: firebase.firestore.FieldValue.arrayUnion(username) });
+    toast(`Invited ${username}!`);
+    const input = document.getElementById('team-invite-input');
+    if (input) input.value = '';
+    renderParty();
+  } catch (e) { toast('Could not send invite'); }
+}
+
+async function acceptTeamInvite(teamId) {
+  const roleSel = document.getElementById(`invite-role-${teamId}`);
+  const role = roleSel?.value || 'tank';
+  try {
+    const ref = db.collection('teams').doc(teamId);
+    await db.runTransaction(async tx => {
+      const doc = await tx.get(ref);
+      if (!doc.exists) throw new Error('gone');
+      const team = doc.data();
+      const members = team.members || [];
+      const roleInfo = rolesForSize(team.raidSize || 4)[role];
+      if (members.filter(m => m.role === role).length >= roleInfo.slots) throw new Error('role full');
+      if (members.length >= teamCapacity(team.raidSize || 4)) throw new Error('full');
+      const member = { ..._myTeamMemberEntry(), role, hp: MEMBER_MAX_HP, maxHp: MEMBER_MAX_HP };
+      tx.update(ref, {
+        members: [...members, member],
+        pendingInvites: (team.pendingInvites || []).filter(u => u !== currentUser),
+      });
+    });
+    state.teamId = teamId;
+    state.teamRole = role;
+    state._everJoinedRaid = true;
+    checkAchievements();
+    saveWithPin();
+    toast('Joined the team!');
+    renderParty();
+  } catch (e) { toast(e.message === 'role full' ? 'That role is already taken' : e.message === 'full' ? 'Team is full' : 'Could not join'); }
+}
+
+async function declineTeamInvite(teamId) {
+  try {
+    await db.collection('teams').doc(teamId).update({ pendingInvites: firebase.firestore.FieldValue.arrayRemove(currentUser) });
+    renderParty();
+  } catch (e) {}
+}
+
+async function fixMyRole(role) {
+  if (!state.teamId) return;
+  try {
+    const ref = db.collection('teams').doc(state.teamId);
+    await db.runTransaction(async tx => {
+      const doc = await tx.get(ref);
+      if (!doc.exists) throw new Error('gone');
+      const team = doc.data();
+      const members = team.members || [];
+      const roleInfo = rolesForSize(team.raidSize || 4)[role];
+      if (members.filter(m => m.role === role).length >= roleInfo.slots) throw new Error('role full');
+      const updated = members.map(m => m.username === currentUser ? { ...m, role } : m);
+      tx.update(ref, { members: updated });
+    });
+    state.teamRole = role;
+    toast(`Rejoined as ${TEAM_ROLES[role].label}!`);
+    renderParty();
+  } catch (e) { toast(e.message === 'role full' ? 'That role is already taken' : 'Could not update role'); }
+}
+
+async function leaveTeam() {
+  if (!state.teamId) return;
+  const teamId = state.teamId;
+  try {
+    const ref = db.collection('teams').doc(teamId);
+    await db.runTransaction(async tx => {
+      const doc = await tx.get(ref);
+      if (!doc.exists) return;
+      const team = doc.data();
+      const members = (team.members || []).filter(m => m.username !== currentUser);
+      if (members.length === 0) { tx.delete(ref); return; }
+      const ownerUsername = team.ownerUsername === currentUser ? members[0].username : team.ownerUsername;
+      tx.update(ref, { members, ownerUsername });
+    });
+  } catch (e) {}
+  state.teamId = null;
+  state.teamRole = null;
+  saveWithPin();
+  toast('Left the team');
+  renderParty();
+}
+
+// Leader-only: remove an inactive/unwanted member from the party. Two-tap confirm
+// (same pattern as the store's buy-confirm) so it can't fire from a stray tap.
+const _kickTimers = {};
+function _kickConfirm(el, username) {
+  if (el.dataset.armed === '1') {
+    clearTimeout(_kickTimers[username]);
+    delete _kickTimers[username];
+    kickTeamMember(username);
+    return;
+  }
+  el.dataset.armed = '1';
+  const orig = el.textContent;
+  el.textContent = '✓';
+  el.title = 'Tap again to confirm removal';
+  _kickTimers[username] = setTimeout(() => {
+    el.dataset.armed = '';
+    el.textContent = orig;
+    el.title = 'Remove from party';
+  }, 3000);
+}
+
+async function kickTeamMember(username) {
+  if (!state.teamId || !db || username === currentUser) return;
+  try {
+    const ref = db.collection('teams').doc(state.teamId);
+    await db.runTransaction(async tx => {
+      const doc = await tx.get(ref);
+      if (!doc.exists) return;
+      const team = doc.data();
+      if (team.ownerUsername !== currentUser) throw new Error('not leader');
+      const members = (team.members || []).filter(m => m.username !== username);
+      const log = _teamLogPush(team.actionLog || [], `👢 ${username} was removed from the party.`);
+      tx.update(ref, { members, actionLog: log });
+    });
+    toast(`Removed ${username} from the team`);
+    renderParty();
+  } catch (e) { toast(e.message === 'not leader' ? 'Only the leader can remove members' : 'Could not remove member'); }
+}
+
+function showQuestTab(tab) {
+  document.querySelectorAll('[data-quest-tab]').forEach(b => b.classList.toggle('active', b.dataset.questTab === tab));
+  document.getElementById('quest-panel-raid').style.display = tab === 'raid' ? 'block' : 'none';
+  document.getElementById('quest-panel-home').style.display = tab === 'home' ? 'block' : 'none';
+}
+
+async function renderQuestsTab() {
+  await renderRaidFight();
+  await renderParty();
+  renderHomeGym();
+  renderCustomChallengesPanel();
+  ensureDaily();
+  const dp = state.dailyProgress;
+  const qList = document.getElementById('daily-quests-list');
+  qList.innerHTML = DAILY_QUESTS.map(q => {
+    let prog = 0;
+    if (q.type === 'groups') prog = dp.groups.length;
+    else if (q.type === 'sets') prog = dp.sets;
+    else if (q.type === 'xp') prog = dp.xp;
+    const done = prog >= q.target;
+    return `<div class="quest-list-item ${done ? 'completed' : ''}">
+      <div class="quest-info">
+        <h4>${done ? '<i class="ti ti-square-check"></i>' : '<i class="ti ti-square"></i>'} ${q.text}</h4>
+        <p>${prog}/${q.target}</p>
+      </div>
+      <div class="quest-reward"><i class="ti ti-coin"></i> ${q.reward}</div>
+    </div>`;
+  }).join('');
+
+  // ── Weekly Challenge ──
+  const challenge = getWeeklyChallenge();
+  const chDmg = state.weeklyChallengeDamage || 0;
+  const chPct = Math.min(100, (chDmg / challenge.hp) * 100);
+  const chBeaten = chPct >= 100;
+  const level = state.weeklyChallengeLevel || 0;
+  const nextChallenge = level + 1 < WEEKLY_CHALLENGES.length ? WEEKLY_CHALLENGES[level + 1] : null;
+  document.getElementById('raid-detail').innerHTML = `
+    <div class="challenge-chain">
+      ${WEEKLY_CHALLENGES.map((c, i) => `<span class="chain-pip ${i < level ? 'chain-done' : i === level ? 'chain-active' : 'chain-locked'}" title="${c.name}">${i < level ? '✓' : c.icon}</span>`).join('<span class="chain-line"></span>')}
+    </div>
+    <div class="challenge-boss-name">${challenge.icon} ${challenge.name}</div>
+    <p class="muted" style="font-size:11px;margin:4px 0 8px">${challenge.desc}</p>
+    <div class="raid-bar" style="max-width:280px;margin:8px auto">
+      <div class="raid-bar-fill" style="width:${chPct}%;background:${challenge.color}"></div>
+    </div>
+    <p class="raid-boss-hp">${chDmg.toLocaleString()} / ${challenge.hp.toLocaleString()} XP dealt</p>
+    ${chBeaten
+      ? `<p class="challenge-win">🏆 DEFEATED! ${nextChallenge ? `Next up: ${nextChallenge.icon} ${nextChallenge.name}` : 'You beat them all!'}</p>`
+      : `<p class="muted" style="font-size:11px">Defeat it this week to unlock the next challenger. Resets Monday.</p>`}
+    ${level > 0 ? `<p style="font-size:10px;color:var(--text-muted);margin-top:4px">Level ${level + 1} of ${WEEKLY_CHALLENGES.length} — Reward: +${challenge.reward}g on defeat</p>` : ''}`;
+
+  const aGrid = document.getElementById('achievements-list');
+  aGrid.innerHTML = ACHIEVEMENTS.map(a => {
+    const unlocked = state.achievements.includes(a.id);
+    const count = a.repeatable ? (a.count?.(state) || 0) : 0;
+    return `<div class="achievement-badge ${unlocked ? 'unlocked' : 'locked'}" title="${a.desc}" style="position:relative">
+      ${count > 1 ? `<span class="badge-count" style="position:absolute;top:2px;right:2px;background:#7c4dff;color:#fff;font-size:9px;font-weight:700;border-radius:9px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px">×${count}</span>` : ''}
+      <span class="badge-icon">${a.icon}</span>
+      <span>${a.name}</span>
+      <span class="badge-req">${unlocked ? 'Unlocked' : a.desc}</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── Leaderboard ───
+function getFullHairSVG(id, hc, hd) {
+  // Full avatar: head cx=100,cy=80,rx=24,ry=28. Top=52, left=76, right=124.
+  // fb=frontBack(before head), ft=frontTop(after head), bb=backBack, bt=backTop
+  const cap = (y=80)=>`<path d="M76 ${y} Q74 52 100 50 Q126 52 124 ${y} Q120 58 100 56 Q80 58 76 ${y}Z" fill="${hc}"/>`;
+  const fullCap = `<ellipse cx="100" cy="72" rx="23" ry="26" fill="${hc}"/>${cap(76).replace(hc,hd)}`;
+  const H = {
+    default:      { fb:'', ft:cap(76), bb:'', bt:fullCap },
+    buzz:         { fb:'', ft:`<path d="M76 78 Q76 54 100 52 Q124 54 124 78 Q120 66 100 64 Q80 66 76 78Z" fill="${hc}"/>`, bb:'', bt:fullCap },
+    crew:         { fb:'', ft:`<path d="M76 80 Q74 50 100 48 Q126 50 124 80 Q120 58 100 56 Q80 58 76 80Z" fill="${hc}"/>`, bb:'', bt:fullCap },
+    slick_back:   { fb:'', ft:`${cap(80)}<path d="M78 60 Q100 56 122 60" stroke="${hd}" stroke-width="1.5" fill="none"/>
+      <path d="M78 66 Q100 62 122 66" stroke="${hd}" stroke-width="1.5" fill="none"/>
+      <path d="M78 72 Q100 68 122 72" stroke="${hd}" stroke-width="1.5" fill="none"/>`, bb:'', bt:fullCap },
+    undercut:     { fb:'', ft:`<path d="M84 78 Q82 54 100 52 Q118 54 116 78 Q112 60 100 58 Q88 60 84 78Z" fill="${hc}"/>`, bb:'', bt:fullCap },
+    pompadour:    { fb:'', ft:`${cap(80)}<path d="M80 60 Q84 40 100 36 Q116 40 120 60 Q112 48 100 46 Q88 48 80 60Z" fill="${hc}"/>`,
+                   bb:'', bt:`${fullCap}<path d="M80 58 Q84 40 100 36 Q116 40 120 58 Q112 46 100 44 Q88 46 80 58Z" fill="${hd}"/>` },
+    mohawk:       { fb:'', ft:`<path d="M92 78 Q90 54 100 44 Q110 54 108 78Z" fill="${hc}"/>`, bb:'', bt:`${fullCap}<path d="M92 74 Q90 52 100 42 Q110 52 108 74Z" fill="${hd}"/>` },
+    taper_fade:   { fb:'', ft:`<path d="M82 80 Q80 52 100 50 Q120 52 118 80 Q114 60 100 58 Q86 60 82 80Z" fill="${hc}"/>
+      <path d="M76 80 Q76 70 82 66" stroke="${hc}" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M124 80 Q124 70 118 66" stroke="${hc}" stroke-width="5" fill="none" stroke-linecap="round"/>`, bb:'', bt:fullCap },
+    long_straight:{ fb:`<rect x="68" y="72" width="12" height="80" rx="6" fill="${hc}"/><rect x="120" y="72" width="12" height="80" rx="6" fill="${hc}"/>`,
+      ft:`<ellipse cx="100" cy="64" rx="25" ry="17" fill="${hc}"/><line x1="100" y1="52" x2="100" y2="68" stroke="${hd}" stroke-width="1.5"/>`,
+      bb:`<rect x="68" y="72" width="12" height="80" rx="6" fill="${hd}"/><rect x="120" y="72" width="12" height="80" rx="6" fill="${hd}"/>`,
+      bt:`<ellipse cx="100" cy="72" rx="23" ry="26" fill="${hc}"/>${cap(76).replace(hc,hd)}` },
+    beach_waves:  { fb:`<path d="M69 72 Q59 96 61 122 Q59 148 64 168" stroke="${hc}" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <path d="M131 72 Q141 96 139 122 Q141 148 136 168" stroke="${hc}" stroke-width="12" fill="none" stroke-linecap="round"/>`,
+      ft:`<ellipse cx="100" cy="64" rx="25" ry="17" fill="${hc}"/>`, bb:'', bt:fullCap },
+    high_pony:    { fb:'', ft:`<ellipse cx="100" cy="64" rx="25" ry="17" fill="${hc}"/>
+      <circle cx="100" cy="50" r="7" fill="${hd}"/>
+      <line x1="100" y1="44" x2="88" y2="34" stroke="${hc}" stroke-width="10" stroke-linecap="round"/>
+      <line x1="100" y1="44" x2="112" y2="34" stroke="${hc}" stroke-width="10" stroke-linecap="round"/>`,
+      bb:'', bt:`<ellipse cx="100" cy="72" rx="23" ry="26" fill="${hc}"/>
+      <circle cx="100" cy="50" r="7" fill="${hd}"/>
+      <line x1="100" y1="44" x2="88" y2="34" stroke="${hc}" stroke-width="10" stroke-linecap="round"/>
+      <line x1="100" y1="44" x2="112" y2="34" stroke="${hc}" stroke-width="10" stroke-linecap="round"/>` },
+    bob:          { fb:`<rect x="68" y="72" width="12" height="44" rx="6" fill="${hc}"/><rect x="120" y="72" width="12" height="44" rx="6" fill="${hc}"/>
+      <rect x="72" y="110" width="56" height="6" rx="3" fill="${hc}"/>`,
+      ft:`<ellipse cx="100" cy="64" rx="25" ry="17" fill="${hc}"/>`, bb:'', bt:fullCap },
+    pixie:        { fb:'', ft:`${cap(80)}
+      <path d="M88 56 Q100 46 112 56" stroke="${hc}" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M76 64 Q70 52 74 48" stroke="${hc}" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M124 64 Q130 52 126 48" stroke="${hc}" stroke-width="4" fill="none" stroke-linecap="round"/>`, bb:'', bt:fullCap },
+    braided_crown:{ fb:'', ft:`<ellipse cx="100" cy="64" rx="25" ry="17" fill="${hc}"/>
+      <ellipse cx="100" cy="64" rx="25" ry="17" fill="none" stroke="${hd}" stroke-width="7" stroke-dasharray="6 3"/>`,
+      bb:'', bt:`<ellipse cx="100" cy="72" rx="23" ry="26" fill="${hc}"/>
+      <ellipse cx="100" cy="64" rx="25" ry="17" fill="none" stroke="${hd}" stroke-width="5" stroke-dasharray="6 3"/>` },
+    space_buns:   { fb:`<path d="M76 72 Q65 96 66 122" stroke="${hc}" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M124 72 Q135 96 134 122" stroke="${hc}" stroke-width="7" fill="none" stroke-linecap="round"/>`,
+      ft:`<ellipse cx="100" cy="63" rx="25" ry="17" fill="${hc}"/>
+      <path d="M78 60 Q100 54 122 60" stroke="${hd}" stroke-width="1" fill="none"/>
+      <circle cx="74" cy="55" r="13" fill="${hc}"/>
+      <path d="M60 50 Q74 46 88 50" stroke="${hd}" stroke-width="2" fill="none"/>
+      <path d="M60 55 Q74 51 88 55" stroke="${hd}" stroke-width="1.2" fill="none"/>
+      <path d="M60 60 Q53 74 57 88" stroke="${hc}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <circle cx="126" cy="55" r="13" fill="${hc}"/>
+      <path d="M112 50 Q126 46 140 50" stroke="${hd}" stroke-width="2" fill="none"/>
+      <path d="M112 55 Q126 51 140 55" stroke="${hd}" stroke-width="1.2" fill="none"/>
+      <path d="M140 60 Q147 74 143 88" stroke="${hc}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M100 64 Q86 72 76 82 Q78 90 84 90 Q92 78 100 74Z" fill="${hc}"/>
+      <path d="M100 64 Q114 72 124 82 Q122 90 116 90 Q108 78 100 74Z" fill="${hc}"/>`,
+      bb:`<path d="M76 72 Q65 96 66 122" stroke="${hc}" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M124 72 Q135 96 134 122" stroke="${hc}" stroke-width="7" fill="none" stroke-linecap="round"/>`,
+      bt:`<ellipse cx="100" cy="75" rx="23" ry="26" fill="${hc}"/>
+      <path d="M76 72 Q80 50 100 48 Q120 50 124 72 Q122 58 100 55 Q78 58 76 72Z" fill="${hd}"/>
+      <circle cx="74" cy="55" r="13" fill="${hc}"/>
+      <circle cx="126" cy="55" r="13" fill="${hc}"/>
+      <path d="M60 50 Q74 46 88 50" stroke="${hd}" stroke-width="2" fill="none"/>
+      <path d="M60 55 Q74 51 88 55" stroke="${hd}" stroke-width="1.2" fill="none"/>
+      <path d="M112 50 Q126 46 140 50" stroke="${hd}" stroke-width="2" fill="none"/>
+      <path d="M112 55 Q126 51 140 55" stroke="${hd}" stroke-width="1.2" fill="none"/>` },
+    shaved:       { fb:'', ft:`<ellipse cx="100" cy="64" rx="25" ry="17" fill="${hc}" opacity="0.12"/>`, bb:'', bt:`<ellipse cx="100" cy="72" rx="23" ry="26" fill="${hc}" opacity="0.1"/>` },
+    afro:         { fb:`<ellipse cx="100" cy="50" rx="38" ry="28" fill="${hc}"/>`, ft:`<ellipse cx="100" cy="50" rx="38" ry="28" fill="${hc}"/>`,
+                   bb:`<ellipse cx="100" cy="50" rx="38" ry="28" fill="${hc}"/>`, bt:`<ellipse cx="100" cy="50" rx="38" ry="28" fill="${hc}"/>` },
+    cornrows:     { fb:'', ft:`${cap(80)}<line x1="78" y1="62" x2="122" y2="62" stroke="${hd}" stroke-width="3.5"/>
+      <line x1="78" y1="68" x2="122" y2="68" stroke="${hd}" stroke-width="3.5"/>
+      <line x1="78" y1="74" x2="122" y2="74" stroke="${hd}" stroke-width="3.5"/>`,
+      bb:'', bt:`${fullCap}<line x1="78" y1="62" x2="122" y2="62" stroke="${hd}" stroke-width="3"/><line x1="78" y1="68" x2="122" y2="68" stroke="${hd}" stroke-width="3"/>` },
+    locs:         { fb:`<line x1="80" y1="80" x2="74" y2="148" stroke="${hc}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="92" y1="76" x2="88" y2="154" stroke="${hc}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="108" y1="76" x2="112" y2="154" stroke="${hc}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="120" y1="80" x2="126" y2="148" stroke="${hc}" stroke-width="9" stroke-linecap="round"/>`,
+      ft:`<ellipse cx="100" cy="64" rx="25" ry="17" fill="${hc}"/>`,
+      bb:`<line x1="80" y1="80" x2="74" y2="148" stroke="${hd}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="92" y1="76" x2="88" y2="154" stroke="${hd}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="108" y1="76" x2="112" y2="154" stroke="${hd}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="120" y1="80" x2="126" y2="148" stroke="${hd}" stroke-width="9" stroke-linecap="round"/>`,
+      bt:`<ellipse cx="100" cy="72" rx="23" ry="26" fill="${hc}"/>${cap(76).replace(hc,hd)}` },
+    man_bun:      { fb:'', ft:`<ellipse cx="100" cy="64" rx="25" ry="17" fill="${hc}"/><circle cx="100" cy="46" r="11" fill="${hc}" stroke="${hd}" stroke-width="1.5"/>`,
+                   bb:'', bt:`<ellipse cx="100" cy="72" rx="23" ry="26" fill="${hc}"/><circle cx="100" cy="46" r="11" fill="${hc}" stroke="${hd}" stroke-width="1.5"/>` },
+    curly_fro:    { fb:'', ft:`<ellipse cx="100" cy="58" rx="30" ry="28" fill="${hc}"/>
+      <ellipse cx="72" cy="64" rx="10" ry="10" fill="${hc}"/><ellipse cx="128" cy="64" rx="10" ry="10" fill="${hc}"/>
+      <ellipse cx="82" cy="44" rx="9" ry="9" fill="${hc}"/><ellipse cx="118" cy="44" rx="9" ry="9" fill="${hc}"/>
+      <ellipse cx="100" cy="38" rx="9" ry="9" fill="${hc}"/>`,
+      bb:'', bt:`<ellipse cx="100" cy="58" rx="30" ry="28" fill="${hc}"/>
+      <ellipse cx="72" cy="64" rx="10" ry="10" fill="${hc}"/><ellipse cx="128" cy="64" rx="10" ry="10" fill="${hc}"/>
+      <ellipse cx="82" cy="44" rx="9" ry="9" fill="${hc}"/><ellipse cx="118" cy="44" rx="9" ry="9" fill="${hc}"/>` },
+    emo_sweep:    { fb:'', ft:`<ellipse cx="100" cy="64" rx="25" ry="17" fill="${hc}"/>
+      <path d="M100 58 Q84 68 72 86 Q70 96 76 96 Q84 82 96 72Z" fill="${hc}"/>
+      <path d="M100 58 Q92 68 80 84" stroke="${hd}" stroke-width="1.2" fill="none"/>`,
+      bb:'', bt:fullCap },
+    flat_top:     { fb:'', ft:`<rect x="76" y="44" width="48" height="18" rx="2" fill="${hc}"/>
+      <path d="M76 62 Q76 52 82 52 L118 52 Q124 52 124 62Z" fill="${hc}"/>
+      <line x1="76" y1="44" x2="124" y2="44" stroke="${hd}" stroke-width="2.5"/>`,
+      bb:'', bt:`<rect x="76" y="44" width="48" height="18" rx="2" fill="${hc}"/>
+      <path d="M76 62 Q76 52 82 52 L118 52 Q124 52 124 62Z" fill="${hc}"/>
+      <line x1="76" y1="44" x2="124" y2="44" stroke="${hd}" stroke-width="2.5"/>` },
+  };
+  return H[id] || H['default'];
+}
+
+function getHairSVG(id, hc, hd) {
+  const s = {
+    default:      { back:'', top:`<path d="M37 18 Q36 6 50 5 Q64 6 63 18 Q60 11 50 10 Q40 11 37 18Z" fill="${hc}"/>`, bangs:'' },
+    buzz:         { back:'', top:`<path d="M37 19 Q37 8 50 8 Q63 8 63 19 Q59 13 50 13 Q41 13 37 19Z" fill="${hc}"/>`, bangs:'' },
+    crew:         { back:'', top:`<path d="M37 20 Q36 5 50 4 Q64 5 63 20 Q59 9 50 8 Q41 9 37 20Z" fill="${hc}"/>`, bangs:'' },
+    slick_back:   { back:'', top:`<path d="M37 20 Q36 6 50 5 Q64 6 63 20 Q58 10 50 9 Q42 10 37 20Z" fill="${hc}"/>
+      <path d="M38 10 Q50 8 62 10" stroke="${hd}" stroke-width="0.7" fill="none"/>
+      <path d="M38 13 Q50 11 62 13" stroke="${hd}" stroke-width="0.7" fill="none"/>
+      <path d="M38 16 Q50 14 62 16" stroke="${hd}" stroke-width="0.7" fill="none"/>`, bangs:'' },
+    undercut:     { back:'', top:`<path d="M43 19 Q42 7 50 5 Q58 7 57 19 Q55 11 50 10 Q45 11 43 19Z" fill="${hc}"/>`, bangs:'' },
+    pompadour:    { back:'', top:`<path d="M37 20 Q36 8 50 8 Q64 8 63 20 Q59 14 50 13 Q41 14 37 20Z" fill="${hc}"/>
+      <path d="M40 10 Q43 1 50 0 Q57 1 60 10 Q55 5 50 4 Q45 5 40 10Z" fill="${hc}"/>`, bangs:'' },
+    mohawk:       { back:'', top:`<path d="M46 19 Q45 7 50 2 Q55 7 54 19Z" fill="${hc}"/>`, bangs:'' },
+    taper_fade:   { back:'', top:`<path d="M41 20 Q40 7 50 5 Q60 7 59 20 Q57 12 50 11 Q43 12 41 20Z" fill="${hc}"/>
+      <path d="M37 20 Q37 16 41 14" stroke="${hc}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M63 20 Q63 16 59 14" stroke="${hc}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`, bangs:'' },
+    long_straight:{ back:`<rect x="34" y="18" width="6" height="40" rx="3" fill="${hc}"/>
+      <rect x="60" y="18" width="6" height="40" rx="3" fill="${hc}"/>`,
+      top:`<ellipse cx="50" cy="13" rx="14" ry="9" fill="${hc}"/>
+      <line x1="50" y1="6" x2="50" y2="18" stroke="${hd}" stroke-width="0.8"/>`, bangs:'' },
+    beach_waves:  { back:`<path d="M35 18 Q30 28 31 40 Q30 50 33 58" stroke="${hc}" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M65 18 Q70 28 69 40 Q70 50 67 58" stroke="${hc}" stroke-width="6" fill="none" stroke-linecap="round"/>`,
+      top:`<ellipse cx="50" cy="13" rx="14" ry="9" fill="${hc}"/>`, bangs:'' },
+    high_pony:    { back:'', top:`<ellipse cx="50" cy="14" rx="13" ry="8" fill="${hc}"/>
+      <circle cx="50" cy="6" r="3.5" fill="${hd}"/>
+      <line x1="50" y1="3" x2="44" y2="0" stroke="${hc}" stroke-width="5" stroke-linecap="round"/>
+      <line x1="50" y1="3" x2="56" y2="0" stroke="${hc}" stroke-width="5" stroke-linecap="round"/>`, bangs:'' },
+    bob:          { back:`<rect x="34" y="18" width="6" height="18" rx="3" fill="${hc}"/>
+      <rect x="60" y="18" width="6" height="18" rx="3" fill="${hc}"/>
+      <rect x="36" y="33" width="28" height="3" rx="1.5" fill="${hc}"/>`,
+      top:`<ellipse cx="50" cy="13" rx="14" ry="9" fill="${hc}"/>`, bangs:'' },
+    pixie:        { back:'', top:`<path d="M37 21 Q36 8 50 6 Q64 8 63 21 Q60 13 50 12 Q40 13 37 21Z" fill="${hc}"/>
+      <path d="M44 8 Q50 4 56 8" stroke="${hc}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M38 14 Q35 10 37 8" stroke="${hc}" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M62 14 Q65 10 63 8" stroke="${hc}" stroke-width="2" fill="none" stroke-linecap="round"/>`, bangs:'' },
+    braided_crown:{ back:'', top:`<ellipse cx="50" cy="13" rx="14" ry="9" fill="${hc}"/>
+      <ellipse cx="50" cy="13" rx="14" ry="9" fill="none" stroke="${hd}" stroke-width="3.5" stroke-dasharray="3 1.5"/>`, bangs:'' },
+    space_buns:   { back:`<path d="M36 18 Q31 30 32 42" stroke="${hc}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M64 18 Q69 30 68 42" stroke="${hc}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`,
+      top:`<ellipse cx="50" cy="13" rx="14" ry="9" fill="${hc}"/>
+      <circle cx="36" cy="8" r="7" fill="${hc}"/>
+      <path d="M29 5 Q36 3 43 5" stroke="${hd}" stroke-width="1.2" fill="none"/>
+      <path d="M29 8 Q36 6 43 8" stroke="${hd}" stroke-width="0.7" fill="none"/>
+      <circle cx="64" cy="8" r="7" fill="${hc}"/>
+      <path d="M57 5 Q64 3 71 5" stroke="${hd}" stroke-width="1.2" fill="none"/>
+      <path d="M57 8 Q64 6 71 8" stroke="${hd}" stroke-width="0.7" fill="none"/>`,
+      bangs:`<path d="M50 14 Q43 18 38 23 Q39 27 42 27 Q46 22 50 20Z" fill="${hc}"/>
+      <path d="M50 14 Q57 18 62 23 Q61 27 58 27 Q54 22 50 20Z" fill="${hc}"/>` },
+    shaved:       { back:'', top:`<ellipse cx="50" cy="13" rx="13" ry="8" fill="${hc}" opacity="0.12"/>`, bangs:'' },
+    afro:         { back:`<ellipse cx="50" cy="10" rx="19" ry="13" fill="${hc}"/>`,
+      top:`<ellipse cx="50" cy="10" rx="19" ry="13" fill="${hc}"/>`, bangs:'' },
+    cornrows:     { back:'', top:`<path d="M37 20 Q36 7 50 6 Q64 7 63 20 Q59 13 50 12 Q41 13 37 20Z" fill="${hc}"/>
+      <line x1="39" y1="10" x2="61" y2="10" stroke="${hd}" stroke-width="1.8"/>
+      <line x1="39" y1="13" x2="61" y2="13" stroke="${hd}" stroke-width="1.8"/>
+      <line x1="38" y1="16" x2="62" y2="16" stroke="${hd}" stroke-width="1.8"/>`, bangs:'' },
+    locs:         { back:`<line x1="40" y1="22" x2="37" y2="58" stroke="${hc}" stroke-width="4.5" stroke-linecap="round"/>
+      <line x1="46" y1="20" x2="44" y2="60" stroke="${hc}" stroke-width="4.5" stroke-linecap="round"/>
+      <line x1="54" y1="20" x2="56" y2="60" stroke="${hc}" stroke-width="4.5" stroke-linecap="round"/>
+      <line x1="60" y1="22" x2="63" y2="58" stroke="${hc}" stroke-width="4.5" stroke-linecap="round"/>`,
+      top:`<ellipse cx="50" cy="13" rx="14" ry="9" fill="${hc}"/>`, bangs:'' },
+    man_bun:      { back:'', top:`<ellipse cx="50" cy="14" rx="13" ry="8" fill="${hc}"/>
+      <circle cx="50" cy="5" r="5.5" fill="${hc}" stroke="${hd}" stroke-width="0.8"/>`, bangs:'' },
+    curly_fro:    { back:'', top:`<ellipse cx="50" cy="12" rx="16" ry="13" fill="${hc}"/>
+      <ellipse cx="36" cy="13" rx="4.5" ry="4.5" fill="${hc}"/>
+      <ellipse cx="64" cy="13" rx="4.5" ry="4.5" fill="${hc}"/>
+      <ellipse cx="42" cy="5" rx="4" ry="4" fill="${hc}"/>
+      <ellipse cx="58" cy="5" rx="4" ry="4" fill="${hc}"/>
+      <ellipse cx="50" cy="2" rx="4" ry="4" fill="${hc}"/>`, bangs:'' },
+    emo_sweep:    { back:'', top:`<ellipse cx="50" cy="13" rx="14" ry="9" fill="${hc}"/>`,
+      bangs:`<path d="M50 10 Q42 15 36 25 Q35 30 38 30 Q42 22 48 16Z" fill="${hc}"/>
+      <path d="M50 10 Q46 15 40 26" stroke="${hd}" stroke-width="0.6" fill="none"/>` },
+    flat_top:     { back:'', top:`<rect x="37" y="6" width="26" height="9" rx="1" fill="${hc}"/>
+      <path d="M37 15 Q37 11 40 11 L60 11 Q63 11 63 15Z" fill="${hc}"/>
+      <line x1="37" y1="6" x2="63" y2="6" stroke="${hd}" stroke-width="1.3"/>`, bangs:'' },
+  };
+  return s[id] || s['default'];
+}
+
+function renderMiniAvatarSVG(gender, cosmetics, idx, playerName, hairStyle, skinToneIdx, hairColorIdx, tattooId, forcePose) {
+  const female = gender === 'female';
+  const mhclr = HAIR_COLORS[hairColorIdx ?? 0];
+  const hc = mhclr.c1, hd = mhclr.c2;
+  const eq = cosmetics || [];
+  const mskn = SKIN_TONES[skinToneIdx ?? 1];
+  const skin = mskn.s1, skinD = mskn.s4;
+
+  // Pick a stable pose per player using name chars as seed
+  const seed = playerName ? Array.from(playerName).reduce((a, c) => a + c.charCodeAt(0), 0) : idx;
+  const MINI_POSES = [
+    // 0: Double Bicep Flex
+    { lU:[40,40,20,25], lF:[20,25,12,15], rU:[60,40,80,25], rF:[80,25,88,15] },
+    // 1: Relaxed / arms at sides
+    { lU:[40,40,34,58], lF:[34,58,32,70], rU:[60,40,66,58], rF:[66,58,68,70] },
+    // 2: Victory — arms raised high
+    { lU:[40,40,22,20], lF:[22,20,16,8],  rU:[60,40,78,20], rF:[78,20,84,8]  },
+    // 3: Most Muscular / crab — arms wide and low
+    { lU:[40,40,18,44], lF:[18,44,10,56], rU:[60,40,82,44], rF:[82,44,90,56] },
+  ];
+  const pose = MINI_POSES[(typeof forcePose === 'number' && forcePose >= 0 && forcePose < MINI_POSES.length) ? forcePose : seed % 4];
+  const lwx = pose.lF[2] - 3, lwy = pose.lF[3] - 1;
+  const rwx = pose.rF[2] - 3, rwy = pose.rF[3] - 1;
+
+  let headCosmetic = '';
+  if (eq.includes('do_rag')) {
+    headCosmetic = `<path d="M38 24 Q38 9 50 8 Q62 9 62 24 Q58 13 50 12 Q42 13 38 24Z" fill="#111" opacity="0.93"/>`;
+  } else if (eq.includes('iron_crown')) {
+    headCosmetic = `<polygon points="39,18 41,11 45,15 50,8 55,15 59,11 61,18" fill="#9e7cff" stroke="#6a3dcc" stroke-width="0.5"/>`;
+    headCosmetic += `<circle cx="50" cy="9" r="1.5" fill="#ffd700"/>`;
+  } else if (eq.includes('laurel_wreath')) {
+    headCosmetic = `<ellipse cx="50" cy="13" rx="14" ry="4" fill="none" stroke="#5a8a1a" stroke-width="2.5" opacity="0.9"/>`;
+    headCosmetic += `<ellipse cx="50" cy="13" rx="14" ry="4" fill="none" stroke="#7bc82e" stroke-width="1.2"/>`;
+    headCosmetic += `<circle cx="50" cy="9.5" r="1.5" fill="#ffd700"/>`;
+  } else if (eq.includes('crown')) {
+    headCosmetic = `<polygon points="40,10 43,4 47,8 50,2 53,8 57,4 60,10" fill="#ffd700" stroke="#b8860b" stroke-width="0.5"/>`;
+  } else if (eq.includes('sunglasses')) {
+    headCosmetic = `<rect x="41" y="19.5" width="7" height="5" rx="2" fill="#0d0d0d"/><rect x="52" y="19.5" width="7" height="5" rx="2" fill="#0d0d0d"/><line x1="48" y1="21.5" x2="52" y2="21.5" stroke="#333" stroke-width="1"/>`;
+  } else if (eq.includes('headband_gold')) {
+    headCosmetic = `<rect x="38" y="17" width="24" height="3" rx="1.5" fill="#ffd700"/>`;
+  } else if (eq.includes('headband_red')) {
+    headCosmetic = `<rect x="38" y="17" width="24" height="3" rx="1.5" fill="#e53935"/>`;
+  } else if (eq.includes('headband_blue')) {
+    headCosmetic = `<rect x="38" y="17" width="24" height="3" rx="1.5" fill="#1e88e5"/>`;
+  }
+
+  let bodyCosmetic = '';
+  let bottomCosmetic = ''; // rendered after the shorts rect, so it can actually replace them
+  if (eq.includes('borat_suit')) {
+    bodyCosmetic += `<line x1="47" y1="38" x2="41" y2="34" stroke="#00c853" stroke-width="3" stroke-linecap="round"/>`;
+    bodyCosmetic += `<line x1="53" y1="38" x2="59" y2="34" stroke="#00c853" stroke-width="3" stroke-linecap="round"/>`;
+    // Opaque waistband, sized to fully cover the default shorts (x:38-62, y:60-70) plus
+    // a small front pouch — matches the same fix applied to the full-size avatar.
+    bottomCosmetic = `<rect x="37" y="58" width="26" height="12" rx="4" fill="#00c853"/><path d="M46 61 L50 70 L54 61Z" fill="#00b34a"/>`;
+  }
+  if (eq.includes('tank_top') || eq.includes('stringer')) {
+    bodyCosmetic += `<rect x="41" y="37" width="18" height="22" rx="3" fill="#2a2a3e" opacity="0.85"/>`;
+    if (female) bodyCosmetic += `<rect x="43" y="38" width="14" height="11" rx="3" fill="#3a3a5e" opacity="0.6"/>`;
+  }
+  if (eq.includes('forged_tank')) {
+    bodyCosmetic += `<rect x="41" y="37" width="18" height="22" rx="3" fill="#1a1a2e" opacity="0.92"/>`;
+    bodyCosmetic += `<line x1="42" y1="58" x2="58" y2="58" stroke="#7c4dff" stroke-width="1"/>`;
+  }
+  if (eq.includes('forged_joggers')) {
+    bodyCosmetic += `<rect x="37" y="60" width="26" height="42" rx="4" fill="#0d1117" opacity="0.9"/>`;
+    bodyCosmetic += `<line x1="38" y1="62" x2="38" y2="100" stroke="#9e7cff" stroke-width="1" opacity="0.7"/>`;
+    bodyCosmetic += `<line x1="62" y1="62" x2="62" y2="100" stroke="#9e7cff" stroke-width="1" opacity="0.7"/>`;
+  }
+  if (eq.includes('compression_set')) {
+    bodyCosmetic += `<rect x="37" y="60" width="26" height="42" rx="4" fill="#0d1a2e" opacity="0.78"/>`;
+  }
+  if (eq.includes('lifting_belt')) bodyCosmetic += `<rect x="40" y="54" width="20" height="4" rx="1" fill="#8B6914"/>`;
+  if (eq.includes('gym_towel')) {
+    bodyCosmetic += `<path d="M42 36 Q50 40 58 36 L58 39 Q50 43 42 39 Z" fill="#3d8b40"/>`;
+    bodyCosmetic += `<path d="M44 38 Q41 50 44 61 L48 61 Q46 50 47 38 Z" fill="#4caf50"/>`;
+    bodyCosmetic += `<path d="M56 38 Q59 50 56 61 L52 61 Q54 50 53 38 Z" fill="#43a047"/>`;
+  }
+  if (eq.includes('gold_chain')) {
+    bodyCosmetic += `<path d="M46 37 Q50 43 54 37" stroke="#ffd700" stroke-width="1" fill="none"/>`;
+    bodyCosmetic += `<circle cx="50" cy="42" r="2" fill="#ffd700"/>`;
+  }
+  if (eq.includes('dog_tags')) {
+    bodyCosmetic += `<path d="M47 37 Q50 41 53 37" stroke="#8a8a8a" stroke-width="0.8" fill="none"/>`;
+    bodyCosmetic += `<rect x="48" y="41" width="4" height="5.5" rx="0.8" fill="#c8c8c8" stroke="#8a8a8a" stroke-width="0.4"/>`;
+  }
+  if (eq.includes('champ_cape')) {
+    bodyCosmetic += `<path d="M40 38 Q38 42 39 47" stroke="#7c1520" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.9"/><path d="M60 38 Q62 42 61 47" stroke="#7c1520" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.9"/>`;
+  }
+
+  const wristColor = eq.includes('wrist_wraps_red') ? '#e53935' : (eq.includes('wrist_wraps') || eq.includes('sweatbands')) ? '#ccc' : null;
+  const gloveColor = eq.includes('lifting_gloves') ? '#6d4c2a' : null;
+  const leftColor = wristColor || gloveColor;
+  const rightColor = wristColor || gloveColor || (eq.includes('arm_sleeve') ? '#0d1a2e' : null);
+  let wristSVG = '';
+  if (leftColor) wristSVG += `<rect x="${lwx}" y="${lwy}" width="6" height="3" rx="1" fill="${leftColor}"/>`;
+  if (rightColor) wristSVG += `<rect x="${rwx}" y="${rwy}" width="6" height="3" rx="1" fill="${rightColor}"/>`;
+  const kneeSVG = eq.includes('knee_sleeves') ? `<rect x="39" y="79" width="9" height="5" rx="2" fill="#333"/>
+    <rect x="52" y="79" width="9" height="5" rx="2" fill="#333"/>` : '';
+  const feetSVG = eq.includes('flip_flops') ? `<ellipse cx="44" cy="104" rx="7" ry="2.5" fill="#0288d1"/>
+    <ellipse cx="56" cy="104" rx="7" ry="2.5" fill="#0288d1"/>
+    <line x1="44" y1="101" x2="44" y2="104" stroke="#b3e5fc" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="56" y1="101" x2="56" y2="104" stroke="#b3e5fc" stroke-width="1.5" stroke-linecap="round"/>` : '';
+
+  // Tattoo overlay
+  const resolvedTattooId = tattooId || (typeof GainsShop !== 'undefined' ? null : null) || (() => { try { return JSON.parse(localStorage.getItem('musclequest_save') || '{}').tattoo || null; } catch(e) { return null; } })();
+  const TATTOO_DEFS = window._TATTOOS || [];
+  const activeTat = TATTOO_DEFS.find(t => t.id === resolvedTattooId);
+  const isFaceTat = activeTat?.placement === 'face';
+  const tattooSVG = activeTat && !isFaceTat ? `<g opacity="0.88">${activeTat.svg}</g>` : '';
+  const faceTattooSVG = activeTat && isFaceTat ? `<g opacity="0.9">${activeTat.svg}</g>` : '';
+
+  const resolvedHair = hairStyle || (female ? 'space_buns' : 'default');
+  const hair = getHairSVG(resolvedHair, hc, hd);
+  const sideHairSVG = hair.back;
+  const femaleTopHairSVG = hair.top;
+  const bangsSVG = hair.bangs;
+
+  return `<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" class="mini-avatar">
+    ${sideHairSVG}
+    <!-- Arms: posed -->
+    <line class="avatar-arm" x1="${pose.lU[0]}" y1="${pose.lU[1]}" x2="${pose.lU[2]}" y2="${pose.lU[3]}" stroke-width="10" stroke="${skin}" stroke-linecap="round"/>
+    <line class="avatar-arm" x1="${pose.lF[0]}" y1="${pose.lF[1]}" x2="${pose.lF[2]}" y2="${pose.lF[3]}" stroke-width="8" stroke="${skinD}" stroke-linecap="round"/>
+    <line class="avatar-arm" x1="${pose.rU[0]}" y1="${pose.rU[1]}" x2="${pose.rU[2]}" y2="${pose.rU[3]}" stroke-width="10" stroke="${skin}" stroke-linecap="round"/>
+    <line class="avatar-arm" x1="${pose.rF[0]}" y1="${pose.rF[1]}" x2="${pose.rF[2]}" y2="${pose.rF[3]}" stroke-width="8" stroke="${skinD}" stroke-linecap="round"/>
+    ${wristSVG}
+    <!-- Torso -->
+    <rect x="40" y="36" width="20" height="26" rx="6" fill="${skin}"/>
+    ${female ? `<rect x="41" y="38" width="18" height="12" rx="4" fill="#2a2a3e" opacity="0.7"/>` : ''}
+    ${bodyCosmetic}
+    ${tattooSVG}
+    <!-- Shorts -->
+    <rect x="38" y="60" width="24" height="10" rx="3" fill="#1a1a2e"/>
+    <line x1="50" y1="60" x2="50" y2="70" stroke="#2a2a4e" stroke-width="0.8"/>
+    ${bottomCosmetic}
+    <!-- Legs -->
+    <rect x="39" y="69" width="10" height="20" rx="4" fill="${skin}"/>
+    <rect x="51" y="69" width="10" height="20" rx="4" fill="${skin}"/>
+    ${kneeSVG}
+    <rect x="40" y="87" width="8" height="14" rx="3" fill="${skinD}"/>
+    <rect x="52" y="87" width="8" height="14" rx="3" fill="${skinD}"/>
+    ${feetSVG}
+    <!-- Neck -->
+    <rect x="47" y="30" width="6" height="8" rx="3" fill="${skinD}"/>
+    <!-- Head -->
+    <ellipse cx="50" cy="22" rx="13" ry="14" fill="${skin}"/>
+    ${femaleTopHairSVG}
+    ${bangsSVG}
+    <ellipse cx="45" cy="${female ? 24 : 21}" rx="2" ry="2.2" fill="#2c1810"/>
+    <ellipse cx="55" cy="${female ? 24 : 21}" rx="2" ry="2.2" fill="#2c1810"/>
+    <circle cx="45.8" cy="${female ? 23.2 : 20.2}" r="0.8" fill="#fff"/>
+    <circle cx="55.8" cy="${female ? 23.2 : 20.2}" r="0.8" fill="#fff"/>
+    <path d="M47 ${female ? 30 : 28} Q50 ${female ? 33 : 31} 53 ${female ? 30 : 28}" stroke="${skinD}" stroke-width="0.9" fill="none"/>
+    ${faceTattooSVG}
+    ${headCosmetic}
+  </svg>`;
+}
+
+async function renderLeaderboard(type) {
+  document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.lb-tab[onclick*="${type}"]`)?.classList.add('active');
+
+  const container = document.getElementById('leaderboard-list');
+  const podium = document.getElementById('lb-podium');
+  if (podium) podium.innerHTML = '';
+
+  if (type === 'competition') {
+    renderCompetitionLeaderboard(container);
+    return;
+  }
+
+  checkPeriodXPReset();
+  saveWithPin();
+  const overall = calcOverallLevel(state.muscles);
+  const myXP = overall.level * 1000 + overall.xp;
+  const myWeeklyXP  = state.weeklyXP  || 0;
+  const myMonthlyXP = state.monthlyXP || 0;
+  const myYearlyXP  = state.yearlyXP  || 0;
+
+  const periodXPKey = type === 'weekly' ? '_weeklyXP' : type === 'monthly' ? '_monthlyXP' : '_yearlyXP';
+  const periodStartKey = type === 'weekly' ? '_weeklyXPStart' : type === 'monthly' ? '_monthlyXPStart' : '_yearlyXPStart';
+  const periodStart = type === 'weekly' ? getWeekStart() : type === 'monthly' ? getMonthStart() : getYearStart();
+  const myPeriodXP  = type === 'weekly' ? myWeeklyXP : type === 'monthly' ? myMonthlyXP : myYearlyXP;
+
+  let players = null;
+
+  if (db) {
+    try {
+      container.innerHTML = '<p class="muted" style="text-align:center;padding:16px">Loading...</p>';
+      const snapshot = await db.collection('users').orderBy('_leaderboardXP', 'desc').limit(100).get();
+      players = [];
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (d._private && doc.id !== currentUser) return;
+        const lastActive = d._lastActive || '';
+        // Include users active this period OR who have a matching period start (new tracking)
+        const hasNewTracking = d[periodStartKey] === periodStart;
+        const wasActive = lastActive >= periodStart;
+        if (!hasNewTracking && !wasActive && doc.id !== currentUser) return;
+        // Use new period XP if available and current, else fall back to total XP
+        // Only use period XP if the user has proper period tracking; never fall back to total XP on period boards
+        const pxp = hasNewTracking ? (d[periodXPKey] || 0) : 0;
+        players.push({
+          name: d._leaderboardName || doc.id,
+          xp: pxp,
+          level: d._leaderboardLevel || 1,
+          you: doc.id === currentUser,
+          gender: d._gender || 'male',
+          cosmetics: d._cosmetics || [],
+          hair: d._hair || '',
+          skinTone: d._skinTone ?? 1,
+          hairColor: d._hairColor ?? 0,
+          totalWorkouts: d._totalWorkouts || d.totalWorkouts || 0,
+          currentStreak: d.streak ?? d._currentStreak ?? 0,
+          muscleLevels: d._muscleLevels || (d.muscles ? Object.fromEntries(Object.entries(d.muscles).map(([k, m]) => [k, m?.level || 1])) : {}),
+          activeTitle: d._activeTitle || d.activeTitle || null,
+        });
+      });
+      players.sort((a, b) => b.xp - a.xp);
+
+      const hasMe = players.some(p => p.you);
+      if (!hasMe) players.push({ name: state.name, xp: myPeriodXP, level: overall.level, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair });
+      players.sort((a, b) => b.xp - a.xp);
+    } catch (e) { players = null; }
+  }
+
+  if (!players) {
+    players = [{ name: state.name, xp: myPeriodXP, level: overall.level, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair }];
+  }
+
+  // Always use in-memory period XP for current user (Firebase may be stale until next sync)
+  const myMuscleLevels = Object.fromEntries(Object.keys(MUSCLES).filter(k => k !== 'rest' && k !== 'cardio').map(k => [k, state.muscles?.[k]?.level || 1]));
+  players = players.map(p => p.you ? { ...p, xp: myPeriodXP, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair, skinTone: state.skinTone ?? 1, hairColor: state.hairColor ?? 0, totalWorkouts: state.totalWorkouts || 0, currentStreak: state.streak || 0, muscleLevels: myMuscleLevels, activeTitle: state.activeTitle || null } : p);
+  players.sort((a, b) => b.xp - a.xp);
+
+  checkRankAchievements(type, players);
+  renderPodium(players.slice(0, 3));
+
+  const label = type === 'weekly' ? 'Wk XP' : type === 'monthly' ? 'Mo XP' : 'Yr XP';
+  container.innerHTML = players.map((p, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const pData = encodeURIComponent(JSON.stringify({ name: p.name, level: p.level, xp: p.xp, gender: p.gender, cosmetics: p.cosmetics, hair: p.hair, skinTone: p.skinTone ?? 1, hairColor: p.hairColor ?? 0, totalWorkouts: p.totalWorkouts || 0, currentStreak: p.currentStreak || 0, muscleLevels: p.muscleLevels || {}, activeTitle: p.activeTitle || null, you: p.you }));
+    return `<div class="lb-entry ${p.you ? 'you' : ''}" onclick="MQ.showServiceRecord('${pData}')" style="cursor:pointer">
+      <span class="lb-rank ${rankClass}">#${i + 1}</span>
+      <span class="lb-name">${esc(p.name)}${p.you ? ' (You)' : ''}</span>
+      <span class="lb-xp">${p.xp.toLocaleString()} ${label}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderCompetitionLeaderboard(container) {
+  const podium = document.getElementById('lb-podium');
+  if (podium) podium.innerHTML = '';
+  container.innerHTML = `
+    <div class="comp-subtabs">
+      <button class="comp-stab active" onclick="MQ._compTab('fight',this)">⚔️ Fight</button>
+      <button class="comp-stab" onclick="MQ._compTab('show',this)">💪 Show</button>
+      <button class="comp-stab" onclick="MQ._compTab('sumo',this)">🏋 Sumo</button>
+      <button class="comp-stab" onclick="MQ._compTab('armwrestling',this)">💪 Arm</button>
+    </div>
+    <div id="comp-sub-content"></div>`;
+  _compTab('fight', container.querySelector('.comp-stab'));
+}
+
+async function _compTab(sub, btn) {
+  document.querySelectorAll('.comp-stab').forEach(b => b.classList.remove('active'));
+  btn?.classList.add('active');
+  const sub_container = document.getElementById('comp-sub-content');
+  if (!sub_container) return;
+  if (sub === 'fight')        await renderFightLeaderboard(sub_container);
+  if (sub === 'show')         await renderBBLeaderboard(sub_container);
+  if (sub === 'sumo')         await renderSumoLeaderboard(sub_container);
+  if (sub === 'armwrestling') await renderAWLeaderboard(sub_container);
+}
+
+function renderPodium(top3, sublabelKey) {
+  const podium = document.getElementById('lb-podium');
+  if (!podium) return;
+  if (!top3.length) { podium.innerHTML = ''; return; }
+  podium.innerHTML = `<div class="lb-podium">
+    ${[1, 0, 2].map(pos => {
+      const p = top3[pos];
+      if (!p) return `<div class="podium-slot empty"></div>`;
+      const platH = pos === 0 ? 68 : pos === 1 ? 48 : 32;
+      const medal = pos === 0 ? '🥇' : pos === 1 ? '🥈' : '🥉';
+      const rank = pos === 0 ? 1 : pos === 1 ? 2 : 3;
+      const sub = sublabelKey ? (p[sublabelKey] ?? '') : (p.level ? `Lv.${p.level}` : '');
+      return `<div class="podium-slot rank-${rank}${p.you ? ' podium-you' : ''}">
+        <div class="podium-avatar">${renderMiniAvatarSVG(p.gender || 'male', p.cosmetics || [], pos, p.name || '', p.hair || (p.gender === 'female' ? 'space_buns' : 'default'), p.skinTone ?? p._skinTone ?? 1, p.hairColor ?? p._hairColor ?? 0)}</div>
+        <div class="podium-name">${esc(p.name.length > 8 ? p.name.slice(0,8)+'…' : p.name)}</div>
+        <div class="podium-medal">${medal}</div>
+        <div class="podium-platform" style="height:${platH}px">
+          <span class="podium-rank">#${rank}</span>
+          <span class="podium-lv">${sub}</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+async function renderFightLeaderboard(container) {
+  let fighters = null;
+
+  const myFight = JSON.parse(localStorage.getItem('musclequest_fight') || '{}');
+  const myKOs = myFight.totalKOs || 0;
+  const myHighest = myFight.highestBoss || 0;
+  const myStreak = myFight.streak || 0;
+
+  if (db) {
+    try {
+      container.innerHTML = '<p class="muted" style="text-align:center;padding:16px">Loading...</p>';
+      const snapshot = await db.collection('users')
+        .orderBy('_fightKOs', 'desc')
+        .limit(20)
+        .get();
+      fighters = [];
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (d._private && doc.id !== currentUser) return;
+        if ((d._fightKOs || 0) === 0) return;
+        fighters.push({
+          name: d._leaderboardName || doc.id,
+          kos: d._fightKOs || 0,
+          highest: d._fightHighest || 0,
+          streak: d._fightStreak || 0,
+          you: doc.id === currentUser,
+          gender: d._gender || 'male',
+          cosmetics: d._cosmetics || [],
+        });
+      });
+      const hasMe = fighters.some(f => f.you);
+      if (!hasMe) {
+        fighters.push({ name: state.name, kos: myKOs, highest: myHighest, streak: myStreak, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair });
+      }
+      fighters.sort((a, b) => b.kos - a.kos || b.highest - a.highest);
+    } catch (e) {
+      fighters = null;
+    }
+  }
+
+  if (!fighters) {
+    fighters = [
+      { name: state.name, kos: myKOs, highest: myHighest, streak: myStreak, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair },
+    ];
+  }
+
+  fighters = fighters.map(f => f.you ? { ...f, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair } : f);
+
+  if (fighters.length === 0 || (fighters.length === 1 && fighters[0].kos === 0)) {
+    document.getElementById('lb-podium').innerHTML = '';
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px">No fights recorded yet. Hit the ring!</p>';
+    return;
+  }
+
+  fighters.forEach(f => { f.kosLabel = `${f.kos} KOs`; });
+  renderPodium(fighters.slice(0, 3), 'kosLabel');
+
+  container.innerHTML = fighters.map((f, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    return `<div class="lb-entry ${f.you ? 'you' : ''}">
+      <span class="lb-rank ${rankClass}">#${i + 1}</span>
+      <span class="lb-name">${esc(f.name)}${f.you ? ' (You)' : ''}</span>
+      <span class="lb-xp" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.2">
+        <span>${f.kos} KOs</span>
+        <span style="font-size:10px;color:var(--text-muted)">Best: Lv.${f.highest} · Streak: ${f.streak}</span>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+async function renderBBLeaderboard(container) {
+  let players = null;
+
+  const myBB = JSON.parse(localStorage.getItem('musclequest_bbcomp') || '{}');
+  const myWins = myBB.totalWins || 0;
+  const myComps = myBB.totalComps || 0;
+  const myStreak = myBB.bbStreak || 0;
+
+  if (db) {
+    try {
+      container.innerHTML = '<p class="muted" style="text-align:center;padding:16px">Loading...</p>';
+      const snapshot = await db.collection('users')
+        .orderBy('_bbWins', 'desc')
+        .limit(20)
+        .get();
+      players = [];
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (d._private && doc.id !== currentUser) return;
+        if ((d._bbWins || 0) === 0) return;
+        players.push({
+          name: d._leaderboardName || doc.id,
+          wins: d._bbWins || 0,
+          comps: d._bbComps || 0,
+          streak: d._bbStreak || 0,
+          you: doc.id === currentUser,
+          gender: d._gender || 'male',
+          cosmetics: d._cosmetics || [],
+        });
+      });
+      const hasMe = players.some(p => p.you);
+      if (!hasMe) {
+        players.push({ name: state.name, wins: myWins, comps: myComps, streak: myStreak, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair });
+      }
+      players.sort((a, b) => b.wins - a.wins || b.streak - a.streak);
+    } catch (e) {
+      players = null;
+    }
+  }
+
+  if (!players) {
+    players = [
+      { name: state.name, wins: myWins, comps: myComps, streak: myStreak, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair },
+    ];
+  }
+
+  players = players.map(p => p.you ? { ...p, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair } : p);
+
+  if (players.length === 0 || (players.length === 1 && players[0].wins === 0)) {
+    document.getElementById('lb-podium').innerHTML = '';
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px">No shows recorded yet. Hit the stage!</p>';
+    return;
+  }
+
+  players.forEach(p => { p.winsLabel = `${p.wins} Win${p.wins !== 1 ? 's' : ''}`; });
+  renderPodium(players.slice(0, 3), 'winsLabel');
+
+  container.innerHTML = players.map((p, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    return `<div class="lb-entry ${p.you ? 'you' : ''}">
+      <span class="lb-rank ${rankClass}">#${i + 1}</span>
+      <span class="lb-name">${esc(p.name)}${p.you ? ' (You)' : ''}</span>
+      <span class="lb-xp" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.2">
+        <span>💪 ${p.wins} Win${p.wins !== 1 ? 's' : ''}</span>
+        <span style="font-size:10px;color:var(--text-muted)">Shows: ${p.comps} · Streak: ${p.streak}</span>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+async function renderSumoLeaderboard(container) {
+  let players = null;
+  const myRaw = JSON.parse(localStorage.getItem('musclequest_sumo') || '{}');
+  const myWins = myRaw.wins || 0;
+  const myStreak = myRaw.streak || 0;
+  const myTotal = myRaw.total || 0;
+
+  if (db) {
+    try {
+      container.innerHTML = '<p class="muted" style="text-align:center;padding:16px">Loading...</p>';
+      const snapshot = await db.collection('users').orderBy('_sumoWins', 'desc').limit(20).get();
+      players = [];
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (d._private && doc.id !== currentUser) return;
+        if ((d._sumoWins || 0) === 0) return;
+        players.push({
+          name: d._leaderboardName || doc.id,
+          wins: d._sumoWins || 0,
+          streak: d._sumoStreak || 0,
+          you: doc.id === currentUser,
+          gender: d._gender || 'male',
+          cosmetics: d._cosmetics || [],
+          hair: d._hair || '',
+          _skinTone: d._skinTone ?? 1,
+          _hairColor: d._hairColor ?? 0,
+        });
+      });
+      if (!players.some(p => p.you)) {
+        players.push({ name: state.name, wins: myWins, streak: myStreak, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair });
+      }
+      players.sort((a, b) => b.wins - a.wins || b.streak - a.streak);
+    } catch(e) { players = null; }
+  }
+
+  if (!players) {
+    players = [{ name: state.name, wins: myWins, streak: myStreak, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair }];
+  }
+  players = players.map(p => p.you ? { ...p, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair } : p);
+
+  if (!players.some(p => p.wins > 0)) {
+    document.getElementById('lb-podium').innerHTML = '';
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px">No sumo wins yet. Step into the ring!</p>';
+    return;
+  }
+
+  players.forEach(p => { p.winsLabel = `${p.wins} Win${p.wins !== 1 ? 's' : ''}`; });
+  renderPodium(players.slice(0, 3), 'winsLabel');
+
+  container.innerHTML = players.map((p, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    return `<div class="lb-entry ${p.you ? 'you' : ''}">
+      <span class="lb-rank ${rankClass}">#${i + 1}</span>
+      <span class="lb-name">${esc(p.name)}${p.you ? ' (You)' : ''}</span>
+      <span class="lb-xp" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.2">
+        <span>🏋 ${p.wins} Win${p.wins !== 1 ? 's' : ''}</span>
+        <span style="font-size:10px;color:var(--text-muted)">Streak: ${p.streak}${p.you ? ` · Total: ${myTotal}` : ''}</span>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+async function renderAWLeaderboard(container) {
+  let players = null;
+  const myRaw = JSON.parse(localStorage.getItem('musclequest_aw') || '{}');
+  const myWins = myRaw.wins || 0;
+  const myStreak = myRaw.streak || 0;
+  const myTotal = myRaw.total || 0;
+
+  if (db) {
+    try {
+      container.innerHTML = '<p class="muted" style="text-align:center;padding:16px">Loading...</p>';
+      const snapshot = await db.collection('users').orderBy('_awWins', 'desc').limit(20).get();
+      players = [];
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (d._private && doc.id !== currentUser) return;
+        if ((d._awWins || 0) === 0) return;
+        players.push({
+          name: d._leaderboardName || doc.id,
+          wins: d._awWins || 0,
+          streak: d._awStreak || 0,
+          you: doc.id === currentUser,
+          gender: d._gender || 'male',
+          cosmetics: d._cosmetics || [],
+          hair: d._hair || '',
+          _skinTone: d._skinTone ?? 1,
+          _hairColor: d._hairColor ?? 0,
+        });
+      });
+      if (!players.some(p => p.you)) {
+        players.push({ name: state.name, wins: myWins, streak: myStreak, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair });
+      }
+      players.sort((a, b) => b.wins - a.wins || b.streak - a.streak);
+    } catch(e) { players = null; }
+  }
+
+  if (!players) {
+    players = [{ name: state.name, wins: myWins, streak: myStreak, you: true, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair }];
+  }
+  players = players.map(p => p.you ? { ...p, gender: state.gender, cosmetics: state.equippedCosmetics, hair: state.hair } : p);
+
+  if (players.length === 0 || (players.length === 1 && players[0].wins === 0)) {
+    document.getElementById('lb-podium').innerHTML = '';
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:32px">No arm wrestling wins yet. Grip the table!</p>';
+    return;
+  }
+
+  players.forEach(p => { p.winsLabel = `${p.wins} Win${p.wins !== 1 ? 's' : ''}`; });
+  renderPodium(players.slice(0, 3), 'winsLabel');
+
+  container.innerHTML = players.map((p, i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    return `<div class="lb-entry ${p.you ? 'you' : ''}">
+      <span class="lb-rank ${rankClass}">#${i + 1}</span>
+      <span class="lb-name">${esc(p.name)}${p.you ? ' (You)' : ''}</span>
+      <span class="lb-xp" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.2">
+        <span>💪 ${p.wins} Win${p.wins !== 1 ? 's' : ''}</span>
+        <span style="font-size:10px;color:var(--text-muted)">Streak: ${p.streak}${p.you ? ` · Total: ${myTotal}` : ''}</span>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function showLeaderboard(type) { renderLeaderboard(type); }
+
+function showServiceRecord(pDataEncoded) {
+  const p = JSON.parse(decodeURIComponent(pDataEncoded));
+  document.getElementById('service-record-modal')?.remove();
+
+  // Rank title based on level
+  const rankTitles = ['Recruit','Private','Corporal','Sergeant','Staff Sergeant','Gunnery Sergeant','Master Sergeant','Sergeant Major','Lieutenant','Captain','Major','Lieutenant Colonel','Colonel','Brigadier General','Major General','Lieutenant General','General','5 Star General'];
+  const rankTitle = rankTitles[Math.min(p.level - 1, rankTitles.length - 1)] || 'Recruit';
+
+  // Build mini avatar SVG using the player's stored cosmetics
+  const avatarSVG = renderMiniAvatarSVG(
+    p.gender || 'male', p.cosmetics || [], 0, p.name || '',
+    p.hair || 'default', p.skinTone ?? 1, p.hairColor ?? 0, null, 1
+  );
+
+  // Muscle levels grid — show top muscles
+  const muscleOrder = ['chest','back','shoulders','biceps','triceps','abs','quads','hamstrings','glutes','calves'];
+  const ml = p.muscleLevels || {};
+  const hasLevels = Object.keys(ml).length > 0;
+  const muscleGrid = muscleOrder.map(k => {
+    const info = MUSCLES[k];
+    if (!info) return '';
+    const lv = ml[k];
+    const display = hasLevels ? `<div style="font-size:15px;font-weight:700;color:${info.color}">Lv.${lv || 1}</div>` : `<div style="font-size:13px;color:#444">—</div>`;
+    return `<div style="text-align:center;padding:6px 4px;background:#ffffff08;border-radius:8px">
+      <div style="font-size:9px;color:#888;margin-bottom:2px">${info.name}</div>
+      ${display}
+    </div>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'service-record-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.82);padding:16px';
+  modal.innerHTML = `
+    <div style="background:#0e1120;border:1px solid #2a2d4a;border-radius:4px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 12px 60px rgba(0,0,0,0.9)">
+      <!-- Header bar -->
+      <div style="background:#1a1d35;border-bottom:2px solid #7c4dff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:#7c4dff;letter-spacing:1px">SERVICE RECORD</div>
+        <button onclick="document.getElementById('service-record-modal').remove()" style="background:none;border:none;color:#888;font-size:20px;cursor:pointer;line-height:1;padding:0">×</button>
+      </div>
+      <!-- Main content -->
+      <div style="display:flex;gap:0;min-height:160px">
+        <!-- Left: info -->
+        <div style="flex:1;padding:16px 16px 16px 16px">
+          <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:2px">${esc(p.name)}</div>
+          ${p.activeTitle ? `<div style="font-size:11px;color:#ffd700;font-weight:600;font-style:italic;margin-bottom:2px">"${esc(p.activeTitle)}"</div>` : ''}
+          <div style="font-size:11px;color:#7c4dff;font-weight:600;margin-bottom:10px">${rankTitle} · Level ${p.level}</div>
+          <div style="font-size:11px;color:#aaa;line-height:2">
+            <div><span style="color:#666">Total Workouts:</span> <span style="color:#fff;font-weight:600">${(p.totalWorkouts||0).toLocaleString()}</span></div>
+            <div><span style="color:#666">Workout Streak:</span> <span style="color:#ff9800;font-weight:600">${p.currentStreak||0} days 🔥</span></div>
+            <div><span style="color:#666">Period XP:</span> <span style="color:#4caf50;font-weight:600">${(p.xp||0).toLocaleString()}</span></div>
+          </div>
+        </div>
+        <!-- Right: avatar -->
+        <div style="width:110px;flex-shrink:0;background:#12152a;display:flex;align-items:center;justify-content:center;border-left:1px solid #1e2240">
+          <div style="width:90px">${avatarSVG}</div>
+        </div>
+      </div>
+      <!-- Divider -->
+      <div style="height:1px;background:#1e2240;margin:0 16px"></div>
+      <!-- Muscle grid -->
+      <div style="padding:12px 16px 16px">
+        <div style="font-size:9px;color:#555;letter-spacing:1px;margin-bottom:8px;font-weight:600">MUSCLE LEVELS</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">${muscleGrid}</div>
+      </div>
+      ${p.you ? '<div style="padding:0 16px 12px;font-size:10px;color:#4a4a6a;text-align:center">This is you</div>' : ''}
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function checkRankAchievements(type, players) {
+  // Only record that the user held #1 this period — the achievement is awarded
+  // when the period actually ends (handled in checkPeriodXPReset).
+  const me = players.find(p => p.you);
+  if (!me) return;
+  if (players.indexOf(me) !== 0) return;
+  let field = null;
+  if (type === 'weekly')  field = '_pendingRank1Weekly';
+  if (type === 'monthly') field = '_pendingRank1Monthly';
+  if (type === 'yearly')  field = '_pendingRank1Yearly';
+  if (!field) return;
+  const periodStart = type === 'weekly' ? getWeekStart() : type === 'monthly' ? getMonthStart() : getYearStart();
+  if (state[field] !== periodStart) {
+    state[field] = periodStart;
+    saveWithPin();
+  }
+}
+
+// ─── Modals ───
+function showLevelUp(text, rewards) {
+  document.getElementById('level-up-text').textContent = text;
+  document.getElementById('level-up-rewards').textContent = rewards || '';
+  document.getElementById('level-up-modal').classList.remove('hidden');
+}
+function closeLevelUp() { document.getElementById('level-up-modal').classList.add('hidden'); }
+
+function showAchievement(a) {
+  const icon = document.getElementById('achievement-icon');
+  icon.innerHTML = a.icon;
+  icon.classList.remove('quest-pop');
+  void icon.offsetWidth;
+  icon.classList.add('quest-pop');
+  document.getElementById('achievement-text').textContent = `${a.name} — ${a.desc}`;
+  setTimeout(() => document.getElementById('achievement-modal').classList.remove('hidden'), 500);
+}
+function closeAchievement() { document.getElementById('achievement-modal').classList.add('hidden'); }
+
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = `toast ${type || ''}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// ─── Debug: animation previews ───
+// Console-only. The recap normally only appears as the tail of a real workout submit and
+// a loot chest only after a raid kill, so both are otherwise impossible to iterate on.
+//
+//   MQ.debugRecap()            demo recap, two muscles level up
+//   MQ.debugRecap('real')      same, but starting from YOUR current muscle levels
+//   MQ.debugRecap(500)         demo recap awarding 500 XP to each muscle shown
+//   MQ.debugLoot()             loot chest, random rarity
+//   MQ.debugLoot('epic')       'common' | 'rare' | 'epic' | 'bloodforged'
+//   MQ.debugLoot('epic','viking','torso')
+//   MQ.debugAnimations(false)  hand REAL workouts/drops back to your system setting
+//
+// The two previews always force the animated path on, because Windows' "Show animations
+// off" accessibility setting makes the app render the instant version — correct in normal
+// use, but it would mean nothing to review here. That flag stays on afterwards, so real
+// submits keep animating too until you call debugAnimations(false); calling a preview
+// again turns it back on.
+let _forceAnimations = false;
+
+function debugAnimations(on) {
+  _forceAnimations = on !== false;
+  toast(`🔧 Debug: animations ${_forceAnimations ? 'forced on' : 'following your system setting'}`);
+}
+
+function debugRecap(mode) {
+  _forceAnimations = true;
+  const useReal = mode === 'real';
+  const flat = Number(mode);
+  const keys = useReal
+    ? Object.keys(MUSCLES).filter(k => k !== 'rest' && k !== 'cardio').slice(0, 4)
+    : ['chest', 'triceps', 'shoulders', 'back'];
+  // Gains are sized to actually cross a level boundary or two, since the level-up flash
+  // is the part worth looking at.
+  const gains = Number.isFinite(flat) && flat > 0
+    ? keys.map(() => Math.round(flat))
+    : [520, 260, 150, 90];
+
+  const rows = keys.map((key, i) => {
+    const m = useReal ? state.muscles[key] : { level: [3, 2, 5, 4][i] || 1, xp: [180, 40, 10, 60][i] || 0 };
+    return {
+      key,
+      name: MUSCLES[key].name,
+      color: MUSCLES[key].color,
+      before: { level: m.level, xp: m.xp },
+      gained: gains[i],
+      levelUps: 0,
+    };
+  });
+
+  const totalXP = rows.reduce((a, r) => a + r.gained, 0);
+  const bo = useReal
+    ? (() => { const o = calcOverallLevel(state.muscles); return { level: o.level, xp: o.xp, xpNeeded: o.xpNeeded }; })()
+    : { level: 3, xp: 100, xpNeeded: 400 };
+  // Fake an overall level-up so the wrap-around on the big bar is visible too.
+  const ao = { level: bo.level + 1, xp: Math.floor(bo.xpNeeded * 0.3), xpNeeded: bo.xpNeeded + 100 };
+
+  showWorkoutRecap({ rows, totalXP, totalGold: Math.round(totalXP * 0.3), beforeOverall: bo, afterOverall: ao },
+    () => toast('🔧 Debug: recap finished — nothing was saved'));
+}
+
+function debugLoot(rarity, setId, slot) {
+  _forceAnimations = true;
+  const tiers = ['common', 'rare', 'epic', 'bloodforged'];
+  let tier = String(rarity || tiers[Math.floor(Math.random() * tiers.length)]).toLowerCase();
+  if (!tiers.includes(tier)) { toast(`Unknown rarity — use ${tiers.join(', ')}`); return; }
+  const variant = tier === 'bloodforged';
+  if (variant) tier = 'epic';
+
+  const setIds = Object.keys(ARMOR_SETS);
+  const useSet = setIds.includes(setId) ? setId : setIds[Math.floor(Math.random() * setIds.length)];
+  const useSlot = ARMOR_SLOTS.includes(slot) ? slot : ARMOR_SLOTS[Math.floor(Math.random() * ARMOR_SLOTS.length)];
+
+  // Preview only — deliberately NOT pushed into state.armorInventory, so poking at this
+  // can't hand you gear you didn't earn.
+  showLootChest(
+    { id: `debug_preview_${Date.now()}`, setId: useSet, slot: useSlot, rarity: tier, variant, obtainedAt: Date.now() },
+    () => toast('🔧 Debug: preview only — no piece was added to your inventory')
+  );
+}
+
+// ─── Workout Recap ───
+// A short cinematic played after a submit: gold and XP count up while every muscle that
+// gained XP fills its own bar, staggered, flashing on each level-up. The toasts still
+// fire — they're deferred until the recap closes so they aren't stranded behind it.
+//
+// Level-ups used to open a modal from inside awardMuscleXP mid-loop, which meant a
+// multi-muscle workout could stack several modals before you saw anything. While a recap
+// is recording, those are suppressed and replayed inside the animation instead.
+let _xpRecording = null;
+
+function _startXPRecording() {
+  const overall = calcOverallLevel(state.muscles);
+  _xpRecording = {
+    muscles: {},
+    bonusGold: 0,
+    beforeOverall: { level: overall.level, xp: overall.xp, xpNeeded: overall.xpNeeded },
+    beforeGold: state.gold,
+  };
+}
+
+function _stopXPRecording(totalXP, totalGold) {
+  const rec = _xpRecording;
+  _xpRecording = null;
+  if (!rec) return null;
+  const after = calcOverallLevel(state.muscles);
+  const rows = Object.entries(rec.muscles)
+    .filter(([, r]) => r.gained > 0)
+    .map(([key, r]) => ({
+      key,
+      name: MUSCLES[key].name,
+      color: MUSCLES[key].color,
+      before: r.before,
+      gained: r.gained,
+      levelUps: r.levelUps,
+    }))
+    .sort((a, b) => b.gained - a.gained);
+  return {
+    rows,
+    totalXP,
+    totalGold,
+    beforeOverall: rec.beforeOverall,
+    afterOverall: { level: after.level, xp: after.xp, xpNeeded: after.xpNeeded },
+  };
+}
+
+// Replays the same level-up loop awardMuscleXP uses, so a partially-filled bar during the
+// animation is always a state the game could actually be in.
+function _simulateMuscleXP(level, xp, addXP) {
+  let l = level, x = xp + addXP;
+  let needed = xpForMuscleLevel(l);
+  let guard = 0;
+  while (x >= needed && guard++ < 500) { x -= needed; l++; needed = xpForMuscleLevel(l); }
+  return { level: l, xp: x, needed };
+}
+
+const _easeOut = t => 1 - Math.pow(1 - t, 3);
+
+function showWorkoutRecap(recap, done) {
+  const finishAll = () => { const d = done; done = null; if (d) d(); };
+  if (!recap || !recap.rows.length) { finishAll(); return; }
+
+  const reduced = !_forceAnimations && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'wr-overlay';
+  overlay.innerHTML = `
+    <div class="wr-card">
+      <div class="wr-title">Workout Complete</div>
+      <div class="wr-totals">
+        <div class="wr-total xp"><i class="ti ti-bolt"></i><span id="wr-xp">0</span><em>XP</em></div>
+        <div class="wr-total gold"><i class="ti ti-coin"></i><span id="wr-gold">0</span><em>Gold</em></div>
+      </div>
+      <div class="wr-rows">
+        ${recap.rows.map(r => `
+          <div class="wr-row" data-key="${r.key}">
+            <span class="wr-dot" style="background:${r.color}"></span>
+            <span class="wr-name">${esc(r.name)}</span>
+            <span class="wr-lv">Lv.${r.before.level}</span>
+            <span class="wr-gain">+${r.gained.toLocaleString()}</span>
+            <div class="wr-bar"><div class="wr-bar-fill" style="width:0%;background:${r.color}"></div></div>
+          </div>`).join('')}
+      </div>
+      <div class="wr-overall">
+        <div class="wr-overall-head"><span>Overall</span><span class="wr-overall-lv">Lv.${recap.beforeOverall.level}</span></div>
+        <div class="wr-bar big"><div class="wr-bar-fill" id="wr-overall-fill" style="width:0%"></div></div>
+      </div>
+      <button class="wr-action" id="wr-action">Skip</button>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const xpEl = overlay.querySelector('#wr-xp');
+  const goldEl = overlay.querySelector('#wr-gold');
+  const overallFill = overlay.querySelector('#wr-overall-fill');
+  const overallLv = overlay.querySelector('.wr-overall-lv');
+  const actionBtn = overlay.querySelector('#wr-action');
+  const rowEls = [...overlay.querySelectorAll('.wr-row')];
+
+  // Initial bar positions, so the fill visibly starts from where you actually were.
+  recap.rows.forEach((r, i) => {
+    const pct = Math.min(100, (r.before.xp / xpForMuscleLevel(r.before.level)) * 100);
+    rowEls[i].querySelector('.wr-bar-fill').style.width = pct + '%';
+  });
+  const bo = recap.beforeOverall, ao = recap.afterOverall;
+  overallFill.style.width = Math.min(100, (bo.xp / bo.xpNeeded) * 100) + '%';
+
+  const DUR = 1000, STAGGER = 110;
+  const totalDur = DUR + Math.max(0, recap.rows.length - 1) * STAGGER;
+  const lastLevel = recap.rows.map(r => r.before.level);
+  let raf = null, fallbackTimer = null, closed = false, ended = false;
+
+  const paint = (t) => {
+    recap.rows.forEach((r, i) => {
+      const local = Math.max(0, Math.min(1, (t - i * STAGGER) / DUR));
+      const sim = _simulateMuscleXP(r.before.level, r.before.xp, r.gained * _easeOut(local));
+      const el = rowEls[i];
+      el.querySelector('.wr-bar-fill').style.width = Math.min(100, (sim.xp / sim.needed) * 100) + '%';
+      el.querySelector('.wr-lv').textContent = 'Lv.' + sim.level;
+      if (sim.level > lastLevel[i]) {
+        lastLevel[i] = sim.level;
+        el.classList.remove('leveled');
+        void el.offsetWidth;
+        el.classList.add('leveled');
+        playSFX('levelup');
+        flashMuscleGroup(r.key);
+      }
+    });
+    const tt = Math.min(1, t / totalDur);
+    const e = _easeOut(tt);
+    xpEl.textContent = Math.round(recap.totalXP * e).toLocaleString();
+    goldEl.textContent = Math.round(recap.totalGold * e).toLocaleString();
+
+    // Overall bar: if the level went up, run the fill to full, snap back, then settle.
+    const gained = ao.level - bo.level;
+    if (gained <= 0) {
+      const from = (bo.xp / bo.xpNeeded), to = (ao.xp / ao.xpNeeded);
+      overallFill.style.width = Math.min(100, (from + (to - from) * e) * 100) + '%';
+    } else {
+      const seg = 1 / (gained + 1);
+      const idx = Math.min(gained, Math.floor(e / seg));
+      const local = (e - idx * seg) / seg;
+      const from = idx === 0 ? (bo.xp / bo.xpNeeded) : 0;
+      const to = idx === gained ? (ao.xp / ao.xpNeeded) : 1;
+      overallFill.style.width = Math.min(100, (from + (to - from) * local) * 100) + '%';
+      overallLv.textContent = 'Lv.' + (bo.level + idx);
+    }
+  };
+
+  const settle = () => {
+    if (ended) return;
+    ended = true;
+    if (raf) cancelAnimationFrame(raf);
+    if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+    paint(totalDur);
+    overallLv.textContent = 'Lv.' + ao.level;
+    xpEl.textContent = recap.totalXP.toLocaleString();
+    goldEl.textContent = recap.totalGold.toLocaleString();
+    actionBtn.textContent = 'Continue';
+    actionBtn.classList.add('done');
+    // Auto-dismiss so a daily submit isn't gated on a tap, but leave long enough to read.
+    setTimeout(close, 2400);
+  };
+
+  function close() {
+    if (closed) return;
+    closed = true;
+    if (raf) cancelAnimationFrame(raf);
+    if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+    overlay.classList.add('closing');
+    setTimeout(() => { overlay.remove(); finishAll(); }, 200);
+  }
+
+  actionBtn.addEventListener('click', e => { e.stopPropagation(); ended ? close() : settle(); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) { ended ? close() : settle(); } });
+
+  if (reduced) { settle(); return; }
+
+  playSFX('coin');
+  // Driven by rAF for smoothness, with a timer fallback behind it. rAF is paused
+  // entirely while a tab is backgrounded or not compositing, and without the fallback a
+  // submit made just before switching apps would leave the overlay stuck and never run
+  // the completion callback that refreshes the dashboard.
+  const start = performance.now();
+  let lastPaintT = -1;
+  const tick = () => {
+    const t = performance.now() - start;
+    lastPaintT = t;
+    paint(t);
+    if (t >= totalDur) settle();
+  };
+  const frame = () => {
+    if (ended || closed) return;
+    tick();
+    if (!ended) raf = requestAnimationFrame(frame);
+  };
+  raf = requestAnimationFrame(frame);
+  fallbackTimer = setInterval(() => {
+    if (ended || closed) return;
+    if (performance.now() - start - lastPaintT > 90) tick();
+  }, 60);
+}
+
+
+// ─── Loot Chest ───
+// Raid armour used to arrive as a toast that vanished in 2.6 seconds, after a boss that
+// takes most of a month to bring down. This is the payoff: a chest you open yourself,
+// with the reveal weighted by rarity.
+function showLootChest(piece, done) {
+  const finishAll = () => { const d = done; done = null; if (d) d(); };
+  const set = ARMOR_SETS[piece.setId];
+  const rarity = ARMOR_RARITY[piece.rarity];
+  const col = piece.variant ? ARMOR_VARIANT_COLOR.primary : rarity.color;
+  const accent = piece.variant ? ARMOR_VARIANT_COLOR.accent : col;
+  const label = (piece.variant ? 'Bloodforged ' : '') + set.pieces[piece.slot].name;
+  const tierClass = piece.variant ? 'variant' : piece.rarity;
+  const reduced = !_forceAnimations && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const overlay = document.createElement('div');
+  overlay.className = `lc-overlay ${tierClass}`;
+  overlay.style.setProperty('--loot', col);
+  overlay.style.setProperty('--loot-accent', accent);
+  // Particle count scales with rarity, so an epic burst reads as bigger than a common one.
+  const nParticles = piece.variant ? 26 : piece.rarity === 'epic' ? 22 : piece.rarity === 'rare' ? 14 : 9;
+  const particles = Array.from({ length: nParticles }, (_, i) => {
+    const ang = (Math.PI * 2 * i) / nParticles + Math.random() * 0.4;
+    const dist = 70 + Math.random() * 90;
+    return `<span class="lc-particle" style="--tx:${(Math.cos(ang) * dist).toFixed(1)}px;--ty:${(Math.sin(ang) * dist - 30).toFixed(1)}px;--d:${(Math.random() * 0.25).toFixed(2)}s"></span>`;
+  }).join('');
+
+  overlay.innerHTML = `
+    <div class="lc-stage">
+      <div class="lc-beam"></div>
+      <div class="lc-particles">${particles}</div>
+      <div class="lc-chest" id="lc-chest" role="button" tabindex="0" aria-label="Open chest">
+        <svg viewBox="0 0 160 130" class="lc-chest-svg" xmlns="http://www.w3.org/2000/svg">
+          <ellipse class="lc-shadow" cx="80" cy="122" rx="54" ry="7"/>
+          <g class="lc-lid">
+            <path d="M22 58 Q22 22 80 22 Q138 22 138 58 Z" fill="#5a3a1e" stroke="#2e1c0c" stroke-width="3"/>
+            <path d="M22 58 Q22 22 80 22 Q138 22 138 58 Z" fill="none" stroke="var(--loot-accent)" stroke-width="1.5" opacity="0.55"/>
+            <rect x="70" y="30" width="20" height="28" rx="3" fill="#b8860b" stroke="#6b4c06" stroke-width="2"/>
+          </g>
+          <rect class="lc-seam" x="22" y="56" width="116" height="5" fill="var(--loot)"/>
+          <rect x="22" y="58" width="116" height="50" rx="6" fill="#4a2f18" stroke="#2e1c0c" stroke-width="3"/>
+          <rect x="22" y="70" width="116" height="6" fill="#b8860b" opacity="0.85"/>
+          <rect x="70" y="58" width="20" height="26" rx="3" fill="#b8860b" stroke="#6b4c06" stroke-width="2"/>
+          <circle cx="80" cy="72" r="4" fill="#2e1c0c"/>
+        </svg>
+        <div class="lc-tap">Tap to open</div>
+      </div>
+      <div class="lc-reveal">
+        <div class="lc-rarity">${piece.variant ? 'Bloodforged' : esc(rarity.label)}</div>
+        <div class="lc-icon"><i class="ti ${armorIcon(piece.slot)}"></i></div>
+        <div class="lc-name">${esc(label)}</div>
+        <div class="lc-set">${esc(set.name)} set · ${esc(PAPERDOLL_SLOTS[piece.slot].label)}</div>
+        <button class="lc-continue" id="lc-continue">Claim</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const chest = overlay.querySelector('#lc-chest');
+  let opened = false, closed = false;
+
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    overlay.classList.add('closing');
+    setTimeout(() => { overlay.remove(); finishAll(); }, 220);
+  };
+
+  const open = () => {
+    if (opened) return;
+    opened = true;
+    overlay.classList.add('open');
+    playSFX('chest');
+    setTimeout(() => playSFX(piece.variant || piece.rarity === 'epic' ? 'loot-epic' : 'loot'), reduced ? 0 : 420);
+  };
+
+  chest.addEventListener('click', open);
+  chest.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  overlay.querySelector('#lc-continue').addEventListener('click', close);
+
+  if (reduced) open();
+}
+
+// ─── SFX (Web Audio API) ───
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playSFX(type) {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    if (type === 'submit') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+
+    if (type === 'levelup') {
+      [523, 659, 784, 1047].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, now + i * 0.12);
+        gain.gain.setValueAtTime(0.1, now + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.15);
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.15);
+      });
+    }
+
+    // Soft ascending ticks — plays under the gold/XP counters in the workout recap.
+    if (type === 'coin') {
+      [880, 1175, 1568].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.07);
+        gain.gain.setValueAtTime(0.07, now + i * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.07 + 0.12);
+        osc.start(now + i * 0.07); osc.stop(now + i * 0.07 + 0.12);
+      });
+    }
+
+    // Low sawtooth sweep + noise burst — the chest lid dragging open.
+    if (type === 'chest') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(110, now);
+      osc.frequency.exponentialRampToValueAtTime(55, now + 0.45);
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      osc.start(now); osc.stop(now + 0.5);
+
+      const len = Math.floor(ctx.sampleRate * 0.3);
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len) * 0.35;
+      const src = ctx.createBufferSource();
+      const ng = ctx.createGain();
+      src.buffer = buf; src.connect(ng); ng.connect(ctx.destination);
+      ng.gain.setValueAtTime(0.05, now);
+      src.start(now);
+    }
+
+    // Reveal chime. The epic variant adds a shimmering high octave on top.
+    if (type === 'loot' || type === 'loot-epic') {
+      const notes = type === 'loot-epic' ? [523, 659, 784, 1047, 1319] : [523, 784, 1047];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.09);
+        gain.gain.setValueAtTime(0.12, now + i * 0.09);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.09 + 0.55);
+        osc.start(now + i * 0.09); osc.stop(now + i * 0.09 + 0.55);
+      });
+      if (type === 'loot-epic') {
+        const shimmer = ctx.createOscillator();
+        const sg = ctx.createGain();
+        shimmer.connect(sg); sg.connect(ctx.destination);
+        shimmer.type = 'triangle';
+        shimmer.frequency.setValueAtTime(2093, now + 0.35);
+        shimmer.frequency.exponentialRampToValueAtTime(3136, now + 0.9);
+        sg.gain.setValueAtTime(0.05, now + 0.35);
+        sg.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+        shimmer.start(now + 0.35); shimmer.stop(now + 1.0);
+      }
+    }
+
+    if (type === 'streak') {
+      [392, 523, 659].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.1);
+        gain.gain.setValueAtTime(0.12, now + i * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.2);
+        osc.start(now + i * 0.1);
+        osc.stop(now + i * 0.1 + 0.2);
+      });
+    }
+  } catch (e) {}
+}
+
+// ─── Goals & Nutrition ───
+const ACTIVITY_MULTS = {
+  sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9
+};
+const WEEKLY_DEFICITS = {
+  maintain: 0, lose_half: 250, lose_one: 500, lose_one_half: 750
+};
+
+function calcCalorieBudget(g) {
+  if (!g || !g.currentWeight || !g.heightCm || !g.birthYear) return null;
+  const age = new Date().getFullYear() - g.birthYear;
+  const weightKg = g.currentWeight * 0.453592;
+  // Mifflin-St Jeor
+  const bmr = state.gender === 'female'
+    ? 10 * weightKg + 6.25 * g.heightCm - 5 * age - 161
+    : 10 * weightKg + 6.25 * g.heightCm - 5 * age + 5;
+  const tdee = bmr * (ACTIVITY_MULTS[g.activityLevel] || 1.55);
+  const deficit = WEEKLY_DEFICITS[g.weeklyGoal] || 0;
+  return Math.round(tdee - deficit);
+}
+
+function saveGoals() {
+  if (!state.goals) state.goals = {};
+  state.goals.currentWeight = parseFloat(document.getElementById('goal-cur-weight')?.value) || null;
+  state.goals.goalWeight    = parseFloat(document.getElementById('goal-target-weight')?.value) || null;
+  state.goals.heightCm      = parseFloat(document.getElementById('goal-height')?.value) || null;
+  state.goals.birthYear     = parseInt(document.getElementById('goal-birth-year')?.value) || null;
+  state.goals.weeklyGoal    = document.getElementById('goal-weekly')?.value || 'maintain';
+  state.goals.activityLevel = document.getElementById('goal-activity')?.value || 'moderate';
+  state.goals.exerciseGoal  = parseInt(document.getElementById('goal-ex-mins')?.value) || 30;
+  state.goals.startDate     = state.goals.startDate || new Date().toISOString().split('T')[0];
+  saveWithPin();
+  renderGoalsSection();
+  renderNutritionChart();
+}
+
+function renderGoalsSection() {
+  const el = document.getElementById('goals-section');
+  if (!el) return;
+  const g = state.goals || {};
+  const budget = calcCalorieBudget(g);
+  const startStr = g.startDate ? new Date(g.startDate).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—';
+  const lbsToGo = g.currentWeight && g.goalWeight ? Math.abs(g.currentWeight - g.goalWeight).toFixed(1) : null;
+  const WEEKLY_LABELS = { maintain:'Maintain', lose_half:'Lose ½ lb/wk', lose_one:'Lose 1 lb/wk', lose_one_half:'Lose 1½ lb/wk' };
+  const ACT_LABELS = { sedentary:'Sedentary', light:'Lightly Active', moderate:'Moderately Active', active:'Very Active', very_active:'Extremely Active' };
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <label style="font-size:11px;color:var(--text-muted)">Current Weight (lbs)</label>
+        <input type="number" id="goal-cur-weight" class="health-input" style="width:100%;box-sizing:border-box" inputmode="decimal" placeholder="175" value="${g.currentWeight || ''}"/>
+      </div>
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <label style="font-size:11px;color:var(--text-muted)">Goal Weight (lbs)</label>
+        <input type="number" id="goal-target-weight" class="health-input" style="width:100%;box-sizing:border-box" inputmode="decimal" placeholder="165" value="${g.goalWeight || ''}"/>
+      </div>
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <label style="font-size:11px;color:var(--text-muted)">Height (cm)</label>
+        <input type="number" id="goal-height" class="health-input" style="width:100%;box-sizing:border-box" inputmode="decimal" placeholder="178" value="${g.heightCm || ''}"/>
+      </div>
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <label style="font-size:11px;color:var(--text-muted)">Birth Year</label>
+        <input type="number" id="goal-birth-year" class="health-input" style="width:100%;box-sizing:border-box" inputmode="numeric" placeholder="1995" value="${g.birthYear || ''}"/>
+      </div>
+    </div>
+    <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:10px">
+      <label style="font-size:11px;color:var(--text-muted)">Weekly Goal</label>
+      <select id="goal-weekly" style="width:100%;padding:8px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+        ${Object.entries(WEEKLY_LABELS).map(([v,l]) => `<option value="${v}" ${g.weeklyGoal===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:10px">
+      <label style="font-size:11px;color:var(--text-muted)">Activity Level</label>
+      <select id="goal-activity" style="width:100%;padding:8px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+        ${Object.entries(ACT_LABELS).map(([v,l]) => `<option value="${v}" ${g.activityLevel===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:4px;margin-bottom:14px">
+      <label style="font-size:11px;color:var(--text-muted)">🏃 Daily Exercise Goal (minutes)</label>
+      <input type="number" id="goal-ex-mins" class="health-input" style="width:100%;box-sizing:border-box" inputmode="numeric" placeholder="30" value="${g.exerciseGoal ?? 30}"/>
+      <span style="font-size:10px;color:var(--text-muted)">Synced automatically via the Health Shortcut → fills your exercise ring</span>
+    </div>
+    <button class="btn-primary" onclick="MQ.saveGoals()" style="width:100%;margin-bottom:14px">Save Goals</button>
+    ${budget ? `
+    <div style="background:linear-gradient(135deg,#1a1030,#0e1a20);border:1px solid #4a3060;border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Daily Calorie Budget</div>
+      <div style="font-size:36px;font-weight:900;color:#a070ff;line-height:1">${budget.toLocaleString()}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">kcal / day · ${WEEKLY_LABELS[g.weeklyGoal]}</div>
+      ${lbsToGo ? `<div style="margin-top:8px;font-size:12px;color:#70d0a0">🎯 ${lbsToGo} lbs to goal · Started ${startStr}</div>` : ''}
+    </div>` : `<div style="color:var(--text-muted);font-size:12px;text-align:center">Fill in all fields above to calculate your calorie budget.</div>`}`;
+}
+
+function renderNutritionChart() {
+  const el = document.getElementById('nutrition-chart');
+  if (!el) return;
+  const g = state.goals || {};
+  const budget = calcCalorieBudget(g);
+
+  if (!budget) {
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:12px;text-align:center;padding:16px">Set your goals in <strong>Settings → Goals & Nutrition</strong> to see your activity rings.</div>`;
+    return;
+  }
+
+  // Food consumed: from Health Sync
+  const foodEaten = Math.round(healthSync?.caloriesConsumed || 0);
+  // Exercise burn: from Health Sync activeCalories
+  const burnCal = Math.round(healthSync?.activeCalories || 0);
+  // Exercise minutes: from Health Sync
+  const exMins = Math.round(healthSync?.exerciseMinutes || 0);
+  // Net budget after burn added back
+  const netBudget = budget + burnCal;
+  // Exercise goal from settings (default 30 min)
+  const exGoal = g.exerciseGoal || 30;
+
+  // SVG arc helper: cx,cy=center, r=radius, pct=0-1, clockwise from top
+  function arc(cx, cy, r, pct, color, strokeW, trailColor) {
+    const circ = 2 * Math.PI * r;
+    const dash = Math.min(pct, 1) * circ;
+    const gap  = circ - dash;
+    return `
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${trailColor}" stroke-width="${strokeW}" opacity=".18"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${strokeW}"
+        stroke-dasharray="${dash.toFixed(1)} ${gap.toFixed(1)}"
+        stroke-linecap="round"
+        transform="rotate(-90 ${cx} ${cy})"/>`;
+  }
+
+  const cx = 100, cy = 100;
+  const burnPct  = Math.min(1, burnCal / Math.max(budget * 0.3, 200)); // burn ring vs 30% of budget as reference
+  const foodPct  = foodEaten / netBudget; // allow > 1 for lap logic
+  const exPct    = Math.min(1, exMins / exGoal);
+
+  const overBudget = foodEaten > netBudget;
+  // Food ring: green up to budget, then laps in orange if over
+  const foodColor = overBudget ? '#ff9f0a' : '#30d158';
+  const foodRingPct = overBudget ? (foodPct % 1 || 1) : foodPct; // lap: show remainder
+
+  const svgRings = `
+    ${arc(cx,cy, 80, burnPct,    '#ff375f', 14, '#ff375f')}
+    ${arc(cx,cy, 62, foodRingPct, foodColor, 14, '#30d158')}
+    ${arc(cx,cy, 44, exPct,      '#0a84ff', 14, '#0a84ff')}`;
+
+  // Remaining calories label
+  const remaining = netBudget - foodEaten;
+  const centerLabel = overBudget
+    ? [`Over`, `${Math.abs(remaining).toLocaleString()}`, `kcal over`]
+    : [`Remaining`, `${remaining > 0 ? remaining.toLocaleString() : '0'}`, `kcal left`];
+
+  el.innerHTML = `
+  <div style="display:flex;align-items:center;gap:16px;padding:8px 4px">
+    <!-- Rings SVG -->
+    <svg viewBox="0 0 200 200" width="160" height="160" style="flex-shrink:0">
+      ${svgRings}
+      <!-- Centre text -->
+      <text x="100" y="90" text-anchor="middle" font-size="10" fill="var(--text-muted)" font-family="sans-serif">${centerLabel[0]}</text>
+      <text x="100" y="108" text-anchor="middle" font-size="20" fill="${overBudget ? '#ff9f0a' : 'var(--text)'}" font-family="sans-serif" font-weight="700">${centerLabel[1]}</text>
+      <text x="100" y="122" text-anchor="middle" font-size="9" fill="var(--text-muted)" font-family="sans-serif">${centerLabel[2]}</text>
+    </svg>
+    <!-- Legend -->
+    <div style="display:flex;flex-direction:column;gap:10px;flex:1">
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <div style="width:10px;height:10px;border-radius:50%;background:#ff375f;flex-shrink:0"></div>
+          <span style="font-size:11px;color:var(--text-muted)">Calories burned</span>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:#ff375f;padding-left:16px">${burnCal > 0 ? '+'+burnCal.toLocaleString() : '—'} <span style="font-size:10px;font-weight:400;color:var(--text-muted)">kcal</span></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${foodColor};flex-shrink:0"></div>
+          <span style="font-size:11px;color:var(--text-muted)">Food eaten ${overBudget ? '⚠ over!' : `/ ${netBudget.toLocaleString()}`}</span>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:${foodColor};padding-left:16px">${foodEaten > 0 ? foodEaten.toLocaleString() : '—'} <span style="font-size:10px;font-weight:400;color:var(--text-muted)">kcal</span></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <div style="width:10px;height:10px;border-radius:50%;background:#0a84ff;flex-shrink:0"></div>
+          <span style="font-size:11px;color:var(--text-muted)">Exercise / ${exGoal} min goal</span>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:#0a84ff;padding-left:16px">${exMins > 0 ? exMins : '—'} <span style="font-size:10px;font-weight:400;color:var(--text-muted)">min</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:10px;color:var(--text-muted);padding:0 0 6px">
+    ${foodEaten === 0 && burnCal === 0 ? 'Log food & exercise in <strong>Settings → Health Sync</strong>' : `${foodEaten > 0 ? Math.round((foodEaten/netBudget)*100)+'% of budget used' : 'Log food calories in Health Sync'}${burnCal > 0 ? ` · +${burnCal} burned` : ''}`}
+  </div>`;
+}
+
+// ─── Settings ───
+// The version sits in two places — under the logo on every tab, and at the foot of
+// Settings — and both open the same patch notes. Stamped once at boot so the header
+// is correct before any tab renders.
+function renderVersionLabels() {
+  const h = document.getElementById('header-version');
+  if (h) h.textContent = 'v' + APP_VERSION;
+  const s = document.getElementById('app-version');
+  if (s) s.textContent = 'Version ' + APP_VERSION;
+}
+
+function showPatchNotes() {
+  const existing = document.getElementById('patch-notes-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'patch-notes-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);padding:20px';
+  const body = PATCH_NOTES.map(entry => `
+    <div style="margin-bottom:16px">
+      <div style="font-size:14px;font-weight:700;color:var(--gold);margin-bottom:6px">v${entry.version}</div>
+      <ul style="margin:0;padding-left:18px;color:var(--text);font-size:13px;line-height:1.6">
+        ${entry.notes.map(n => `<li>${esc(n)}</li>`).join('')}
+      </ul>
+    </div>`).join('');
+  modal.innerHTML = `
+    <div style="background:#1a1d2e;border-radius:18px;width:100%;max-width:380px;max-height:80vh;overflow-y:auto;padding:22px;box-shadow:0 8px 48px rgba(0,0,0,0.85)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:700;color:var(--text)">Patch Notes</div>
+        <button onclick="document.getElementById('patch-notes-modal').remove()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+      ${body}
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function updateName() {
+  state.name = document.getElementById('player-name-input').value || 'Hero';
+  saveWithPin();
+}
+
+function updateGender() {
+  state.gender = document.getElementById('gender-select').value;
+  saveWithPin();
+  renderAvatar();
+}
+
+function toggleRecapAnimation(on) {
+  state.recapAnimation = !!on;
+  saveWithPin();
+  toast(state.recapAnimation ? 'Workout recap on' : 'Workout recap off');
+}
+
+function togglePrivate(on) {
+  state.private = !!on;
+  saveWithPin();
+  toast(state.private ? 'Profile is now private' : 'Profile is now public');
+}
+
+// Called by fight.js when a mini-game (Sumo, Arm Wrestling, Boxing) is won, so those
+// wins actually pay out gold instead of silently no-oping on a function that never existed.
+function addGold(amount) {
+  if (!amount || amount <= 0) return;
+  state.gold += amount;
+  state.totalGold += amount;
+  saveWithPin();
+  toast(`+${amount} Gold`, 'gold');
+  const goldEl = document.getElementById('player-gold');
+  if (goldEl) goldEl.textContent = state.gold;
+}
+
+function renderSkinToneSwatches() {
+  const el = document.getElementById('skin-tone-swatches');
+  if (!el) return;
+  const cur = state.skinTone ?? 1;
+  el.innerHTML = SKIN_TONES.map((t, i) => `
+    <button onclick="MQ.setSkinTone(${i})" title="${t.name}" style="
+      width:32px;height:32px;border-radius:50%;background:${t.s2};border:3px solid ${i === cur ? '#9e7cff' : 'transparent'};
+      cursor:pointer;outline:none;transition:border-color .15s">
+    </button>`).join('');
+}
+
+async function submitHealthForm() {
+  if (!currentUser) { toast('Log in first'); return; }
+  const steps    = parseFloat(document.getElementById('hs-steps')?.value) || 0;
+  const protein  = parseFloat(document.getElementById('hs-protein')?.value) || 0;
+  const foodCal  = parseFloat(document.getElementById('hs-food-cal')?.value) || 0;
+  const cal      = parseFloat(document.getElementById('hs-cal')?.value) || 0;
+  const sleep    = parseFloat(document.getElementById('hs-sleep')?.value) || 0;
+  const exmins   = parseFloat(document.getElementById('hs-exmins')?.value) || 0;
+  const url = `https://firestore.googleapis.com/v1/projects/musclequest-c5052/databases/(default)/documents/healthSync/${currentUser}?key=AIzaSyC6_AVDVbH9cBh304PJOA7cMsTBcyTw5Rc`;
+  const body = JSON.stringify({ fields: {
+    date:              { stringValue: todayStr() },
+    steps:             { doubleValue: steps },
+    protein:           { doubleValue: protein },
+    caloriesConsumed:  { doubleValue: foodCal },
+    activeCalories:    { doubleValue: cal },
+    sleepHours:        { doubleValue: sleep },
+    exerciseMinutes:   { doubleValue: exmins },
+  }});
+  try {
+    const res = await fetch(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await loadHealthSync();
+    const el = document.getElementById('health-sync-setup');
+    if (el) el.innerHTML = getHealthSyncSetupHTML();
+    toast('Health stats saved! ✅');
+  } catch(e) {
+    toast('Save failed: ' + e.message);
+  }
+}
+
+function toggleShortcutGuide() {
+  const el = document.getElementById('shortcut-guide');
+  if (!el) return;
+  const open = el.style.display === 'none';
+  el.style.display = open ? 'block' : 'none';
+  const btn = el.previousElementSibling;
+  if (btn) btn.textContent = open ? '⚡ Hide Shortcut Guide' : '⚡ Automate with iPhone Shortcuts';
+}
+
+async function refreshHealthSync() {
+  toast('Refreshing…');
+  await loadHealthSync();
+  const el = document.getElementById('health-sync-setup');
+  if (el) el.innerHTML = getHealthSyncSetupHTML();
+  toast(healthSync ? 'Health data loaded! ✅' : 'No data found yet');
+}
+
+
+function copyHealthJSON() {
+  const json = '{"fields":{"date":{"stringValue":"myDate"},"steps":{"doubleValue":mySteps},"protein":{"doubleValue":myProtein},"activeCalories":{"doubleValue":myActiveCal},"sleepHours":{"doubleValue":mySleepHours},"exerciseMinutes":{"doubleValue":0}}}';
+  navigator.clipboard.writeText(json).then(() => toast('Copied!'));
+}
+
+function setSkinTone(idx) {
+  state.skinTone = idx;
+  saveWithPin();
+  renderAvatar();
+  renderSkinToneSwatches();
+}
+
+function setHairColor(idx) {
+  state.hairColor = idx;
+  saveWithPin();
+  renderAvatar();
+  if (typeof GainsShop !== 'undefined') GainsShop.refreshBarberPreview();
+}
+
+function resetProgress() {
+  if (confirm('Are you sure? This will delete all progress!')) {
+    const gender = state.gender;
+    state = defaultState();
+    state.gender = gender;
+    state.name = currentUser || 'Hero';
+    // A deliberate wipe is authoritative: the epoch makes every other device adopt this
+    // reset instead of the merge "helpfully" restoring the history that was just
+    // deleted, and the flag lets the shrink guard in _pushToCloud() let it through.
+    state._resetEpoch = Date.now();
+    _shrinkPushAllowed = true;
+    saveWithPin(true);
+    renderDashboard();
+    toast('Progress reset');
+  }
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'musclequest_save.json';
+  a.click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      state = _normalizeLoadedState({ ...defaultState(), ...JSON.parse(e.target.result) });
+      // Same reasoning as resetProgress(): an import is a deliberate whole-account
+      // replacement, so it must win over the cloud's copy rather than be merged with it.
+      state._resetEpoch = Date.now();
+      _shrinkPushAllowed = true;
+      saveWithPin(true);
+      renderDashboard();
+      toast('Data imported!');
+    } catch { toast('Invalid file!'); }
+  };
+  reader.readAsText(file);
+}
+
+// ─── Cosmetics ───
+function getUnlockedCosmetics() {
+  const purchased = state.purchasedCosmetics || [];
+  return COSMETICS.filter(c => state.achievements.includes(c.unlock) || purchased.includes(c.id));
+}
+
+function toggleCosmetic(id) {
+  const cosmetic = COSMETICS.find(c => c.id === id);
+  const purchased = state.purchasedCosmetics || [];
+  if (!cosmetic || (!state.achievements.includes(cosmetic.unlock) && !purchased.includes(id))) return;
+
+  if (!state.equippedCosmetics) state.equippedCosmetics = [];
+
+  const equipped = state.equippedCosmetics.includes(id);
+  if (equipped) {
+    state.equippedCosmetics = state.equippedCosmetics.filter(c => c !== id);
+  } else {
+    state.equippedCosmetics = state.equippedCosmetics.filter(c => {
+      const other = COSMETICS.find(co => co.id === c);
+      return other && other.type !== cosmetic.type;
+    });
+    state.equippedCosmetics.push(id);
+  }
+  saveWithPin();
+  renderAvatar();
+}
+
+// ─── Titles ───
+function setActiveTitle(title) {
+  state.activeTitle = title || null;
+  saveWithPin();
+  // Titles live in the character panel's Title slot now — re-render the panel so the
+  // slot tile, the header subtitle and the picker all update together.
+  if (document.getElementById('character-panel')) renderCharacterPanel();
+  toast(title ? `Title set: "${title}"` : 'Title cleared');
+}
+
+// ─── Eye & Head Tracking ───
+document.addEventListener('mousemove', (e) => {
+  const container = document.getElementById('avatar-container');
+  if (!container) return;
+  const svg = container.querySelector('.avatar-svg');
+  if (!svg) return;
+  const rect = container.getBoundingClientRect();
+  if (!rect.width || !rect.height) return; // container is hidden (e.g. on another tab) — avoid div-by-zero
+  const relX = (e.clientX - rect.left) / rect.width;
+  const relY = (e.clientY - rect.top) / rect.height;
+
+  const eyeMax = 1.8;
+  const eyeDx = (relX - 0.5) * 2 * eyeMax;
+  const eyeDy = Math.max(-eyeMax, Math.min(eyeMax, (relY - 0.25) * 2 * eyeMax));
+
+  const leftEye = svg.querySelector('.eye-left');
+  const rightEye = svg.querySelector('.eye-right');
+  if (leftEye) { leftEye.setAttribute('cx', 92 + eyeDx); leftEye.setAttribute('cy', 77 + eyeDy); }
+  if (rightEye) { rightEye.setAttribute('cx', 110 + eyeDx); rightEye.setAttribute('cy', 77 + eyeDy); }
+
+  const headGroup = svg.querySelector('.head-group');
+  if (headGroup) {
+    const headDx = Math.max(-2.5, Math.min(2.5, (relX - 0.5) * 5));
+    const headDy = Math.max(-1.5, Math.min(1.5, (relY - 0.25) * 3));
+    const headTilt = Math.max(-3, Math.min(3, (relX - 0.5) * 6));
+    headGroup.setAttribute('transform', `translate(${headDx}, ${headDy}) rotate(${headTilt}, 100, 95)`);
+  }
+});
+
+document.addEventListener('touchmove', (e) => {
+  if (!e.touches.length) return;
+  const touch = e.touches[0];
+  document.dispatchEvent(new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY }));
+});
+
+// ─── Init ───
+initFirebase();
+
+
+// ─── Character Panel ───
+// WoW-style paperdoll launched from the single gear button beside the avatar on the
+// Dashboard, so gear changes happen where you can actually see the character instead of
+// buried in Settings. One tile per slot; tapping a tile opens that slot's picker.
+//
+// Each slot's picker opens on its COSMETICS by default and carries an Armor toggle for
+// the slots raid armor can drop into — cosmetics and armor are never dumped into one
+// list, you flip between them for the slot you're looking at.
+//
+// Cosmetics and armor still LAYER — equipping a helm doesn't kick off your headband, the
+// avatar renderer draws both. So a slot can hold two things at once; the tile shows the
+// armor as its main icon with the cosmetic as a corner pip.
+//
+// Title is just another slot tile (bottom right), so it reveals its options on click the
+// same way every other slot does rather than sitting open as its own section.
+//
+// No preview/confirm step in here (unlike the Settings list): the panel already shows a
+// full-size avatar that re-renders on every change, so the paperdoll IS the preview.
+//
+// Every icon below is a Tabler webfont class verified present in the version index.html
+// pins (3.31.0) — no text glyphs, so the buttons read as one consistent set.
+const PAPERDOLL_SLOTS = {
+  head:      { label: 'Head',   icon: 'ti-helmet' },
+  neck:      { label: 'Neck',   icon: 'ti-tie' },
+  accessory: { label: 'Back',   icon: 'ti-jacket' },
+  torso:     { label: 'Chest',  icon: 'ti-shirt' },
+  wrist:     { label: 'Wrist',  icon: 'ti-bandage' },
+  waist:     { label: 'Waist',  icon: 'ti-weight' },
+  legs:      { label: 'Legs',   icon: 'ti-run' },
+  feet:      { label: 'Feet',   icon: 'ti-shoe' },
+  body:      { label: 'Body',   icon: 'ti-body-scan' },
+  title:     { label: 'Title',  icon: 'ti-military-rank' },
+};
+const PAPERDOLL_LEFT  = ['head', 'neck', 'accessory', 'torso', 'wrist'];
+const PAPERDOLL_RIGHT = ['waist', 'legs', 'feet', 'body', 'title'];
+
+let _cpTab = 'character';        // 'character' | 'pet' | 'stats'
+let _cpOpenSlot = null;          // which slot's picker is expanded, if any
+let _cpPickerMode = 'cosmetic';  // 'cosmetic' | 'armor' — which subclass the picker shows
+let _cpScrollTo = null;          // one-shot: element id to scroll into view after render
+
+function openCharacterPanel(tab) {
+  _cpTab = tab || 'character';
+  _cpOpenSlot = null;
+  _cpPickerMode = 'cosmetic';
+  let modal = document.getElementById('character-panel');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'character-panel';
+    modal.className = 'cp-overlay';
+    modal.addEventListener('click', e => { if (e.target === modal) closeCharacterPanel(); });
+    document.body.appendChild(modal);
+  }
+  renderCharacterPanel();
+}
+
+function closeCharacterPanel() {
+  const modal = document.getElementById('character-panel');
+  if (modal) modal.remove();
+  _cpOpenSlot = null;
+  // The dashboard avatar is a separate element from the panel's — resync it so any
+  // equip made in here is reflected the moment the panel closes.
+  if (currentTab === 'dashboard') renderDashboard();
+}
+
+function selectCharacterTab(tab) {
+  _cpTab = tab;
+  _cpOpenSlot = null;
+  renderCharacterPanel();
+}
+
+// Everything currently occupying a slot. Used for both the slot tile and the picker's
+// "worn" markers.
+function _cpSlotContents(slot) {
+  const armor = _equippedArmorPiece(slot);
+  const cosmetic = (state.equippedCosmetics || [])
+    .map(id => COSMETICS.find(c => c.id === id))
+    .find(c => c && c.type === slot) || null;
+  return { armor, cosmetic };
+}
+
+function _cpSlotTileHTML(slot) {
+  const info = PAPERDOLL_SLOTS[slot];
+  const isOpen = _cpOpenSlot === slot;
+
+  // The Title tile isn't a wearable slot — it's filled when a title is active.
+  if (slot === 'title') {
+    const on = !!state.activeTitle;
+    return `<button class="cp-slot ${on ? 'filled' : ''} ${isOpen ? 'open' : ''}"
+      style="border-color:${on ? 'var(--gold, #ffd700)' : 'var(--border)'}${on ? '' : ';border-style:dashed'}"
+      onclick="MQ.toggleSlotPicker('title')" title="${on ? esc(state.activeTitle) : 'Title'}">
+      <i class="ti ${info.icon}" style="color:${on ? 'var(--gold, #ffd700)' : 'var(--text-muted)'}"></i>
+    </button>`;
+  }
+
+  const { armor, cosmetic } = _cpSlotContents(slot);
+  let iconHTML, borderColor = 'var(--border)', filled = false;
+  if (armor) {
+    const col = _armorColor(armor).primary;
+    borderColor = col;
+    filled = true;
+    iconHTML = `<i class="ti ${armorIcon(slot)}" style="color:${col}"></i>`;
+  } else if (cosmetic) {
+    borderColor = 'var(--accent, #7c4dff)';
+    filled = true;
+    // Cosmetic icons are a mix of Tabler markup and emoji — render whatever the item
+    // carries so the tile always matches what's shown in the picker.
+    iconHTML = `<span class="cp-slot-cosmetic">${cosmetic.icon}</span>`;
+  } else {
+    iconHTML = `<i class="ti ${info.icon} cp-slot-ghost"></i>`;
+  }
+
+
+  return `<button class="cp-slot ${filled ? 'filled' : ''} ${isOpen ? 'open' : ''}"
+    style="border-color:${borderColor}${filled ? '' : ';border-style:dashed'}"
+    onclick="MQ.toggleSlotPicker('${slot}')" title="${info.label}">
+    ${iconHTML}
+  </button>`;
+}
+
+function toggleSlotPicker(slot) {
+  if (_cpOpenSlot === slot) { _cpOpenSlot = null; }
+  else { _cpOpenSlot = slot; _cpPickerMode = 'cosmetic'; }
+  _cpScrollTo = _cpOpenSlot ? 'cp-picker' : null;
+  renderCharacterPanel();
+}
+
+function setPickerMode(mode) {
+  _cpPickerMode = mode;
+  renderCharacterPanel();
+}
+
+function _cpTitlePickerHTML() {
+  const unlocked = ACHIEVEMENTS.filter(a => a.title && state.achievements.includes(a.id));
+  let tiles;
+  if (!unlocked.length) {
+    tiles = `<p class="cp-picker-empty">No titles yet — unlock achievements to earn titles you can display.</p>`;
+  } else {
+    const none = `<div class="cp-item ${!state.activeTitle ? 'equipped' : ''}" onclick="MQ.setActiveTitle(null)">
+      <span class="cp-item-icon"><i class="ti ti-x"></i></span>
+      <span class="cp-item-name">No Title</span>
+      <span class="cp-item-req">${!state.activeTitle ? '✓ Active' : 'Tap to clear'}</span>
+    </div>`;
+    tiles = `<div class="cp-item-grid">${none}${unlocked.map(a => {
+      const on = state.activeTitle === a.title;
+      return `<div class="cp-item ${on ? 'equipped' : ''}" onclick="MQ.setActiveTitle('${a.title.replace(/'/g, "\\'")}')">
+        <span class="cp-item-icon"><i class="ti ti-military-rank"></i></span>
+        <span class="cp-item-name">"${esc(a.title)}"</span>
+        <span class="cp-item-req">${on ? '✓ Active' : esc(a.name)}</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+  return `<div class="cp-picker" id="cp-picker">
+    <div class="cp-picker-title">
+      <span>Title</span>
+      <button class="cp-picker-close" onclick="MQ.toggleSlotPicker('title')" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+    ${tiles}
+  </div>`;
+}
+
+// One slot's picker. Opens on Cosmetics; slots raid armor can drop into also get an
+// Armor toggle beside it, which swaps the grid over to that slot's armor pieces.
+function _cpSlotPickerHTML(slot) {
+  if (slot === 'title') return _cpTitlePickerHTML();
+
+  const info = PAPERDOLL_SLOTS[slot];
+  const hasArmor = ARMOR_SLOTS.includes(slot);
+  const mode = (hasArmor && _cpPickerMode === 'armor') ? 'armor' : 'cosmetic';
+
+  let grid;
+  if (mode === 'armor') {
+    const pieces = (state.armorInventory || []).filter(p => p.slot === slot);
+    const equipped = _equippedArmorPiece(slot);
+    grid = pieces.length
+      ? `<div class="cp-item-grid">${[...pieces]
+          .sort((a, b) => ARMOR_RARITY[b.rarity].order - ARMOR_RARITY[a.rarity].order)
+          .map(p => {
+            const on = equipped && equipped.id === p.id;
+            const col = p.variant ? ARMOR_VARIANT_COLOR.primary : ARMOR_RARITY[p.rarity].color;
+            const label = (p.variant ? 'Bloodforged ' : '') + ARMOR_SETS[p.setId].pieces[p.slot].name;
+            const style = on
+              ? `background:${col}33;border-color:${col};border-width:2px;box-shadow:0 0 12px ${col}66;`
+              : `border-color:${col}88;`;
+            const click = on ? `MQ.cpUnequipArmor('${p.slot}')` : `MQ.cpEquipArmor('${p.id}')`;
+            return `<div class="cp-item ${on ? 'equipped' : ''}" style="${style}" onclick="${click}">
+              <span class="cp-item-icon" style="color:${col}"><i class="ti ${armorIcon(p.slot)}"></i></span>
+              <span class="cp-item-name" style="${on ? `color:${col};font-weight:800;` : ''}">${esc(label)}</span>
+              <span class="cp-item-req" style="color:${col}">${on ? '✓ Worn' : ARMOR_RARITY[p.rarity].label}</span>
+            </div>`;
+          }).join('')}</div>`
+      : `<p class="cp-picker-empty">No ${info.label.toLowerCase()} armor yet — raid bosses drop it.</p>`;
+  } else {
+    const purchased = state.purchasedCosmetics || [];
+    const isUnlocked = c => state.achievements.includes(c.unlock) || purchased.includes(c.id);
+    const all = COSMETICS.filter(c => c.type === slot);
+    const owned = all.filter(isUnlocked);
+    const locked = all.filter(c => !isUnlocked(c));
+    const ownedTiles = owned.map(c => {
+      const on = (state.equippedCosmetics || []).includes(c.id);
+      return `<div class="cp-item ${on ? 'equipped' : ''}" onclick="MQ.cpToggleCosmetic('${c.id}')">
+        <span class="cp-item-icon">${c.icon}</span>
+        <span class="cp-item-name">${esc(c.name)}</span>
+        <span class="cp-item-req">${on ? '✓ Worn' : 'Tap to wear'}</span>
+      </div>`;
+    }).join('');
+    const lockedTiles = locked.map(c => `<div class="cp-item locked">
+        <span class="cp-item-icon">${c.icon}</span>
+        <span class="cp-item-name">${esc(c.name)}</span>
+        <span class="cp-item-req">${esc(c.desc || 'Locked')}</span>
+      </div>`).join('');
+    grid = (ownedTiles ? `<div class="cp-item-grid">${ownedTiles}</div>` : `<p class="cp-picker-empty">Nothing unlocked for this slot yet.</p>`)
+      + (lockedTiles ? `<div class="cp-picker-head">Locked</div><div class="cp-item-grid">${lockedTiles}</div>` : '');
+  }
+
+  const toggles = hasArmor ? `<div class="cp-modes">
+      <button class="cp-mode ${mode === 'cosmetic' ? 'active' : ''}" onclick="MQ.setPickerMode('cosmetic')" title="Cosmetics"><i class="ti ti-shirt"></i></button>
+      <button class="cp-mode ${mode === 'armor' ? 'active' : ''}" onclick="MQ.setPickerMode('armor')" title="Raid Armor"><i class="ti ti-shield"></i></button>
+    </div>` : '';
+
+  return `<div class="cp-picker" id="cp-picker">
+    <div class="cp-picker-title">
+      <span>${info.label}</span>
+      <div class="cp-picker-tools">
+        ${toggles}
+        <button class="cp-picker-close" onclick="MQ.toggleSlotPicker('${slot}')" title="Close"><i class="ti ti-x"></i></button>
+      </div>
+    </div>
+    ${grid}
+  </div>`;
+}
+
+// These wrap the existing equip functions so the panel re-renders instead of (only) the
+// Settings cosmetics list. The underlying functions still own saving + avatar refresh.
+// Strips every worn cosmetic and armour piece. Items aren't consumed — they stay
+// in your inventory — so this is safe to fire without a confirmation step. The
+// active title is deliberately left alone: it isn't gear.
+let _removeAllArmed = false;
+function removeAllGear() {
+  const worn = (state.equippedCosmetics || []).length + Object.keys(state.equippedArmor || {}).length;
+  if (!worn) { toast('Nothing equipped.'); return; }
+  // First press arms the button and relabels it; a second press within 3s commits.
+  // Nothing is destroyed either way — items return to your inventory — but unequipping
+  // nine slots by accident is still annoying enough to be worth a confirm.
+  if (!_removeAllArmed) {
+    _removeAllArmed = true;
+    renderCharacterPanel();
+    clearTimeout(removeAllGear._t);
+    removeAllGear._t = setTimeout(() => { _removeAllArmed = false; renderCharacterPanel(); }, 3000);
+    return;
+  }
+  clearTimeout(removeAllGear._t);
+  _removeAllArmed = false;
+  state.equippedCosmetics = [];
+  state.equippedArmor = {};
+  saveWithPin();
+  renderAvatar();
+  renderCharacterPanel();
+  toast(`Removed ${worn} item${worn === 1 ? '' : 's'}`);
+}
+
+
+function cpToggleCosmetic(id) { toggleCosmetic(id); renderCharacterPanel(); }
+function cpEquipArmor(id)     { equipArmor(id);     renderCharacterPanel(); }
+function cpUnequipArmor(slot) { unequipArmorSlot(slot); renderCharacterPanel(); }
+
+function _cpCharacterHTML() {
+  const equippedCount = ARMOR_SLOTS.filter(s => _equippedArmorPiece(s)).length;
+  const bonus = getArmorSetBonus();
+  const bonusLine = bonus.active.length
+    ? `<div class="cp-setbonus active"><i class="ti ti-swords"></i> ${bonus.active.map(esc).join(' · ')} — +${Math.round((bonus.xpMult - 1) * 100)}% XP${bonus.goldMult > 1 ? `, +${Math.round((bonus.goldMult - 1) * 100)}% gold` : ''}</div>`
+    : `<div class="cp-setbonus">${equippedCount}/5 armor pieces worn — equip 3 from one set for a bonus.</div>`;
+
+  return `
+    <div class="cp-doll">
+      <div class="cp-doll-col">${PAPERDOLL_LEFT.map(_cpSlotTileHTML).join('')}</div>
+      <div class="cp-doll-center">
+        <div class="avatar-container" id="cp-avatar"></div>
+        <button class="cp-rotate" onclick="MQ.cpRotate()" title="Rotate character"><i class="ti ${avatarView === 'front' ? 'ti-rotate-clockwise' : 'ti-rotate'}"></i></button>
+      </div>
+      <div class="cp-doll-col">${PAPERDOLL_RIGHT.map(_cpSlotTileHTML).join('')}</div>
+    </div>
+    <div class="cp-doll-actions">
+      ${bonusLine}
+      <button class="cp-gear-btn ${state.hideArmor ? 'on' : ''}" onclick="MQ.toggleHideArmor()" title="${state.hideArmor ? 'Show armor on your character' : 'Keep armor equipped and its bonuses, but stop drawing it over your cosmetics'}"><i class="ti ${state.hideArmor ? 'ti-eye-off' : 'ti-eye'}"></i> ${state.hideArmor ? 'Armor Hidden' : 'Hide Armor'}</button>
+      <button class="cp-gear-btn ${_removeAllArmed ? 'armed' : ''}" onclick="MQ.removeAllGear()" title="Unequip everything"><i class="ti ${_removeAllArmed ? 'ti-alert-triangle' : 'ti-eraser'}"></i> ${_removeAllArmed ? 'Tap again' : 'Remove All'}</button>
+    </div>
+    ${_cpOpenSlot ? _cpSlotPickerHTML(_cpOpenSlot) : `<p class="cp-hint">Tap a slot to change what you're wearing. Cosmetics and armor layer — you can wear both.</p>`}`;
+}
+
+function cpRotate() {
+  avatarView = avatarView === 'front' ? 'back' : 'front';
+  renderCharacterPanel();
+  syncAvatarToggleIcon();
+}
+
+// ── Pet tab ──
+// Adds a real active-companion choice. Before this, renderPetCompanion() just cycled the
+// owned pets on a timer with no way to pick — state.activePet now pins one.
+function setActivePet(petId) {
+  state.activePet = state.activePet === petId ? null : petId;
+  saveWithPin();
+  renderCharacterPanel();
+  renderPetCompanion();
+  toast(state.activePet ? 'Companion set!' : 'Companion cleared — pets will cycle again');
+}
+
+function cpFeedPet(petId) {
+  // Pet food is bought in store.js, which writes straight to localStorage — pull the
+  // fresh count in before spending one so we can't decrement a stale value.
+  syncStateFromStorage();
+  if ((state.petFoodCount || 0) <= 0) { toast('No Animal Chow — buy some at the Pet Store.'); return; }
+  state.petFoodCount--;
+  state.petFedAt = state.petFedAt || {};
+  state.petFedAt[petId] = Date.now();
+  saveWithPin();
+  renderCharacterPanel();
+  const p = (typeof GainsShop !== 'undefined' && GainsShop.PETS) ? GainsShop.PETS.find(x => x.id === petId) : null;
+  toast(`${p ? p.emoji + ' ' + p.name : 'Pet'} is happy! ❤️`);
+}
+
+function _cpPetHTML() {
+  if (typeof GainsShop === 'undefined' || !GainsShop.PETS) return '<p class="cp-hint">Pet data unavailable.</p>';
+  const pets = GainsShop.PETS;
+  const owned = state.pets || {};
+  const fedAt = state.petFedAt || {};
+  const food = state.petFoodCount || 0;
+  const ownedList = pets.filter(p => owned[p.id]);
+  if (!ownedList.length) {
+    return `<p class="cp-hint">You haven't adopted any pets yet. Visit the Pet Store in the Shop tab.</p>`;
+  }
+
+  const tiles = ownedList.map(p => {
+    const isActive = state.activePet === p.id;
+    const hoursSinceFed = fedAt[p.id] ? (Date.now() - fedAt[p.id]) / 3600000 : Infinity;
+    const hungry = hoursSinceFed >= 24;
+    const fedLabel = hoursSinceFed === Infinity ? 'Never fed' : hungry ? 'Hungry' : `Fed ${Math.floor(hoursSinceFed)}h ago`;
+    // The fish lives in the Home Gym tank, not beside the avatar — say so rather than
+    // offering a companion button that would silently do nothing.
+    const canCompany = p.id !== 'fish';
+    return `<div class="cp-pet ${isActive ? 'active' : ''}" style="border-color:${isActive ? p.color : 'var(--border)'}">
+      <div class="cp-pet-emoji">${p.emoji}</div>
+      <div class="cp-pet-body">
+        <div class="cp-pet-name" style="${isActive ? `color:${p.color}` : ''}">${esc(p.name)}${isActive ? ' · Companion' : ''}</div>
+        <div class="cp-pet-status ${hungry ? 'hungry' : ''}">${fedLabel}</div>
+        <div class="cp-pet-actions">
+          ${canCompany
+            ? `<button class="cp-btn" onclick="MQ.setActivePet('${p.id}')">${isActive ? 'Unset' : 'Set Companion'}</button>`
+            : `<span class="cp-pet-note">Lives in the Home Gym tank</span>`}
+          <button class="cp-btn ${food > 0 ? 'primary' : 'disabled'}" onclick="${food > 0 ? `MQ.cpFeedPet('${p.id}')` : ''}">Feed</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const missing = pets.length - ownedList.length;
+  return `
+    <div class="cp-food-bar">Animal Chow: <strong>${food}</strong>${food === 0 ? ' — buy more at the Pet Store' : ''}</div>
+    <div class="cp-pet-list">${tiles}</div>
+    ${missing > 0 ? `<p class="cp-hint">${missing} more pet${missing === 1 ? '' : 's'} available in the Pet Store.</p>` : ''}`;
+}
+
+// ── Stats tab ──
+// Buffs come from five unrelated systems (timed edibles, black-market vials, equipped
+// armor sets, owned home-gym equipment, and today's Apple Health sync) and until now
+// none of them were visible together anywhere.
+function _cpStatGroup(title, icon, rowsHTML, emptyMsg) {
+  return `<div class="cp-stat-group">
+    <div class="cp-stat-title"><i class="ti ${icon}"></i> ${title}</div>
+    ${rowsHTML || `<p class="cp-picker-empty">${emptyMsg}</p>`}
+  </div>`;
+}
+
+function _cpStatsHTML() {
+  const now = Date.now();
+  const rows = [];
+  const fmtLeft = ms => {
+    if (ms <= 0) return 'Expired';
+    const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+    return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
+  };
+
+  const buffs = (state.activeBuffs || []).filter(b => b.expiresAt > now);
+  const itemDefs = (typeof GainsShop !== 'undefined' && GainsShop.ITEMS) ? GainsShop.ITEMS : [];
+  rows.push(_cpStatGroup('Consumables', 'ti-bottle', buffs.map(b => {
+    const def = itemDefs.find(i => i.id === b.id);
+    return `<div class="cp-stat-row">
+      <span class="cp-stat-name">${esc(def ? def.name : b.id)}</span>
+      <span class="cp-stat-val">${esc(def ? def.buff : '')}</span>
+      <span class="cp-stat-time">${fmtLeft(b.expiresAt - now)}</span>
+    </div>`;
+  }).join(''), 'No active supplements. Buy some at the Bodega.'));
+
+  const vial = state.activeVial && state.activeVial.expiresAt > now ? state.activeVial : null;
+  const vialDefs = (typeof GainsShop !== 'undefined' && GainsShop.VIALS) ? GainsShop.VIALS : [];
+  const vialDef = vial ? vialDefs.find(v => v.id === vial.id) : null;
+  rows.push(_cpStatGroup('Vial', 'ti-flask', vial ? `<div class="cp-stat-row">
+      <span class="cp-stat-name" style="${vialDef ? `color:${vialDef.glow}` : ''}">${esc(vialDef ? vialDef.name : 'Vial')}</span>
+      <span class="cp-stat-val">${vial.mult}× XP on every exercise</span>
+      <span class="cp-stat-time">${fmtLeft(vial.expiresAt - now)}</span>
+    </div>` : '', 'No vial active.'));
+
+  const ab = getArmorSetBonus();
+  const armorRows = ab.active.map(name => `<div class="cp-stat-row">
+      <span class="cp-stat-name">${esc(name)}</span>
+      <span class="cp-stat-val">set bonus</span>
+      <span class="cp-stat-time">Permanent</span>
+    </div>`).join('') + ((ab.xpMult > 1 || ab.goldMult > 1) ? `<div class="cp-stat-row total">
+      <span class="cp-stat-name">Total</span>
+      <span class="cp-stat-val">+${Math.round((ab.xpMult - 1) * 100)}% XP${ab.goldMult > 1 ? ` · +${Math.round((ab.goldMult - 1) * 100)}% gold` : ''}</span>
+      <span class="cp-stat-time"></span>
+    </div>` : '');
+  rows.push(_cpStatGroup('Armor Sets', 'ti-shield', armorRows, 'Equip 3+ pieces of one raid set for a bonus.'));
+
+  // Resolved per muscle through the same function the XP math uses, so this table can
+  // never drift from the bonus actually awarded.
+  rows.push(_cpStatGroup('Home Gym', 'ti-barbell', Object.entries(MUSCLES)
+    .filter(([k]) => k !== 'rest')
+    .map(([k, info]) => ({ info, bonus: getEquipmentXPBonus(k) }))
+    .filter(r => r.bonus > 0)
+    .map(r => `<div class="cp-stat-row">
+      <span class="cp-stat-name"><span class="cp-dot" style="background:${r.info.color}"></span>${esc(r.info.name)}</span>
+      <span class="cp-stat-val">+${Math.round(r.bonus * 100)}% XP</span>
+      <span class="cp-stat-time">Home Gym</span>
+    </div>`).join(''), 'Buy equipment at the Iron Depot for permanent per-muscle XP bonuses.'));
+
+  const syncedToday = healthSync && healthSync.date === todayStr();
+  let healthRows = '';
+  if (syncedToday) {
+    const hs = healthSync;
+    healthRows = [
+      [(hs.protein || 0) >= 100,        'Protein ≥ 100g',    '+15% lifting XP'],
+      [(hs.activeCalories || 0) >= 300, 'Active cals ≥ 300', '+10% cardio XP'],
+      [(hs.sleepHours || 0) >= 7,       'Sleep ≥ 7h',        '+100 XP on rest days'],
+      [(hs.steps || 0) >= 8000,         'Steps ≥ 8,000',     '+10 gold'],
+      [(hs.exerciseMinutes || 0) >= 30, 'Exercise ≥ 30 min', '+15 gold'],
+    ].filter(c => c[0]).map(c => `<div class="cp-stat-row">
+      <span class="cp-stat-name">${c[1]}</span>
+      <span class="cp-stat-val">${c[2]}</span>
+      <span class="cp-stat-time">Today</span>
+    </div>`).join('');
+  }
+  rows.push(_cpStatGroup('Health Sync', 'ti-heartbeat', healthRows, syncedToday
+    ? "Today's synced numbers don't hit any bonus thresholds yet."
+    : 'No Health data synced for today.'));
+
+  return rows.join('');
+}
+
+function renderCharacterPanel() {
+  const modal = document.getElementById('character-panel');
+  if (!modal) return;
+  const overall = calcOverallLevel(state.muscles);
+  const TABS = [
+    ['character', 'Character', 'ti-user'],
+    ['pet',       'Pet',       'ti-paw'],
+    ['stats',     'Stats',     'ti-chart-bar'],
+  ];
+
+  let bodyHTML;
+  if (_cpTab === 'pet') bodyHTML = _cpPetHTML();
+  else if (_cpTab === 'stats') bodyHTML = _cpStatsHTML();
+  else bodyHTML = _cpCharacterHTML();
+
+  modal.innerHTML = `
+    <div class="cp-window">
+      <div class="cp-header">
+        <div class="cp-header-text">
+          <div class="cp-name">${esc(state.name || 'Hero')}</div>
+          <div class="cp-sub">Level ${overall.level}${state.activeTitle ? ` · <span class="cp-title-tag">${esc(state.activeTitle)}</span>` : ''}</div>
+        </div>
+        <button class="cp-close" onclick="MQ.closeCharacterPanel()" title="Close"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="cp-body" id="cp-body">${bodyHTML}</div>
+      <div class="cp-tabs">
+        ${TABS.map(([id, label, icon]) => `<button class="cp-tab ${_cpTab === id ? 'active' : ''}" onclick="MQ.selectCharacterTab('${id}')" title="${label}"><i class="ti ${icon}"></i><span>${label}</span></button>`).join('')}
+      </div>
+    </div>`;
+
+  if (_cpTab === 'character') renderAvatar('cp-avatar');
+
+  if (_cpScrollTo) {
+    const target = document.getElementById(_cpScrollTo);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    _cpScrollTo = null;
+  }
+}
+
+renderVersionLabels();
+
+const hasUser = localStorage.getItem('musclequest_current_user');
+if (hasUser) {
+  autoLogin();
+} else {
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+return {
+  showTab, submitWorkout, onMuscleGroupChange, showLeaderboard, _compTab, toggleAvatarView, showPRGraph, showStepsGraph, showServiceRecord,
+  closeLevelUp, closeAchievement, updateName, updateGender, resetProgress,
+  exportData, importData, addExerciseRow, removeExerciseRow, onSplitGroupChange, onSplitChange, quickAddExercise,
+  onEntryMuscleChange, showHistoryTab, changeSetCount,
+  openCustomChallengeCreator, closeCustomChallengeCreator, _ccDraftField, _submitCustomChallenge, joinCustomChallenge, leaveCustomChallenge, cancelCustomChallenge, setCustomChallengeTab, renderCustomChallengesPanel, renderChallengeSummaryCard, toggleChallengesOptIn,
+  cloudSyncNow, retryCloudSync, debugMergeStates: _mergeStates,
+  showVolume, adoptLegendSplit, adoptHomeSplit, deleteSplit, openSplitBuilder, _saveSplitBuilder, _sbAddDay, _sbRemoveDay, _sbChangePreset, _sbToggleEx, _sbToggleMuscle, renderSettingsSplits, cycleSplitDay, shareSplit, importSplitCode, _showImportCode, setActiveTitle, togglePrivate, showMeasurementGraph, _saveMeasurement, _deleteMeasurement, showWeightGraph, _saveWeightEntry, _deleteWeightEntry, createTeam, inviteToTeam, acceptTeamInvite, declineTeamInvite, leaveTeam, showQuestTab, fixMyRole, addGold, kickTeamMember, _kickConfirm, renderGuildHall, createGym, joinGym, leaveGym, setGymMemberRank, kickGymMember, _raidMapWalkAndSelect, _backToRaidMap, showRaidTooltip, hideRaidTooltip,
+  login, logout, toggleCosmetic, selectPose, toggleSettings, toast, syncStateFromStorage, setSkinTone, setHairColor, copyHealthJSON, refreshHealthSync, submitHealthForm, toggleShortcutGuide, checkHealthWriteTest, saveGoals,
+  renderMiniAvatarSVG, getHairSVG, _buildBackAvatarSVG, equipArmor, unequipArmorSlot, debugUnlockEverything, debugSetStreak, debugSetMuscle, debugPreviewPose, debugCheckTeam, debugRepairTeamBoss, cycleHomeCard,
+  openBackdateModal, backdateCalNav, selectBackdateDay, showPatchNotes, renderVersionLabels,
+  debugRecap, debugLoot, debugAnimations,
+  removeAllGear, toggleHideArmor, setHeight, renderHeightScale, toggleRecapAnimation, showWorkoutRecap, showLootChest,
+  openCharacterPanel, closeCharacterPanel, selectCharacterTab, toggleSlotPicker, setPickerMode, cpToggleCosmetic, cpEquipArmor, cpUnequipArmor, cpRotate, setActivePet, cpFeedPet,
+};
+
+})();
